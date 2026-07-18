@@ -51,3 +51,10 @@ export async function requireStaff() {
   }
   return { user, profile };
 }
+
+export async function requireSuperAdmin() {
+  const { user, profile } = await getCurrentProfile();
+  if (!user) redirect("/login");
+  if (!isSuperAdmin(profile?.role as UserRole)) redirect("/admin");
+  return { user, profile };
+}

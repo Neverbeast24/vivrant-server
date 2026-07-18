@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/shell";
-import { getCurrentProfile, isStaff } from "@/lib/auth/roles";
+import { getCurrentProfile, isStaff, isSuperAdmin } from "@/lib/auth/roles";
 import type { UserRole } from "@/lib/types";
 
 export default async function AdminLayout({
@@ -14,7 +14,10 @@ export default async function AdminLayout({
   if (!isStaff(profile?.role as UserRole)) redirect("/dashboard");
 
   return (
-    <AdminShell displayName={profile?.display_name ?? "Admin"}>
+    <AdminShell
+      displayName={profile?.display_name ?? "Admin"}
+      isSuperAdmin={isSuperAdmin(profile?.role as UserRole)}
+    >
       {children}
     </AdminShell>
   );

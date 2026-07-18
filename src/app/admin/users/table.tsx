@@ -6,7 +6,13 @@ import { Copy, ShieldBan, ShieldCheck } from "lucide-react";
 import { ROLE_LABELS, type Profile, type UserRole, type UserStatus } from "@/lib/types";
 import { updateUserRole, updateUserStatus } from "./actions";
 
-export function UsersTable({ users }: { users: Profile[] }) {
+export function UsersTable({
+  users,
+  canManageRoles,
+}: {
+  users: Profile[];
+  canManageRoles: boolean;
+}) {
   return (
     <div className="overflow-hidden rounded-[1.6rem] border border-[#26222f]/8 bg-[#fdfbf4]/85 shadow-sm">
       <div className="overflow-x-auto">
@@ -31,7 +37,11 @@ export function UsersTable({ users }: { users: Profile[] }) {
                 <td className="px-5 py-4 font-bold">{user.display_name}</td>
                 <td className="px-5 py-4 text-[#6f6b79]">{user.email ?? "—"}</td>
                 <td className="px-5 py-4">
-                  <RoleSelect userId={user.user_id} role={user.role} />
+                  <RoleSelect
+                    userId={user.user_id}
+                    role={user.role}
+                    canManage={canManageRoles}
+                  />
                 </td>
                 <td className="px-5 py-4">
                   <StatusSelect userId={user.user_id} status={user.status} />
@@ -95,12 +105,21 @@ function UserActions({ user }: { user: Profile }) {
   );
 }
 
-function RoleSelect({ userId, role }: { userId: string; role: UserRole }) {
+function RoleSelect({
+  userId,
+  role,
+  canManage,
+}: {
+  userId: string;
+  role: UserRole;
+  canManage: boolean;
+}) {
   const [pending, start] = useTransition();
 
   return (
     <select
-      disabled={pending}
+      disabled={pending || !canManage}
+      title={canManage ? "Change role" : "Only Super Admin can change roles"}
       defaultValue={role}
       onChange={(event) => {
         const next = event.target.value as UserRole;

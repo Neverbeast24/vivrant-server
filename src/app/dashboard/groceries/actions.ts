@@ -50,3 +50,35 @@ export async function toggleGroceryItem(id: number, checked: boolean) {
   revalidatePath("/dashboard/groceries");
   return { ok: true, message: "Updated." };
 }
+
+export async function deleteGroceryItem(id: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const { error } = await supabase
+    .from("grocery_items")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/dashboard/groceries");
+  return { ok: true, message: "Item removed." };
+}
+
+export async function clearCompletedGroceries() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const { error } = await supabase
+    .from("grocery_items")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("is_checked", true);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/dashboard/groceries");
+  return { ok: true, message: "Completed items cleared." };
+}

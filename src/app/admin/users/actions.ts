@@ -12,11 +12,8 @@ const statusSchema = z.enum(["active", "suspended"]);
 
 export async function updateUserRole(userId: string, role: UserRole) {
   const { profile } = await getCurrentProfile();
-  if (!isStaff(profile?.role as UserRole)) {
-    return { ok: false, message: "You do not have permission to change roles." };
-  }
-  if (role === "super_admin" && !isSuperAdmin(profile?.role as UserRole)) {
-    return { ok: false, message: "Only Super Admin can assign Super Admin." };
+  if (!isSuperAdmin(profile?.role as UserRole)) {
+    return { ok: false, message: "Only Super Admin can change roles." };
   }
   if (!roleSchema.safeParse(role).success) {
     return { ok: false, message: "Invalid role." };
@@ -41,7 +38,7 @@ export async function updateUserRole(userId: string, role: UserRole) {
 }
 
 export async function updateUserStatus(userId: string, status: UserStatus) {
-  const { profile } = await getCurrentProfile();
+  const { user, profile } = await getCurrentProfile();
   if (!isStaff(profile?.role as UserRole)) {
     return { ok: false, message: "You do not have permission to change status." };
   }
@@ -50,6 +47,17 @@ export async function updateUserStatus(userId: string, status: UserStatus) {
   }
 
   const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (
+    target?.role === "super_admin" &&
+    (!isSuperAdmin(profile?.role as UserRole) || user?.id === userId)
+  ) {
+    return { ok: false, message: "A Super Admin cannot suspend this account." };
+  }
   const { error } = await supabase
     .from("profiles")
     .update({ status })

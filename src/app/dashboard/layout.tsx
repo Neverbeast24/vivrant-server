@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/shell";
-import { isStaff } from "@/lib/auth/roles";
+import { isStaff, isSuperAdmin } from "@/lib/auth/roles";
 import type { UserRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,6 +39,7 @@ export default async function DashboardLayout({
     <DashboardShell
       displayName={displayName}
       isStaff={isStaff(profile?.role as UserRole)}
+      isSuperAdmin={isSuperAdmin(profile?.role as UserRole)}
     >
       {children}
     </DashboardShell>

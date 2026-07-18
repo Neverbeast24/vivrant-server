@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const weekStart = weekAgo.toISOString().slice(0, 10);
   const dayStart = startOfDayIso();
 
-  const [checkinRes, weekRes, expensesRes, mealsRes, workoutsRes] = await Promise.all([
+  const [checkinRes, weekRes, expensesRes, mealsRes, workoutsRes, profileRes] = await Promise.all([
     supabase
       .from("daily_checkins")
       .select("energy, mood, steps, water_ml, sleep_minutes")
@@ -52,6 +52,11 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .gte("logged_at", dayStart),
+    supabase
+      .from("profiles")
+      .select("daily_step_goal, daily_water_goal_ml, health_focus")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   const energyByDate = new Map(
@@ -87,6 +92,9 @@ export default async function DashboardPage() {
         workoutsToday: workoutsRes.count ?? 0,
         weekEnergy,
         hasCheckin: Boolean(checkin),
+        stepGoal: profileRes.data?.daily_step_goal ?? 8000,
+        waterGoalMl: profileRes.data?.daily_water_goal_ml ?? 2400,
+        healthFocus: profileRes.data?.health_focus ?? null,
       }}
     />
   );

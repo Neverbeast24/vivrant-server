@@ -29,6 +29,9 @@ export type TodayData = {
   workoutsToday: number;
   weekEnergy: [string, number][];
   hasCheckin: boolean;
+  stepGoal: number;
+  waterGoalMl: number;
+  healthFocus: string | null;
 };
 
 function formatSleep(minutes: number | null) {
@@ -54,7 +57,7 @@ export function TodayView({ data }: { data: TodayData }) {
 
   const energy = data.energy ?? 0;
   const steps = data.steps ?? 0;
-  const stepGoal = 8000;
+  const stepGoal = data.stepGoal;
   const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
   const sleep = sleepQuality(data.sleepMinutes);
   const activeIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -78,7 +81,7 @@ export function TodayView({ data }: { data: TodayData }) {
       icon: Target,
       label: (data.waterMl ?? 0) >= 1500 ? "Hydration on track" : "Drink more water",
       time: `${(((data.waterMl ?? 0) / 1000) || 0).toFixed(1)}L`,
-      done: (data.waterMl ?? 0) >= 1500,
+      done: (data.waterMl ?? 0) >= data.waterGoalMl,
       href: "/dashboard",
     },
     {
@@ -97,7 +100,9 @@ export function TodayView({ data }: { data: TodayData }) {
         ? "You’re under halfway to your step goal. A brisk 15-minute walk would help."
         : data.mealsToday === 0
           ? "No meals logged yet. Capture breakfast or lunch so VIVA can spot patterns."
-          : "A protein-rich snack now may keep your afternoon energy steady.";
+          : data.healthFocus === "sleep"
+            ? "Protect a consistent bedtime tonight; your sleep focus benefits most from regular timing."
+            : "A protein-rich snack now may keep your afternoon energy steady.";
 
   return (
     <>

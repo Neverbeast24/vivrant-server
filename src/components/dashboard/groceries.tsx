@@ -2,8 +2,13 @@
 
 import { useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Package, ShoppingBasket, Sparkles } from "lucide-react";
-import { addGroceryItem, toggleGroceryItem } from "@/app/dashboard/groceries/actions";
+import { Check, Package, ShoppingBasket, Sparkles, Trash2 } from "lucide-react";
+import {
+  addGroceryItem,
+  clearCompletedGroceries,
+  deleteGroceryItem,
+  toggleGroceryItem,
+} from "@/app/dashboard/groceries/actions";
 import {
   EmptyState,
   FormField,
@@ -32,6 +37,14 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
   function toggle(id: number, checked: boolean) {
     startToggle(async () => {
       const result = await toggleGroceryItem(id, checked);
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
+  function runAction(action: () => Promise<{ ok: boolean; message: string }>) {
+    startToggle(async () => {
+      const result = await action();
       if (result.ok) toast.success(result.message);
       else toast.error(result.message);
     });
@@ -73,35 +86,54 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
           />
         </div>
 
-        <Panel title="Shopping list" className="mt-4">
+        <Panel
+          title="Shopping list"
+          className="mt-4"
+          right={
+            done > 0 ? (
+              <button
+                type="button"
+                disabled={togglePending}
+                onClick={() => runAction(clearCompletedGroceries)}
+                className="text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+              >
+                Clear {done} completed
+              </button>
+            ) : null
+          }
+        >
           <div className="space-y-2">
             <AnimatePresence initial={false}>
               {items.map((item) => (
-                <motion.button
+                <motion.div
                   key={item.id}
                   layout
-                  disabled={togglePending}
-                  onClick={() => toggle(item.id, !item.is_checked)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/45 p-3.5 text-left transition hover:border-[#26222f]/12 hover:bg-[#fdfbf4]"
+                  className="flex w-full items-center gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/45 p-2 text-left transition hover:border-[#26222f]/12 hover:bg-[#fdfbf4]"
                 >
-                  <span
-                    className={`grid size-6 place-items-center rounded-lg border-2 ${
-                      item.is_checked
-                        ? "border-[#26bea9] bg-[#26bea9] text-white"
-                        : "border-[#d4cec0]"
-                    }`}
+                  <button
+                    type="button"
+                    disabled={togglePending}
+                    onClick={() => toggle(item.id, !item.is_checked)}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5"
                   >
-                    {item.is_checked && <Check size={13} />}
-                  </span>
-                  <span
-                    className={`flex-1 text-sm font-bold ${
-                      item.is_checked ? "text-[#a9a4b0] line-through" : ""
-                    }`}
-                  >
-                    {item.name}
-                  </span>
+                    <span className={`grid size-6 place-items-center rounded-lg border-2 ${item.is_checked ? "border-[#26bea9] bg-[#26bea9] text-white" : "border-[#d4cec0]"}`}>
+                      {item.is_checked && <Check size={13} />}
+                    </span>
+                    <span className={`flex-1 text-sm font-bold ${item.is_checked ? "text-[#a9a4b0] line-through" : ""}`}>
+                      {item.name}
+                    </span>
+                  </button>
                   <span className="text-xs text-[#847f8c]">{item.quantity ?? "—"}</span>
-                </motion.button>
+                  <button
+                    type="button"
+                    disabled={togglePending}
+                    onClick={() => runAction(() => deleteGroceryItem(item.id))}
+                    className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                    aria-label={`Delete ${item.name}`}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </motion.div>
               ))}
             </AnimatePresence>
             {!items.length && <EmptyState>Your list is empty.</EmptyState>}

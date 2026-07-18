@@ -25,8 +25,17 @@ export default async function MovementPage() {
       .eq("checkin_date", today)
       .maybeSingle(),
   ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("daily_step_goal")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   return (
-    <MovementView workouts={workoutsRes.data ?? []} steps={checkinRes.data?.steps ?? 0} />
+    <MovementView
+      workouts={workoutsRes.data ?? []}
+      steps={checkinRes.data?.steps ?? 0}
+      stepGoal={profile?.daily_step_goal ?? 8000}
+    />
   );
 }

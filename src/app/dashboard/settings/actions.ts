@@ -36,3 +36,74 @@ export async function saveSettings(formData: FormData) {
   revalidatePath("/dashboard/settings");
   return { ok: true, message: "Settings saved." };
 }
+
+const optionalNumber = (min: number, max: number) =>
+  z.preprocess(
+    (value) => (value === "" || value == null ? null : value),
+    z.coerce.number().min(min).max(max).nullable(),
+  );
+
+const profileSchema = z.object({
+  display_name: z.string().trim().min(1).max(80),
+  birth_date: z.preprocess(
+    (value) => (value === "" || value == null ? null : value),
+    z.string().date().nullable(),
+  ),
+  sex: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z.enum(["female", "male", "non_binary", "prefer_not_to_say"]).nullable(),
+  ),
+  height_cm: optionalNumber(50, 250),
+  weight_kg: optionalNumber(20, 400),
+  goal_weight_kg: optionalNumber(20, 400),
+  activity_level: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z.enum(["sedentary", "light", "moderate", "active", "very_active"]).nullable(),
+  ),
+  health_focus: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z
+      .enum(["general", "weight", "strength", "endurance", "nutrition", "sleep", "stress"])
+      .nullable(),
+  ),
+  daily_step_goal: z.coerce.number().int().min(1000).max(100000),
+  daily_water_goal_ml: z.coerce.number().int().min(250).max(10000),
+  monthly_health_budget: z.coerce.number().min(0).max(10000000),
+  bio: z.string().trim().max(500),
+});
+
+export async function saveHealthProfile(formData: FormData) {
+  const parsed = profileSchema.safeParse({
+    display_name: formData.get("display_name"),
+    birth_date: formData.get("birth_date"),
+    sex: formData.get("sex"),
+    height_cm: formData.get("height_cm"),
+    weight_kg: formData.get("weight_kg"),
+    goal_weight_kg: formData.get("goal_weight_kg"),
+    activity_level: formData.get("activity_level"),
+    health_focus: formData.get("health_focus"),
+    daily_step_goal: formData.get("daily_step_goal"),
+    daily_water_goal_ml: formData.get("daily_water_goal_ml"),
+    monthly_health_budget: formData.get("monthly_health_budget"),
+    bio: formData.get("bio"),
+  });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid profile." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ ...parsed.data, bio: parsed.data.bio || null })
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  return { ok: true, message: "Health profile updated." };
+}

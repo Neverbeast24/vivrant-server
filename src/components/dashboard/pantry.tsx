@@ -1,7 +1,13 @@
 "use client";
 
-import { AlertTriangle, Refrigerator, Tags } from "lucide-react";
-import { addPantryItem } from "@/app/dashboard/pantry/actions";
+import { useTransition } from "react";
+import { AlertTriangle, Minus, Plus, Refrigerator, Tags, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  addPantryItem,
+  deletePantryItem,
+  updatePantryStock,
+} from "@/app/dashboard/pantry/actions";
 import {
   EmptyState,
   FormField,
@@ -24,8 +30,17 @@ type PantryItem = {
 
 export function PantryView({ items }: { items: PantryItem[] }) {
   const { pending, submit } = useModuleAction(addPantryItem);
+  const [updating, startUpdate] = useTransition();
   const lowStock = items.filter((item) => item.stock_level <= 25);
   const categories = new Set(items.map((item) => item.category)).size;
+
+  function runAction(action: () => Promise<{ ok: boolean; message: string }>) {
+    startUpdate(async () => {
+      const result = await action();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
 
   return (
     <>
@@ -97,10 +112,40 @@ export function PantryView({ items }: { items: PantryItem[] }) {
         <Panel title="Stock levels" className="mt-4">
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item.id}>
-                <div className="mb-2 flex justify-between text-sm font-bold">
-                  <span>{item.name}</span>
-                  <span className="text-[#847f8c]">{item.stock_level}%</span>
+              <div key={item.id} className="rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/35 p-3">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black">{item.name}</p>
+                    <p className="mt-0.5 text-[10px] capitalize text-[#918b96]">{item.category}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={updating || item.stock_level <= 0}
+                    onClick={() => runAction(() => updatePantryStock(item.id, Math.max(0, item.stock_level - 10)))}
+                    className="grid size-8 place-items-center rounded-lg bg-white text-[#6f6877] shadow-sm disabled:opacity-40"
+                    aria-label={`Decrease ${item.name} stock`}
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-10 text-center text-xs font-black text-[#847f8c]">{item.stock_level}%</span>
+                  <button
+                    type="button"
+                    disabled={updating || item.stock_level >= 100}
+                    onClick={() => runAction(() => updatePantryStock(item.id, Math.min(100, item.stock_level + 10)))}
+                    className="grid size-8 place-items-center rounded-lg bg-white text-[#5f45e6] shadow-sm disabled:opacity-40"
+                    aria-label={`Increase ${item.name} stock`}
+                  >
+                    <Plus size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => runAction(() => deletePantryItem(item.id))}
+                    className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                    aria-label={`Delete ${item.name}`}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
                 <Progress value={item.stock_level} />
               </div>

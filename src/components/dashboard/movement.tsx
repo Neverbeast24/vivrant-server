@@ -1,7 +1,9 @@
 "use client";
 
-import { Flame, Footprints, Heart, Timer } from "lucide-react";
-import { logWorkout } from "@/app/dashboard/movement/actions";
+import { useTransition } from "react";
+import { Flame, Footprints, Heart, Timer, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { deleteWorkout, logWorkout } from "@/app/dashboard/movement/actions";
 import {
   EmptyState,
   FormField,
@@ -26,14 +28,16 @@ type Workout = {
 export function MovementView({
   workouts,
   steps = 0,
+  stepGoal = 8000,
 }: {
   workouts: Workout[];
   steps?: number;
+  stepGoal?: number;
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
+  const [deleting, startDelete] = useTransition();
   const totalMinutes = workouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
   const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0);
-  const stepGoal = 8000;
   const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
   const effortIndex = Math.min(
     100,
@@ -112,7 +116,24 @@ export function MovementView({
                 title={workout.title}
                 meta={workout.activity_type}
                 right={
-                  <span className="text-xs font-black">{workout.duration_minutes ?? 0} min</span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-xs font-black">{workout.duration_minutes ?? 0} min</span>
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() =>
+                        startDelete(async () => {
+                          const result = await deleteWorkout(workout.id);
+                          if (result.ok) toast.success(result.message);
+                          else toast.error(result.message);
+                        })
+                      }
+                      className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                      aria-label={`Delete ${workout.title}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
                 }
               />
             ))}

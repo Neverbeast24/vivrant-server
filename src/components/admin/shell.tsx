@@ -1,114 +1,164 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  Activity,
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings2,
   Shield,
   Users,
+  X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/dashboard/actions";
 import { CommandSearch } from "@/components/dashboard/command-search";
 
-const nav = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/users", label: "User Management", icon: Users },
-  { href: "/admin/roles", label: "Roles & Permissions", icon: Shield },
-  { href: "/admin/audit", label: "Audit Logs", icon: ClipboardList },
-  { href: "/admin/settings", label: "Settings", icon: Settings2 },
+const baseNav = [
+  { href: "/admin", label: "Overview", caption: "Platform pulse", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Users", caption: "Roles and access", icon: Users },
+  { href: "/admin/roles", label: "Permissions", caption: "Access model", icon: Shield },
+  { href: "/admin/audit", label: "Audit logs", caption: "Admin changes", icon: ClipboardList },
+  { href: "/admin/settings", label: "System", caption: "Service health", icon: Settings2 },
 ];
+
+function activePath(pathname: string, href: string) {
+  return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+}
+
+function AdminNavigation({
+  pathname,
+  collapsed,
+  isSuperAdmin,
+  close,
+}: {
+  pathname: string;
+  collapsed: boolean;
+  isSuperAdmin: boolean;
+  close?: () => void;
+}) {
+  const nav = isSuperAdmin
+    ? [
+        ...baseNav.slice(0, 2),
+        { href: "/admin/activity", label: "Member activity", caption: "All user logs", icon: Activity },
+        ...baseNav.slice(2),
+      ]
+    : baseNav;
+
+  return (
+    <nav className="space-y-1.5">
+      {nav.map((item) => {
+        const active = activePath(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={close}
+            title={collapsed ? item.label : undefined}
+            className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
+              collapsed ? "justify-center px-2" : "gap-3 px-3"
+            } ${active ? "text-white" : "text-[#716d78] hover:bg-white/70"}`}
+          >
+            {active && (
+              <motion.span
+                layoutId={collapsed ? "admin-nav-small" : "admin-nav"}
+                className="absolute inset-0 -z-10 rounded-2xl bg-[#26222f] shadow-lg"
+              />
+            )}
+            <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-white"}`}>
+              <item.icon size={17} />
+            </span>
+            {!collapsed && (
+              <span className="min-w-0">
+                <span className="block text-sm font-black">{item.label}</span>
+                <span className={`block truncate text-[10px] ${active ? "text-white/45" : "text-[#aaa4ae]"}`}>{item.caption}</span>
+              </span>
+            )}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 export function AdminShell({
   displayName,
+  isSuperAdmin,
   children,
 }: {
   displayName: string;
+  isSuperAdmin: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <main className="min-h-screen p-2 sm:p-3">
       <div className="glass mx-auto flex min-h-[calc(100vh-1.5rem)] w-full overflow-hidden rounded-[1.6rem] border border-white/65 shadow-[0_30px_90px_rgba(54,43,34,.14)]">
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-black/5 bg-[#fdfbf4]/68 p-6 lg:flex">
-          <div className="mb-7 flex items-center gap-2" aria-hidden>
-            <span className="size-3 rounded-full bg-[#ff5f57] shadow-inner" />
-            <span className="size-3 rounded-full bg-[#febc2e] shadow-inner" />
-            <span className="size-3 rounded-full bg-[#28c840] shadow-inner" />
+        <motion.aside
+          animate={{ width: collapsed ? 88 : 288 }}
+          transition={{ type: "spring", stiffness: 320, damping: 30 }}
+          className="relative hidden shrink-0 flex-col overflow-hidden border-r border-black/5 bg-[#fdfbf4]/72 p-4 lg:flex"
+        >
+          <div className={`mb-3 flex h-12 items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+            <Brand compact={collapsed} />
+            {!collapsed && (
+              <button type="button" onClick={() => setCollapsed(true)} className="grid size-9 place-items-center rounded-xl text-[#807a88] hover:bg-white" title="Collapse sidebar"><PanelLeftClose size={17} /></button>
+            )}
           </div>
-          <Brand className="mb-8" />
-          <p className="mb-4 text-[10px] font-black tracking-[0.16em] text-[#5f45e6]">
-            ADMIN CONSOLE
-          </p>
-          <nav className="space-y-1">
-            {nav.map((item) => {
-              const active =
-                item.href === "/admin"
-                  ? pathname === "/admin"
-                  : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`focus-ring relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold transition ${
-                    active ? "text-white" : "text-[#716d78] hover:bg-[#fdfbf4]/90"
-                  }`}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="admin-nav"
-                      className="absolute inset-0 -z-10 rounded-xl bg-[#26222f] shadow-lg"
-                    />
-                  )}
-                  <item.icon size={17} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <Link
-            href="/dashboard"
-            className="mt-auto rounded-xl border border-black/8 bg-[#fdfbf4]/85 px-3 py-2.5 text-sm font-bold text-[#5f5a67] transition hover:bg-[#fdfbf4]"
-          >
-            ← Back to dashboard
+          {collapsed ? (
+            <button type="button" onClick={() => setCollapsed(false)} className="mb-4 grid size-10 place-items-center self-center rounded-xl bg-[#eee8dc]" title="Expand sidebar"><PanelLeftOpen size={17} /></button>
+          ) : (
+            <p className="mb-4 px-3 text-[10px] font-black tracking-[0.16em] text-[#5f45e6]">
+              {isSuperAdmin ? "SUPER ADMIN CONSOLE" : "ADMIN CONSOLE"}
+            </p>
+          )}
+          <AdminNavigation pathname={pathname} collapsed={collapsed} isSuperAdmin={isSuperAdmin} />
+          <Link href="/dashboard" title="Back to dashboard" className={`mt-auto rounded-xl border border-black/8 bg-white/65 text-sm font-bold text-[#5f5a67] transition hover:bg-white ${collapsed ? "px-2 py-3 text-center" : "px-3 py-2.5"}`}>
+            {collapsed ? "←" : "← Back to dashboard"}
           </Link>
-        </aside>
+        </motion.aside>
 
         <section className="min-w-0 flex-1 bg-[#f6f1e6]/65">
-          <header className="flex h-20 items-center justify-between gap-3 border-b border-black/5 bg-[#fdfbf4]/35 px-5 backdrop-blur-xl sm:px-8">
-            <div className="flex min-w-0 items-center gap-4">
-              <Brand compact className="lg:hidden" />
-              <CommandSearch />
+          <header className="flex h-20 items-center justify-between gap-3 border-b border-black/5 bg-[#fdfbf4]/35 px-4 backdrop-blur-xl sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <button type="button" onClick={() => setMobileOpen(true)} className="grid size-10 place-items-center rounded-xl bg-[#fdfbf4] shadow-sm lg:hidden" aria-label="Open navigation"><Menu size={18} /></button>
+              <CommandSearch isStaff isSuperAdmin={isSuperAdmin} />
               <div className="hidden xl:block">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#9a94a0]">
-                  Admin session
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#9a94a0]">{isSuperAdmin ? "Super admin" : "Admin"} session</p>
                 <p className="max-w-32 truncate text-xs font-bold">{displayName}</p>
               </div>
             </div>
             <form action={signOut}>
-              <button
-                type="submit"
-                className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#fdfbf4] px-4 py-2 text-sm font-bold shadow-sm"
-              >
-                <LogOut size={15} /> Sign out
+              <button type="submit" className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#fdfbf4] px-4 py-2 text-sm font-bold shadow-sm">
+                <LogOut size={15} /> <span className="hidden sm:inline">Sign out</span>
               </button>
             </form>
           </header>
 
+          <AnimatePresence>
+            {mobileOpen && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] bg-[#191621]/40 backdrop-blur-sm lg:hidden" onMouseDown={(event) => event.target === event.currentTarget && setMobileOpen(false)}>
+                <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="flex h-full w-[min(88vw,20rem)] flex-col bg-[#fdfbf4] p-5">
+                  <div className="mb-5 flex items-center justify-between"><Brand /><button type="button" onClick={() => setMobileOpen(false)} className="grid size-9 place-items-center rounded-xl bg-[#eee8dc]"><X size={17} /></button></div>
+                  <p className="mb-4 text-[10px] font-black tracking-wider text-[#5f45e6]">{isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}</p>
+                  <AdminNavigation pathname={pathname} collapsed={false} isSuperAdmin={isSuperAdmin} close={() => setMobileOpen(false)} />
+                </motion.aside>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="p-5 sm:p-8"
-            >
+            <motion.div key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="p-5 sm:p-8">
               {children}
             </motion.div>
           </AnimatePresence>

@@ -21,7 +21,12 @@ async function buildUserContext(userId: string) {
   const since = dayStartIso();
   const weekStart = weekStartDate();
 
-  const [checkins, meals, workouts, expenses, pantry, groceries] = await Promise.all([
+  const [profile, checkins, meals, workouts, expenses, pantry, groceries] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("birth_date, sex, height_cm, weight_kg, goal_weight_kg, activity_level, health_focus, daily_step_goal, daily_water_goal_ml, monthly_health_budget, bio")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase
       .from("daily_checkins")
       .select("checkin_date, energy, mood, steps, water_ml, sleep_minutes, note")
@@ -66,6 +71,7 @@ async function buildUserContext(userId: string) {
     {
       today: new Date().toISOString().slice(0, 10),
       timezone: "Asia/Manila",
+      health_profile: profile.data ?? null,
       checkins_last_7_days: checkins.data ?? [],
       meals_today: meals.data ?? [],
       workouts_today: workouts.data ?? [],

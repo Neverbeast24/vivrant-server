@@ -1,7 +1,9 @@
 "use client";
 
-import { HeartPulse, TrendingDown, WalletCards } from "lucide-react";
-import { addExpense } from "@/app/dashboard/spending/actions";
+import { useTransition } from "react";
+import { HeartPulse, Trash2, TrendingDown, WalletCards } from "lucide-react";
+import { toast } from "sonner";
+import { addExpense, deleteExpense } from "@/app/dashboard/spending/actions";
 import {
   EmptyState,
   FormField,
@@ -26,11 +28,14 @@ type Expense = {
 export function SpendingView({
   expenses,
   monthlyBudget = 2000,
+  today,
 }: {
   expenses: Expense[];
   monthlyBudget?: number;
+  today: string;
 }) {
   const { pending, submit } = useModuleAction(addExpense);
+  const [deleting, startDelete] = useTransition();
   const total = expenses.reduce((sum, row) => sum + Number(row.amount), 0);
   const remaining = Math.max(0, monthlyBudget - total);
   const remainingPct = monthlyBudget > 0 ? Math.round((remaining / monthlyBudget) * 100) : 0;
@@ -46,7 +51,7 @@ export function SpendingView({
       <PageHeader eyebrow="SPENDING" title="Invest in" highlight="wellbeing." />
 
       <Panel title="Add expense" className="mb-4">
-        <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <FormField label="Expense" hint="Required" className="sm:col-span-2">
             <input name="title" required placeholder="e.g. Weekly groceries" className={fieldClass} />
           </FormField>
@@ -70,7 +75,10 @@ export function SpendingView({
               className={fieldClass}
             />
           </FormField>
-          <PrimaryButton disabled={pending} className="sm:col-span-2 lg:col-span-4">
+          <FormField label="Date">
+            <input name="spent_at" type="date" required defaultValue={today} className={fieldClass} />
+          </FormField>
+          <PrimaryButton disabled={pending} className="sm:col-span-2 lg:col-span-5">
             {pending ? "Saving…" : "Add expense"}
           </PrimaryButton>
         </form>
@@ -114,8 +122,25 @@ export function SpendingView({
                 title={expense.title}
                 meta={expense.category}
                 right={
-                  <span className="text-xs font-black">
-                    ₱{Number(expense.amount).toLocaleString()}
+                  <span className="flex items-center gap-3">
+                    <span className="text-xs font-black">
+                      ₱{Number(expense.amount).toLocaleString()}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() =>
+                        startDelete(async () => {
+                          const result = await deleteExpense(expense.id);
+                          if (result.ok) toast.success(result.message);
+                          else toast.error(result.message);
+                        })
+                      }
+                      className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                      aria-label={`Delete ${expense.title}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </span>
                 }
               />
