@@ -54,19 +54,85 @@ const features = [
   ["Private by design", "Secure access and row-level data protection."],
 ];
 
-const modules = [
-  [ShieldCheck, "Authentication", "Secure access and protected health data."],
-  [Goal, "Goal setup", "Turn wellbeing priorities into clear targets."],
-  [Activity, "Health dashboard", "See daily signals in one calm workspace."],
-  [BrainCircuit, "Decision engine", "Discover the best action to take next."],
-  [Utensils, "Nutrition tracker", "Understand meals beyond simple calories."],
-  [Dumbbell, "Workout tracker", "Build movement around your energy and goals."],
-  [ReceiptText, "Health expenses", "Connect spending decisions with wellbeing."],
-  [Refrigerator, "Smart pantry", "Use what you have and reduce food waste."],
-  [ShoppingBasket, "Grocery planner", "Create healthier, budget-aware lists."],
-  [Sparkles, "AI recommendations", "Receive context-aware daily guidance."],
-  [Bell, "Smart reminders", "Get useful prompts without notification noise."],
-  [UserRound, "Profile & settings", "Keep VIVA personal, private, and adaptable."],
+type Module = {
+  icon: typeof Activity;
+  title: string;
+  copy: string;
+  tag: string;
+  iconClass: string;
+};
+
+const modules: Module[] = [
+  {
+    icon: Utensils,
+    title: "Nutrition tracker",
+    copy: "Understand meals beyond simple calories.",
+    tag: "Track",
+    iconClass: "bg-gradient-to-br from-[#14b8a6] to-[#2dd4bf]",
+  },
+  {
+    icon: Dumbbell,
+    title: "Workout tracker",
+    copy: "Build movement around your energy and goals.",
+    tag: "Track",
+    iconClass: "bg-gradient-to-br from-[#fb7185] to-[#f472b6]",
+  },
+  {
+    icon: ReceiptText,
+    title: "Health expenses",
+    copy: "Connect spending decisions with wellbeing.",
+    tag: "Track",
+    iconClass: "bg-gradient-to-br from-[#f59e0b] to-[#fbbf24]",
+  },
+  {
+    icon: Refrigerator,
+    title: "Smart pantry",
+    copy: "Use what you have and reduce food waste.",
+    tag: "Plan",
+    iconClass: "bg-gradient-to-br from-[#38bdf8] to-[#22d3ee]",
+  },
+  {
+    icon: ShoppingBasket,
+    title: "Grocery planner",
+    copy: "Create healthier, budget-aware lists.",
+    tag: "Plan",
+    iconClass: "bg-gradient-to-br from-[#a3e635] to-[#4ade80]",
+  },
+  {
+    icon: Goal,
+    title: "Goal setup",
+    copy: "Turn wellbeing priorities into clear targets.",
+    tag: "Plan",
+    iconClass: "bg-gradient-to-br from-[#818cf8] to-[#6366f1]",
+  },
+  {
+    icon: Activity,
+    title: "Health dashboard",
+    copy: "See daily signals in one calm workspace.",
+    tag: "Understand",
+    iconClass: "bg-gradient-to-br from-[#7557ff] to-[#9b42ff]",
+  },
+  {
+    icon: Bell,
+    title: "Smart reminders",
+    copy: "Get useful prompts without notification noise.",
+    tag: "Understand",
+    iconClass: "bg-gradient-to-br from-[#fb923c] to-[#f97316]",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Private & secure",
+    copy: "Row-level protection around every record.",
+    tag: "Foundation",
+    iconClass: "bg-gradient-to-br from-[#64748b] to-[#94a3b8]",
+  },
+  {
+    icon: UserRound,
+    title: "Profile & settings",
+    copy: "Keep VIVA personal, private, and adaptable.",
+    tag: "Foundation",
+    iconClass: "bg-gradient-to-br from-[#c084fc] to-[#e879f9]",
+  },
 ];
 
 const scores = [
@@ -292,27 +358,105 @@ export function LandingPage() {
             the context behind your choices.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {modules.map(([Icon, title, copy], index) => {
-            const ModuleIcon = Icon as typeof Activity;
-            return (
-              <motion.article
-                key={title as string}
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-30px" }}
-                transition={{ delay: (index % 4) * 0.05 }}
-                whileHover={{ y: -5 }}
-                className="rounded-[1.5rem] border border-white bg-white/65 p-5 shadow-[0_12px_35px_rgba(43,36,70,.05)] backdrop-blur-xl"
-              >
-                <span className="grid size-10 place-items-center rounded-xl bg-[#f0edff] text-[#7557ff]">
-                  <ModuleIcon size={18} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Featured: decision engine */}
+          <motion.article
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-30px" }}
+            whileHover={{ y: -6 }}
+            className="group relative overflow-hidden rounded-[1.7rem] bg-[#1e1b27] p-6 text-white sm:col-span-2 sm:row-span-2 sm:p-8"
+          >
+            <div className="absolute -right-20 -top-24 size-64 rounded-full bg-[#7557ff]/35 blur-[80px] transition-all duration-700 group-hover:scale-150 group-hover:bg-[#7557ff]/45" />
+            <div className="absolute -bottom-24 -left-16 size-56 rounded-full bg-[#20d8dd]/20 blur-[80px]" />
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black tracking-[0.14em] text-[#b6a8ff]">
+                <BrainCircuit size={13} /> THE BRAIN
+              </span>
+              <h3 className="font-display mt-6 max-w-sm text-3xl leading-tight sm:text-4xl">
+                Decision engine
+              </h3>
+              <p className="mt-4 max-w-md text-sm leading-7 text-white/55">
+                Every module below feeds this engine. It weighs your goals,
+                meals, movement, spending, and pantry to suggest the one action
+                worth taking next — not another chart to read.
+              </p>
+              <div className="mt-8 space-y-2.5">
+                {[
+                  ["Morning walk logged", "Energy trend protected"],
+                  ["Groceries under budget", "₱240 moved to savings"],
+                  ["Protein below target", "Tonight: add one easy swap"],
+                ].map(([signal, action], index) => (
+                  <motion.div
+                    key={signal}
+                    initial={{ opacity: 0, x: -12 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.25 + index * 0.12 }}
+                    className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/6 px-4 py-3 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-white/10"
+                  >
+                    <span className="size-1.5 shrink-0 rounded-full bg-[#49d6d9]" />
+                    <span className="flex-1 text-xs font-semibold text-white/70">{signal}</span>
+                    <ArrowUpRight size={13} className="shrink-0 text-white/30" />
+                    <span className="text-xs font-black text-[#b6a8ff]">{action}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.article>
+
+          {/* Featured: AI recommendations */}
+          <motion.article
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-30px" }}
+            transition={{ delay: 0.08 }}
+            whileHover={{ y: -6 }}
+            className="group relative overflow-hidden rounded-[1.7rem] border border-white bg-gradient-to-br from-[#f2edff] via-white to-[#e8fbf8] p-6 sm:col-span-2"
+          >
+            <div className="flex items-start justify-between">
+              <span className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#7557ff] to-[#b947ee] text-white shadow-lg shadow-[#7557ff]/25 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                <Sparkles size={19} />
+              </span>
+              <span className="rounded-full bg-[#7557ff]/10 px-3 py-1 text-[10px] font-black tracking-wider text-[#6654cc]">
+                DAILY
+              </span>
+            </div>
+            <h3 className="mt-5 text-lg font-black">AI recommendations</h3>
+            <p className="mt-2 max-w-md text-xs leading-6 text-[#77727f]">
+              Context-aware guidance written for your actual day — never a
+              generic tip. It knows Tuesday you is different from Sunday you.
+            </p>
+          </motion.article>
+
+          {modules.map((module, index) => (
+            <motion.article
+              key={module.title}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ delay: (index % 4) * 0.06 }}
+              whileHover={{ y: -6 }}
+              className="group relative overflow-hidden rounded-[1.5rem] border border-white bg-white/65 p-5 shadow-[0_12px_35px_rgba(43,36,70,.05)] backdrop-blur-xl transition-shadow hover:shadow-[0_22px_50px_rgba(43,36,70,.12)]"
+            >
+              <div className="flex items-start justify-between">
+                <span
+                  className={`grid size-10 place-items-center rounded-xl text-white shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${module.iconClass}`}
+                >
+                  <module.icon size={18} />
                 </span>
-                <h3 className="mt-6 text-base font-black">{title as string}</h3>
-                <p className="mt-2 text-xs leading-5 text-[#817c88]">{copy as string}</p>
-              </motion.article>
-            );
-          })}
+                <span className="rounded-full bg-black/4 px-2.5 py-1 text-[9px] font-black tracking-wider text-[#8a8492] transition-colors group-hover:bg-[#7557ff]/10 group-hover:text-[#6654cc]">
+                  {module.tag.toUpperCase()}
+                </span>
+              </div>
+              <h3 className="mt-6 text-base font-black">{module.title}</h3>
+              <p className="mt-2 text-xs leading-5 text-[#817c88]">{module.copy}</p>
+              <ArrowUpRight
+                size={15}
+                className="absolute bottom-5 right-5 text-[#7557ff] opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+              />
+            </motion.article>
+          ))}
         </div>
       </section>
 

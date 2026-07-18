@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +22,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* Opt out of browser forced/auto dark mode, which inverts backgrounds and
+     breaks contrast (e.g. dark text on dark buttons). */
+  color-scheme: light only;
   --ink: #171622;
   --muted: #716f7c;
   --violet: #7557ff;

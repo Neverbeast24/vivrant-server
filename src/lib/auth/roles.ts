@@ -1,5 +1,23 @@
+import { redirect } from "next/navigation";
 import type { UserRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
+
+/**
+ * Returns the signed-in user or redirects to /login. Dashboard pages must use
+ * this instead of `user!` — a stale session otherwise crashes with a 500.
+ */
+export async function requireUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return { supabase, user };
+}
 
 export async function getCurrentProfile() {
   const supabase = await createClient();

@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
 import { NutritionView } from "@/components/dashboard/nutrition";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/roles";
 
 export const metadata: Metadata = { title: "Nutrition" };
 
 export default async function NutritionPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireUser();
   const { data } = await supabase
     .from("nutrition_logs")
     .select("*")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("logged_at", { ascending: false })
     .limit(20);
 

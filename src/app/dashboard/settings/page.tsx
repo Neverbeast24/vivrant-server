@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
 import { SettingsView } from "@/components/dashboard/settings";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/roles";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireUser();
 
   const { data } = await supabase
     .from("user_settings")
     .select("*")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   return (
