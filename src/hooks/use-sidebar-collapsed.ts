@@ -14,12 +14,13 @@ function subscribe(onStoreChange: () => void) {
   };
 }
 
+// Collapsed by default; only an explicit "0" (user pinned it open) expands it.
 function getSnapshot() {
-  return window.localStorage.getItem(STORAGE_KEY) === "1";
+  return window.localStorage.getItem(STORAGE_KEY) !== "0";
 }
 
 function getServerSnapshot() {
-  return false;
+  return true;
 }
 
 export function useSidebarCollapsed() {

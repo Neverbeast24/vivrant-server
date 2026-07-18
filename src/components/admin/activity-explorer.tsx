@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity, Search, UserRound } from "lucide-react";
+import { Activity, LayoutList, PieChart, Search, UserRound } from "lucide-react";
 
 export type MemberOption = {
   user_id: string;
@@ -40,6 +40,7 @@ export function ActivityExplorer({
   const [query, setQuery] = useState("");
   const [memberId, setMemberId] = useState("all");
   const [module, setModule] = useState("all");
+  const [view, setView] = useState<"records" | "reports">("records");
 
   const memberMap = useMemo(
     () => new Map(members.map((member) => [member.user_id, member])),
@@ -59,6 +60,27 @@ export function ActivityExplorer({
   }, [memberId, memberMap, module, query, records]);
 
   const distinctUsers = new Set(filtered.map((record) => record.user_id)).size;
+
+  const moduleReports = useMemo(() => {
+    return moduleLabels
+      .filter((label) => label !== "all")
+      .map((label) => {
+        const rows = filtered.filter((record) => record.module === label);
+        const memberCounts = new Map<string, number>();
+        rows.forEach((record) => {
+          memberCounts.set(record.user_id, (memberCounts.get(record.user_id) ?? 0) + 1);
+        });
+        const top = [...memberCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+        return {
+          module: label,
+          total: rows.length,
+          members: memberCounts.size,
+          topMember: top ? memberMap.get(top[0])?.display_name ?? "Unknown" : null,
+          topCount: top?.[1] ?? 0,
+          latest: rows[0]?.timestamp ?? null,
+        };
+      });
+  }, [filtered, memberMap]);
 
   return (
     <>
@@ -81,7 +103,27 @@ export function ActivityExplorer({
         ))}
       </div>
 
-      <section className="mt-5 rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 p-4 shadow-sm">
+      <div className="mt-5 inline-flex rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4]/90 p-1 shadow-sm">
+        {(
+          [
+            ["records", "Full records", LayoutList],
+            ["reports", "Module reports", PieChart],
+          ] as const
+        ).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setView(key)}
+            className={`focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition ${
+              view === key ? "bg-[#26222f] text-white shadow" : "text-[#6b6675] hover:bg-white"
+            }`}
+          >
+            <Icon size={14} /> {label}
+          </button>
+        ))}
+      </div>
+
+      <section className="mt-4 rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[1fr_14rem_12rem]">
           <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#f4efe4]/60 px-3">
             <Search size={15} className="text-[#8c8793]" />
@@ -124,7 +166,37 @@ export function ActivityExplorer({
         </div>
       </section>
 
-      <section className="mt-5 overflow-hidden rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 shadow-sm">
+      {view === "reports" && (
+        <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {moduleReports.map((report) => (
+            <article
+              key={report.module}
+              className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 p-5 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-[#ece7fb] px-3 py-1 text-[10px] font-black capitalize text-[#5f45e6]">
+                  {report.module}
+                </span>
+                <span className="text-[10px] font-bold text-[#a19ca7]">
+                  {report.latest ? new Date(report.latest).toLocaleDateString() : "No activity"}
+                </span>
+              </div>
+              <p className="font-display mt-4 text-4xl tracking-tight">{report.total}</p>
+              <p className="mt-1 text-xs font-bold text-[#8a8491]">
+                records · {report.members} member{report.members === 1 ? "" : "s"}
+              </p>
+              {report.topMember && (
+                <p className="mt-3 border-t border-black/5 pt-3 text-xs text-[#77727f]">
+                  Most active: <span className="font-black text-[#332f3c]">{report.topMember}</span>{" "}
+                  ({report.topCount})
+                </p>
+              )}
+            </article>
+          ))}
+        </section>
+      )}
+
+      <section className={`mt-5 overflow-hidden rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 shadow-sm ${view === "reports" ? "hidden" : ""}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-black/6 bg-[#f4efe4]/70 text-[10px] font-black uppercase tracking-wider text-[#8a8491]">

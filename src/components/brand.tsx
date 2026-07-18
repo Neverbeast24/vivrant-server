@@ -35,10 +35,10 @@ export function Brand({
             VIVA
           </span>
           <span
-            className={`mt-1.5 truncate text-[0.46rem] font-bold tracking-[0.04em] ${subtitleClass}`}
-            title="Virtual Intelligent Vitality Assistant"
+            className={`mt-1.5 truncate text-[0.55rem] font-bold tracking-[0.18em] uppercase ${subtitleClass}`}
+            title="Virtual Intelligent Vitality Assistant · Long live life"
           >
-            VIRTUAL INTELLIGENT VITALITY ASSISTANT
+            Long live life
           </span>
         </span>
       )}

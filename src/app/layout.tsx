@@ -26,11 +26,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "VIVA — Virtual Intelligent Vitality Assistant",
+    default: "VIVA — Long live life",
     template: "%s · VIVA",
   },
   description:
-    "A calm, intelligent health workspace for nutrition, movement, goals, and everyday wellbeing.",
+    "VIVA — Long live life. A calm, intelligent health workspace for nutrition, movement, goals, and everyday wellbeing.",
   icons: {
     icon: "/viva-mark.svg",
   },

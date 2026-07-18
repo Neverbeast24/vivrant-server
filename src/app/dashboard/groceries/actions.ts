@@ -7,12 +7,16 @@ import { createClient } from "@/lib/supabase/server";
 const itemSchema = z.object({
   name: z.string().min(1).max(120),
   quantity: z.string().max(40).optional(),
+  category: z
+    .enum(["produce", "protein", "dairy", "grains", "pantry", "snacks", "drinks", "household", "other"])
+    .default("other"),
 });
 
 export async function addGroceryItem(formData: FormData) {
   const parsed = itemSchema.safeParse({
     name: formData.get("name"),
     quantity: formData.get("quantity") || undefined,
+    category: formData.get("category") || "other",
   });
   if (!parsed.success) return { ok: false, message: "Enter an item name." };
 
@@ -26,6 +30,7 @@ export async function addGroceryItem(formData: FormData) {
     user_id: user.id,
     name: parsed.data.name,
     quantity: parsed.data.quantity ?? null,
+    category: parsed.data.category,
   });
   if (error) return { ok: false, message: error.message };
 

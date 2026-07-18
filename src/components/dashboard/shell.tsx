@@ -66,18 +66,11 @@ function Navigation({
             title={collapsed ? item.label : undefined}
             className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
               collapsed ? "justify-center px-2" : "gap-3 px-3"
-            } ${active ? "text-white" : "text-[#716d78] hover:bg-white/70 hover:text-[#332f3c]"}`}
+            } ${active ? "bg-[#26222f] text-white shadow-[0_10px_24px_rgba(38,34,47,.18)]" : "text-[#4c4757] hover:bg-white/80 hover:text-[#26222f]"}`}
           >
-            {active && (
-              <motion.span
-                layoutId={collapsed ? "nav-active-compact" : "nav-active"}
-                className="absolute inset-0 -z-10 rounded-2xl bg-[#26222f] shadow-[0_10px_24px_rgba(38,34,47,.18)]"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              />
-            )}
             <span
               className={`grid size-9 shrink-0 place-items-center rounded-xl transition ${
-                active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-white"
+                active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-[#e4ddcf]"
               }`}
             >
               <item.icon size={17} />
@@ -85,7 +78,7 @@ function Navigation({
             {!collapsed && (
               <span className="min-w-0">
                 <span className="block text-sm font-black">{item.label}</span>
-                <span className={`block truncate text-[10px] ${active ? "text-white/45" : "text-[#aaa4ae]"}`}>
+                <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#8d8794]"}`}>
                   {item.caption}
                 </span>
               </span>
@@ -304,11 +297,9 @@ export function DashboardShell({
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="p-5 sm:p-8">
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="p-5 sm:p-8">
+            {children}
+          </motion.div>
         </section>
       </div>
     </main>

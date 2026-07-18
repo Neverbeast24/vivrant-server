@@ -23,37 +23,37 @@ export default async function AdminActivityPage() {
         .from("daily_checkins")
         .select("id, user_id, energy, mood, steps, water_ml, note, created_at")
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(500),
       supabase
         .from("nutrition_logs")
         .select("id, user_id, meal_name, meal_type, calories, protein_g, logged_at")
         .order("logged_at", { ascending: false })
-        .limit(100),
+        .limit(500),
       supabase
         .from("workout_logs")
         .select("id, user_id, title, activity_type, duration_minutes, calories_burned, logged_at")
         .order("logged_at", { ascending: false })
-        .limit(100),
+        .limit(500),
       supabase
         .from("expenses")
         .select("id, user_id, title, category, amount, spent_at, created_at")
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(500),
       supabase
         .from("grocery_items")
         .select("id, user_id, name, quantity, is_checked, created_at")
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(500),
       supabase
         .from("pantry_items")
         .select("id, user_id, name, category, stock_level, created_at")
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(500),
       supabase
         .from("ai_recommendations")
         .select("id, user_id, title, body, score, created_at")
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(500),
     ]);
 
   const records: ActivityRecord[] = [

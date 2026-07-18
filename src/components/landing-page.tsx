@@ -241,7 +241,7 @@ export function LandingPage() {
             />
             <div className="inline-flex items-center gap-2 rounded-full border border-[#e4571f]/20 bg-[#fdfbf4]/80 px-3.5 py-2 text-xs font-bold text-[#c14a1a] shadow-sm backdrop-blur-xl">
               <Sparkles size={14} />
-              Your wellbeing, finally connected
+              Long live life
             </div>
           </div>
           <h1 className="font-display max-w-3xl text-6xl leading-[0.96] font-medium text-[#26222f] sm:text-7xl lg:text-[5.6rem]">
@@ -719,7 +719,7 @@ export function LandingPage() {
             <Link href="/login" className="transition-colors hover:text-[#5f45e6]">Sign in</Link>
           </div>
           <p className="text-xs font-semibold text-[#a19ca7]">
-            © {new Date().getFullYear()} VIVA · Virtual Intelligent Vitality Assistant
+            © {new Date().getFullYear()} VIVA · Long live life
           </p>
         </div>
       </footer>

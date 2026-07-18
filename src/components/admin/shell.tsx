@@ -65,21 +65,15 @@ function AdminNavigation({
             title={collapsed ? item.label : undefined}
             className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
               collapsed ? "justify-center px-2" : "gap-3 px-3"
-            } ${active ? "text-white" : "text-[#716d78] hover:bg-white/70"}`}
+            } ${active ? "bg-[#26222f] text-white shadow-lg" : "text-[#4c4757] hover:bg-white/80 hover:text-[#26222f]"}`}
           >
-            {active && (
-              <motion.span
-                layoutId={collapsed ? "admin-nav-small" : "admin-nav"}
-                className="absolute inset-0 -z-10 rounded-2xl bg-[#26222f] shadow-lg"
-              />
-            )}
-            <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-white"}`}>
+            <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-[#e4ddcf]"}`}>
               <item.icon size={17} />
             </span>
             {!collapsed && (
               <span className="min-w-0">
                 <span className="block text-sm font-black">{item.label}</span>
-                <span className={`block truncate text-[10px] ${active ? "text-white/45" : "text-[#aaa4ae]"}`}>{item.caption}</span>
+                <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#8d8794]"}`}>{item.caption}</span>
               </span>
             )}
           </Link>
@@ -181,11 +175,9 @@ export function AdminShell({
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="p-5 sm:p-8">
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="p-5 sm:p-8">
+            {children}
+          </motion.div>
         </section>
       </div>
     </main>
