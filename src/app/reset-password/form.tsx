@@ -96,7 +96,7 @@ export function ResetPasswordForm() {
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.985 }}
         disabled={pending}
-        className="focus-ring group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#26222f] px-5 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(38,34,47,.18)] transition hover:bg-[#e4571f] disabled:cursor-not-allowed disabled:opacity-70"
+        className="focus-ring group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#26222f] px-5 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(38,34,47,.18)] transition hover:bg-[#5f45e6] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? (
           <Loader2 size={16} className="animate-spin" />
