@@ -36,6 +36,9 @@ export async function saveCheckin(
   const mood = toIntOrNull(formData, "mood");
   const steps = toIntOrNull(formData, "steps");
   const water = toIntOrNull(formData, "water_ml");
+  const sleepHours = toIntOrNull(formData, "sleep_hours");
+  const sleepMinutes =
+    sleepHours == null ? null : Math.min(1440, Math.max(0, sleepHours * 60));
   const note = String(formData.get("note") ?? "").trim() || null;
 
   const { error } = await supabase.from("daily_checkins").upsert(
@@ -46,6 +49,7 @@ export async function saveCheckin(
       mood,
       steps,
       water_ml: water,
+      sleep_minutes: sleepMinutes,
       note,
     },
     { onConflict: "user_id,checkin_date" },

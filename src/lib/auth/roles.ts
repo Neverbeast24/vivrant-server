@@ -46,15 +46,16 @@ export function isSuperAdmin(role: UserRole | undefined | null) {
 
 export async function requireStaff() {
   const { user, profile } = await getCurrentProfile();
-  if (!user || !isStaff(profile?.role as UserRole)) {
-    return null;
+  if (!user) redirect("/login?next=/admin");
+  if (profile?.status === "suspended") {
+    redirect("/login?error=" + encodeURIComponent("Your account has been suspended."));
   }
+  if (!isStaff(profile?.role as UserRole)) redirect("/dashboard");
   return { user, profile };
 }
 
 export async function requireSuperAdmin() {
-  const { user, profile } = await getCurrentProfile();
-  if (!user) redirect("/login");
+  const { user, profile } = await requireStaff();
   if (!isSuperAdmin(profile?.role as UserRole)) redirect("/admin");
   return { user, profile };
 }

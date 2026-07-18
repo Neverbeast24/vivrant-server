@@ -11,7 +11,7 @@ const roleSchema = z.enum(["user", "admin", "super_admin"]);
 const statusSchema = z.enum(["active", "suspended"]);
 
 export async function updateUserRole(userId: string, role: UserRole) {
-  const { profile } = await getCurrentProfile();
+  const { user, profile } = await getCurrentProfile();
   if (!isSuperAdmin(profile?.role as UserRole)) {
     return { ok: false, message: "Only Super Admin can change roles." };
   }
@@ -20,6 +20,25 @@ export async function updateUserRole(userId: string, role: UserRole) {
   }
 
   const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (target?.role === "super_admin" && role !== "super_admin") {
+    const { count } = await supabase
+      .from("profiles")
+      .select("user_id", { count: "exact", head: true })
+      .eq("role", "super_admin");
+    if ((count ?? 0) <= 1) {
+      return { ok: false, message: "You cannot demote the last Super Admin." };
+    }
+    if (user?.id === userId) {
+      return { ok: false, message: "You cannot demote your own Super Admin role." };
+    }
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({ role })
@@ -49,7 +68,7 @@ export async function updateUserStatus(userId: string, status: UserStatus) {
   const supabase = await createClient();
   const { data: target } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, status")
     .eq("user_id", userId)
     .maybeSingle();
   if (
@@ -57,6 +76,20 @@ export async function updateUserStatus(userId: string, status: UserStatus) {
     (!isSuperAdmin(profile?.role as UserRole) || user?.id === userId)
   ) {
     return { ok: false, message: "A Super Admin cannot suspend this account." };
+  }
+  if (
+    target?.role === "super_admin" &&
+    status === "suspended" &&
+    target.status !== "suspended"
+  ) {
+    const { count } = await supabase
+      .from("profiles")
+      .select("user_id", { count: "exact", head: true })
+      .eq("role", "super_admin")
+      .eq("status", "active");
+    if ((count ?? 0) <= 1) {
+      return { ok: false, message: "You cannot suspend the last active Super Admin." };
+    }
   }
   const { error } = await supabase
     .from("profiles")

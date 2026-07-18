@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Copy, ShieldBan, ShieldCheck } from "lucide-react";
 import { ROLE_LABELS, type Profile, type UserRole, type UserStatus } from "@/lib/types";
@@ -9,10 +9,14 @@ import { updateUserRole, updateUserStatus } from "./actions";
 export function UsersTable({
   users,
   canManageRoles,
+  viewerRole,
 }: {
   users: Profile[];
   canManageRoles: boolean;
+  viewerRole: UserRole;
 }) {
+  const viewerIsSuper = viewerRole === "super_admin";
+
   return (
     <div className="overflow-hidden rounded-[1.6rem] border border-[#26222f]/8 bg-[#fdfbf4]/85 shadow-sm">
       <div className="overflow-x-auto">
@@ -29,31 +33,44 @@ export function UsersTable({
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.user_id} className="border-b border-black/5 last:border-0">
-                <td className="px-5 py-4 font-mono text-[11px] text-[#9a95a0]">
-                  {user.user_id.slice(0, 8)}…
-                </td>
-                <td className="px-5 py-4 font-bold">{user.display_name}</td>
-                <td className="px-5 py-4 text-[#6f6b79]">{user.email ?? "—"}</td>
-                <td className="px-5 py-4">
-                  <RoleSelect
-                    userId={user.user_id}
-                    role={user.role}
-                    canManage={canManageRoles}
-                  />
-                </td>
-                <td className="px-5 py-4">
-                  <StatusSelect userId={user.user_id} status={user.status} />
-                </td>
-                <td className="px-5 py-4 text-[#8a8491]">
-                  {new Date(user.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-5 py-4">
-                  <UserActions user={user} />
-                </td>
-              </tr>
-            ))}
+            {users.map((user) => {
+              const targetIsSuper = user.role === "super_admin";
+              const canEditThisRole = canManageRoles && (viewerIsSuper || !targetIsSuper);
+              const canEditThisStatus = viewerIsSuper || !targetIsSuper;
+
+              return (
+                <tr key={user.user_id} className="border-b border-black/5 last:border-0">
+                  <td className="px-5 py-4 font-mono text-[11px] text-[#9a95a0]">
+                    {user.user_id.slice(0, 8)}…
+                  </td>
+                  <td className="px-5 py-4 font-bold">{user.display_name}</td>
+                  <td className="px-5 py-4 text-[#6f6b79]">{user.email ?? "—"}</td>
+                  <td className="px-5 py-4">
+                    <RoleSelect
+                      key={`${user.user_id}-role-${user.role}`}
+                      userId={user.user_id}
+                      role={user.role}
+                      canManage={canEditThisRole}
+                      allowSuperAdmin={viewerIsSuper}
+                    />
+                  </td>
+                  <td className="px-5 py-4">
+                    <StatusSelect
+                      key={`${user.user_id}-status-${user.status}`}
+                      userId={user.user_id}
+                      status={user.status}
+                      canManage={canEditThisStatus}
+                    />
+                  </td>
+                  <td className="px-5 py-4 text-[#8a8491]">
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-5 py-4">
+                    <UserActions user={user} canManageStatus={canEditThisStatus} />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -61,7 +78,13 @@ export function UsersTable({
   );
 }
 
-function UserActions({ user }: { user: Profile }) {
+function UserActions({
+  user,
+  canManageStatus,
+}: {
+  user: Profile;
+  canManageStatus: boolean;
+}) {
   const [pending, start] = useTransition();
   const nextStatus: UserStatus = user.status === "active" ? "suspended" : "active";
 
@@ -84,7 +107,8 @@ function UserActions({ user }: { user: Profile }) {
       </button>
       <button
         type="button"
-        disabled={pending}
+        disabled={pending || !canManageStatus}
+        title={canManageStatus ? undefined : "Only Super Admin can change this account"}
         onClick={() => {
           start(async () => {
             const result = await updateUserStatus(user.user_id, nextStatus);
@@ -109,30 +133,42 @@ function RoleSelect({
   userId,
   role,
   canManage,
+  allowSuperAdmin,
 }: {
   userId: string;
   role: UserRole;
   canManage: boolean;
+  allowSuperAdmin: boolean;
 }) {
   const [pending, start] = useTransition();
+  const [value, setValue] = useState(role);
+
+  const roleOptions = Object.entries(ROLE_LABELS).filter(
+    ([optionValue]) => allowSuperAdmin || optionValue !== "super_admin" || optionValue === role,
+  );
 
   return (
     <select
       disabled={pending || !canManage}
       title={canManage ? "Change role" : "Only Super Admin can change roles"}
-      defaultValue={role}
+      value={value}
       onChange={(event) => {
+        const previous = value;
         const next = event.target.value as UserRole;
+        setValue(next);
         start(async () => {
           const result = await updateUserRole(userId, next);
           if (result.ok) toast.success(result.message);
-          else toast.error(result.message);
+          else {
+            setValue(previous);
+            toast.error(result.message);
+          }
         });
       }}
       className="rounded-xl border border-[#26222f]/10 bg-[#f4efe4]/70 px-2 py-1.5 text-xs font-bold outline-none focus:border-[#5f45e6]/45"
     >
-      {Object.entries(ROLE_LABELS).map(([value, label]) => (
-        <option key={value} value={value}>
+      {roleOptions.map(([optionValue, label]) => (
+        <option key={optionValue} value={optionValue}>
           {label}
         </option>
       ))}
@@ -140,19 +176,34 @@ function RoleSelect({
   );
 }
 
-function StatusSelect({ userId, status }: { userId: string; status: UserStatus }) {
+function StatusSelect({
+  userId,
+  status,
+  canManage,
+}: {
+  userId: string;
+  status: UserStatus;
+  canManage: boolean;
+}) {
   const [pending, start] = useTransition();
+  const [value, setValue] = useState(status);
 
   return (
     <select
-      disabled={pending}
-      defaultValue={status}
+      disabled={pending || !canManage}
+      title={canManage ? "Change status" : "Only Super Admin can change this account"}
+      value={value}
       onChange={(event) => {
+        const previous = value;
         const next = event.target.value as UserStatus;
+        setValue(next);
         start(async () => {
           const result = await updateUserStatus(userId, next);
           if (result.ok) toast.success(result.message);
-          else toast.error(result.message);
+          else {
+            setValue(previous);
+            toast.error(result.message);
+          }
         });
       }}
       className="rounded-xl border border-[#26222f]/10 bg-[#f4efe4]/70 px-2 py-1.5 text-xs font-bold capitalize outline-none focus:border-[#5f45e6]/45"

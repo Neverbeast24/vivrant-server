@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -20,6 +20,7 @@ import {
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/dashboard/actions";
 import { CommandSearch } from "@/components/dashboard/command-search";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
 const baseNav = [
   { href: "/admin", label: "Overview", caption: "Platform pulse", icon: LayoutDashboard },
@@ -98,33 +99,53 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const [hovering, setHovering] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const expanded = !collapsed || hovering;
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === "\\") {
+        event.preventDefault();
+        setCollapsed((value) => !value);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setCollapsed]);
 
   return (
     <main className="min-h-screen p-2 sm:p-3">
       <div className="glass mx-auto flex min-h-[calc(100vh-1.5rem)] w-full overflow-hidden rounded-[1.6rem] border border-white/65 shadow-[0_30px_90px_rgba(54,43,34,.14)]">
         <motion.aside
-          animate={{ width: collapsed ? 88 : 288 }}
+          animate={{ width: expanded ? 288 : 88 }}
           transition={{ type: "spring", stiffness: 320, damping: 30 }}
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
           className="relative hidden shrink-0 flex-col overflow-hidden border-r border-black/5 bg-[#fdfbf4]/72 p-4 lg:flex"
         >
-          <div className={`mb-3 flex h-12 items-center ${collapsed ? "justify-center" : "justify-between"}`}>
-            <Brand compact={collapsed} />
-            {!collapsed && (
-              <button type="button" onClick={() => setCollapsed(true)} className="grid size-9 place-items-center rounded-xl text-[#807a88] hover:bg-white" title="Collapse sidebar"><PanelLeftClose size={17} /></button>
+          <div className={`mb-3 flex h-12 items-center ${expanded ? "justify-between" : "justify-center"}`}>
+            <Brand compact={!expanded} />
+            {expanded && (
+              <button
+                type="button"
+                onClick={() => setCollapsed(!collapsed)}
+                className={`grid size-9 place-items-center rounded-xl transition hover:bg-white ${collapsed ? "text-[#5f45e6]" : "text-[#807a88]"}`}
+                title={collapsed ? "Pin sidebar open" : "Collapse sidebar (hover to peek)"}
+              >
+                {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+              </button>
             )}
           </div>
-          {collapsed ? (
-            <button type="button" onClick={() => setCollapsed(false)} className="mb-4 grid size-10 place-items-center self-center rounded-xl bg-[#eee8dc]" title="Expand sidebar"><PanelLeftOpen size={17} /></button>
-          ) : (
+          {expanded && (
             <p className="mb-4 px-3 text-[10px] font-black tracking-[0.16em] text-[#5f45e6]">
               {isSuperAdmin ? "SUPER ADMIN CONSOLE" : "ADMIN CONSOLE"}
             </p>
           )}
-          <AdminNavigation pathname={pathname} collapsed={collapsed} isSuperAdmin={isSuperAdmin} />
-          <Link href="/dashboard" title="Back to dashboard" className={`mt-auto rounded-xl border border-black/8 bg-white/65 text-sm font-bold text-[#5f5a67] transition hover:bg-white ${collapsed ? "px-2 py-3 text-center" : "px-3 py-2.5"}`}>
-            {collapsed ? "←" : "← Back to dashboard"}
+          <AdminNavigation pathname={pathname} collapsed={!expanded} isSuperAdmin={isSuperAdmin} />
+          <Link href="/dashboard" title="Back to dashboard" className={`mt-auto rounded-xl border border-black/8 bg-white/65 text-sm font-bold text-[#5f5a67] transition hover:bg-white ${expanded ? "px-3 py-2.5" : "px-2 py-3 text-center"}`}>
+            {expanded ? "← Back to dashboard" : "←"}
           </Link>
         </motion.aside>
 
@@ -139,8 +160,11 @@ export function AdminShell({
               </div>
             </div>
             <form action={signOut}>
-              <button type="submit" className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#fdfbf4] px-4 py-2 text-sm font-bold shadow-sm">
-                <LogOut size={15} /> <span className="hidden sm:inline">Sign out</span>
+              <button
+                type="submit"
+                className="focus-ring inline-flex items-center gap-2 rounded-full border border-[#e4571f]/15 bg-[#fff6f0] px-4 py-2.5 text-xs font-black text-[#c24a1a] shadow-sm transition hover:-translate-y-0.5 hover:border-[#e4571f]/35 hover:bg-[#ffe9db]"
+              >
+                <LogOut size={14} /> <span className="hidden sm:inline">Sign out</span>
               </button>
             </form>
           </header>

@@ -163,28 +163,65 @@ const futureFeatures = [
   "Family accounts",
 ];
 
+const heroChips = [
+  { emoji: "🥑", label: "Protein on track", className: "-left-4 top-24 lg:-left-10" },
+  { emoji: "🏃", label: "6.4k steps", className: "right-2 top-8 lg:-right-6" },
+  { emoji: "💧", label: "1.8L water", className: "-bottom-5 left-16" },
+  { emoji: "🧾", label: "₱240 saved", className: "-bottom-3 right-10" },
+];
+
+const marqueeItems = [
+  "Nutrition tracker",
+  "Workout tracker",
+  "Smart pantry",
+  "Grocery planner",
+  "Health expenses",
+  "AI recommendations",
+  "Goal setup",
+  "Weekly reports",
+  "Smart reminders",
+  "Decision engine",
+];
+
+const heroStats: [string, string][] = [
+  ["10+", "connected modules"],
+  ["1", "clear next action daily"],
+  ["24/7", "AI watching your rhythm"],
+  ["100%", "your data, protected"],
+];
+
 export function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
-        <Brand />
-        <div className="hidden items-center gap-8 text-sm font-semibold text-[#696574] md:flex">
-          <a href="#experience" className="transition-colors hover:text-[#5f45e6]">
-            Experience
-          </a>
-          <a href="#modules" className="transition-colors hover:text-[#5f45e6]">
-            Modules
-          </a>
-          <a href="#principles" className="transition-colors hover:text-[#5f45e6]">
-            Why VIVA
-          </a>
+      <nav className="sticky top-0 z-50 border-b border-[#26222f]/6 bg-[#f4efe4]/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
+          <Brand />
+          <div className="hidden items-center gap-8 text-sm font-semibold text-[#696574] md:flex">
+            <a href="#experience" className="transition-colors hover:text-[#5f45e6]">
+              Experience
+            </a>
+            <a href="#modules" className="transition-colors hover:text-[#5f45e6]">
+              Modules
+            </a>
+            <a href="#principles" className="transition-colors hover:text-[#5f45e6]">
+              Why VIVA
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="focus-ring rounded-full border border-[#26222f]/12 bg-[#fdfbf4]/80 px-5 py-2.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-[#26222f] hover:shadow-md"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/dashboard"
+              className="focus-ring hidden rounded-full bg-[#26222f] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#5f45e6] sm:inline-flex"
+            >
+              Open VIVA
+            </Link>
+          </div>
         </div>
-        <Link
-          href="/login"
-          className="focus-ring rounded-full border border-[#26222f]/12 bg-[#fdfbf4]/80 px-5 py-2.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-[#26222f] hover:shadow-md"
-        >
-          Sign in
-        </Link>
       </nav>
 
       <section className="mx-auto grid max-w-7xl items-center gap-16 px-5 pb-24 pt-16 md:px-8 lg:grid-cols-[1.03fr_.97fr] lg:pt-24">
@@ -241,6 +278,22 @@ export function LandingPage() {
           className="relative"
         >
           <div className="absolute -inset-10 -z-10 rounded-full bg-gradient-to-br from-[#5f45e6]/20 via-transparent to-[#20d8dd]/20 blur-3xl" />
+          {heroChips.map((chip, index) => (
+            <motion.span
+              key={chip.label}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
+              transition={{
+                opacity: { delay: 0.5 + index * 0.15 },
+                scale: { delay: 0.5 + index * 0.15, type: "spring", stiffness: 260 },
+                y: { duration: 4 + index, repeat: Infinity, ease: "easeInOut", delay: index * 0.7 },
+              }}
+              className={`absolute z-10 hidden items-center gap-2 rounded-full border border-white/80 bg-[#fdfbf4]/95 px-3.5 py-2 text-xs font-black text-[#4c4856] shadow-[0_14px_34px_rgba(64,49,38,.16)] backdrop-blur-md sm:inline-flex ${chip.className}`}
+            >
+              <span className="text-base leading-none">{chip.emoji}</span>
+              {chip.label}
+            </motion.span>
+          ))}
           <div className="glass noise overflow-hidden rounded-[2.2rem] p-3">
             <div className="rounded-[1.7rem] border border-[#26222f]/6 bg-[#f4efe4]/90 p-4 sm:p-6">
               <div className="mb-8 flex items-center justify-between">
@@ -303,7 +356,41 @@ export function LandingPage() {
         </motion.div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
+        <div className="grid gap-px overflow-hidden rounded-[1.8rem] border border-[#26222f]/8 bg-[#26222f]/8 sm:grid-cols-2 lg:grid-cols-4">
+          {heroStats.map(([value, label], index) => (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: index * 0.07 }}
+              className="bg-[#fdfbf4]/85 p-7 text-center"
+            >
+              <p className="font-display text-4xl tracking-tight text-[#26222f]">{value}</p>
+              <p className="mt-2 text-xs font-bold text-[#8a8491]">{label}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-[#26222f]/8 bg-[#fdfbf4]/60 py-5" aria-hidden>
+        <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
+          <div className="animate-marquee flex w-max items-center gap-3">
+            {[...marqueeItems, ...marqueeItems].map((item, index) => (
+              <span
+                key={`${item}-${index}`}
+                className="inline-flex items-center gap-3 whitespace-nowrap rounded-full border border-[#26222f]/8 bg-[#f4efe4]/80 px-5 py-2 text-xs font-black tracking-wide text-[#6b665c]"
+              >
+                <span className="size-1.5 rounded-full bg-[#5f45e6]" />
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-24 md:px-8">
         <div className="grid gap-4 lg:grid-cols-2">
           <motion.article
             initial={{ opacity: 0, y: 18 }}
@@ -581,6 +668,61 @@ export function LandingPage() {
           </p>
         </div>
       </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          className="noise relative overflow-hidden rounded-[2.3rem] bg-[#26222f] px-6 py-14 text-center text-white sm:px-10 lg:py-20"
+        >
+          <div className="animate-glow absolute -left-24 top-0 size-80 rounded-full bg-[#5f45e6]/35 blur-[100px]" />
+          <div className="animate-glow-slow absolute -bottom-32 -right-16 size-80 rounded-full bg-[#20d8dd]/25 blur-[100px]" />
+          <div className="relative">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-black tracking-[0.16em] text-[#b6a8ff]">
+              <Sparkles size={14} /> START TODAY
+            </span>
+            <h2 className="font-display mx-auto mt-7 max-w-2xl text-5xl leading-tight sm:text-6xl">
+              Your healthier rhythm is{" "}
+              <span className="gradient-text italic">one sign-in away.</span>
+            </h2>
+            <p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-white/55">
+              Set your goals, log your day, and let VIVA turn the noise into one
+              clear next action — every single morning.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                href="/dashboard"
+                className="focus-ring group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-[#26222f] shadow-[0_14px_34px_rgba(0,0,0,.3)] transition hover:-translate-y-1 hover:bg-[#efeaff]"
+              >
+                Open your space
+                <ArrowUpRight size={17} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+              <Link
+                href="/login"
+                className="focus-ring rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white/85 transition hover:border-white/50 hover:text-white"
+              >
+                Sign in
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      <footer className="border-t border-[#26222f]/8 bg-[#fdfbf4]/60">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-5 py-10 md:flex-row md:px-8">
+          <Brand />
+          <div className="flex items-center gap-7 text-xs font-bold text-[#8a8491]">
+            <a href="#experience" className="transition-colors hover:text-[#5f45e6]">Experience</a>
+            <a href="#modules" className="transition-colors hover:text-[#5f45e6]">Modules</a>
+            <a href="#principles" className="transition-colors hover:text-[#5f45e6]">Why VIVA</a>
+            <Link href="/login" className="transition-colors hover:text-[#5f45e6]">Sign in</Link>
+          </div>
+          <p className="text-xs font-semibold text-[#a19ca7]">
+            © {new Date().getFullYear()} VIVA · Virtual Intelligent Vitality Assistant
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

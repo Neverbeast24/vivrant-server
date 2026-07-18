@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { getCurrentProfile, isSuperAdmin } from "@/lib/auth/roles";
+import type { UserRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminOverviewPage() {
   const supabase = await createClient();
+  const { profile } = await getCurrentProfile();
+  const superAdmin = isSuperAdmin(profile?.role as UserRole);
 
-  const [users, logs, meals, workouts, admins, suspended, recentLogs, recentUsers] =
+  const [users, logs, admins, suspended, recentLogs, recentUsers, meals, workouts] =
     await Promise.all([
       supabase.from("profiles").select("user_id", { count: "exact", head: true }),
       supabase.from("audit_logs").select("id", { count: "exact", head: true }),
-      supabase.from("nutrition_logs").select("id", { count: "exact", head: true }),
-      supabase.from("workout_logs").select("id", { count: "exact", head: true }),
       supabase
         .from("profiles")
         .select("user_id", { count: "exact", head: true })
@@ -20,7 +22,7 @@ export default async function AdminOverviewPage() {
         .eq("status", "suspended"),
       supabase
         .from("audit_logs")
-        .select("id, action, entity, created_at")
+        .select("id, action, entity, actor_id, created_at")
         .order("created_at", { ascending: false })
         .limit(6),
       supabase
@@ -28,13 +30,26 @@ export default async function AdminOverviewPage() {
         .select("user_id, display_name, role, created_at")
         .order("created_at", { ascending: false })
         .limit(6),
+      superAdmin
+        ? supabase.from("nutrition_logs").select("id", { count: "exact", head: true })
+        : Promise.resolve({ count: null }),
+      superAdmin
+        ? supabase.from("workout_logs").select("id", { count: "exact", head: true })
+        : Promise.resolve({ count: null }),
     ]);
 
   const stats = [
     ["Users", users.count ?? 0, `${admins.count ?? 0} staff · ${suspended.count ?? 0} suspended`],
     ["Audit events", logs.count ?? 0, "All time"],
-    ["Meals logged", meals.count ?? 0, "Across all members"],
-    ["Workouts logged", workouts.count ?? 0, "Across all members"],
+    ...(superAdmin
+      ? ([
+          ["Meals logged", meals.count ?? 0, "Across all members"],
+          ["Workouts logged", workouts.count ?? 0, "Across all members"],
+        ] as const)
+      : ([
+          ["Member activity", "—", "Super Admin only"],
+          ["Platform roles", admins.count ?? 0, "Admins + Super Admins"],
+        ] as const)),
   ] as const;
 
   return (
@@ -77,7 +92,10 @@ export default async function AdminOverviewPage() {
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold">{log.action}</p>
-                  <p className="mt-0.5 text-xs text-[#847f8c]">{log.entity}</p>
+                  <p className="mt-0.5 text-xs text-[#847f8c]">
+                    {log.entity}
+                    {log.actor_id ? ` · ${String(log.actor_id).slice(0, 8)}…` : ""}
+                  </p>
                 </div>
                 <span className="shrink-0 text-[10px] font-bold text-[#a19ca7]">
                   {new Date(log.created_at).toLocaleString()}
@@ -103,19 +121,19 @@ export default async function AdminOverviewPage() {
             </Link>
           </div>
           <div className="space-y-2">
-            {(recentUsers.data ?? []).map((profile) => (
+            {(recentUsers.data ?? []).map((member) => (
               <div
-                key={profile.user_id}
+                key={member.user_id}
                 className="flex items-center justify-between gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/45 px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{profile.display_name}</p>
+                  <p className="truncate text-sm font-bold">{member.display_name}</p>
                   <p className="mt-0.5 text-xs capitalize text-[#847f8c]">
-                    {String(profile.role).replace("_", " ")}
+                    {String(member.role).replace("_", " ")}
                   </p>
                 </div>
                 <span className="shrink-0 text-[10px] font-bold text-[#a19ca7]">
-                  {new Date(profile.created_at).toLocaleDateString()}
+                  {new Date(member.created_at).toLocaleDateString()}
                 </span>
               </div>
             ))}

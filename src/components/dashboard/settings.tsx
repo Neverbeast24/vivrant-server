@@ -5,6 +5,7 @@ import {
   saveHealthProfile,
   saveSettings,
 } from "@/app/dashboard/settings/actions";
+import { GoalsPanel, type HealthGoal } from "@/components/dashboard/goals";
 import {
   FormField,
   PageHeader,
@@ -40,9 +41,11 @@ export type HealthProfile = {
 export function SettingsView({
   settings,
   profile,
+  goals,
 }: {
   settings: Settings;
   profile: HealthProfile;
+  goals: HealthGoal[];
 }) {
   const preferencesAction = useModuleAction(saveSettings);
   const profileAction = useModuleAction(saveHealthProfile);
@@ -249,6 +252,8 @@ export function SettingsView({
           </Panel>
         </div>
       </div>
+
+      <GoalsPanel goals={goals} />
 
       <Panel title="App preferences" className="mt-4">
         <form action={preferencesAction.submit} className="space-y-5">

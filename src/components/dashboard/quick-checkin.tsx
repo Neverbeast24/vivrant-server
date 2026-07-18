@@ -54,7 +54,7 @@ export function QuickCheckin() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[950] flex items-center justify-center p-4"
           >
             <div
               className="absolute inset-0 bg-[#191622]/40 backdrop-blur-sm"
@@ -106,10 +106,11 @@ export function QuickCheckin() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <Field label="Energy" name="energy" placeholder="0–100" />
                   <Field label="Steps" name="steps" placeholder="0" />
                   <Field label="Water (ml)" name="water_ml" placeholder="0" />
+                  <Field label="Sleep (h)" name="sleep_hours" placeholder="7" />
                 </div>
 
                 <label className="block">

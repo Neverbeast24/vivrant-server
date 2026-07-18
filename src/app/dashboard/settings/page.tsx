@@ -7,9 +7,14 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const { supabase, user } = await requireUser();
 
-  const [settingsRes, profileRes] = await Promise.all([
+  const [settingsRes, profileRes, goalsRes] = await Promise.all([
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+    supabase
+      .from("health_goals")
+      .select("id, title, category, target_value, current_value, unit, target_date, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
   ]);
   const data = settingsRes.data;
   const profile = profileRes.data;
@@ -37,6 +42,12 @@ export default async function SettingsPage() {
         monthly_health_budget: Number(profile?.monthly_health_budget ?? 2000),
         bio: profile?.bio ?? null,
       }}
+      goals={(goalsRes.data ?? []).map((goal) => ({
+        ...goal,
+        current_value: Number(goal.current_value ?? 0),
+        target_value: goal.target_value == null ? null : Number(goal.target_value),
+        status: goal.status as "active" | "completed" | "paused",
+      }))}
     />
   );
 }

@@ -20,7 +20,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, role, status")
+    .select("display_name, avatar_url, role, status")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -38,6 +38,8 @@ export default async function DashboardLayout({
   return (
     <DashboardShell
       displayName={displayName}
+      nickname={user.email?.split("@")[0] ?? "viva-member"}
+      avatarUrl={profile?.avatar_url ?? null}
       isStaff={isStaff(profile?.role as UserRole)}
       isSuperAdmin={isSuperAdmin(profile?.role as UserRole)}
     >

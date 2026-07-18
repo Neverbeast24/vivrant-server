@@ -38,6 +38,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
+  if (profile?.status === "suspended") {
+    await supabase.auth.signOut();
+    return NextResponse.json(
+      { error: "Your account has been suspended. Contact support if this is unexpected." },
+      { status: 403 },
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     user: { id: data.user.id, email: data.user.email },

@@ -13,13 +13,20 @@ export async function writeAuditLog(input: {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user) return { ok: false as const, message: "Not signed in." };
 
-  await supabase.from("audit_logs").insert({
+  const { error } = await supabase.from("audit_logs").insert({
     actor_id: user.id,
     action: input.action,
     entity: input.entity,
     entity_id: input.entityId ?? null,
     metadata: input.metadata ?? {},
   });
+
+  if (error) {
+    console.error("audit_logs insert failed:", error.message);
+    return { ok: false as const, message: error.message };
+  }
+
+  return { ok: true as const };
 }
