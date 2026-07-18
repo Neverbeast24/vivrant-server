@@ -1,6 +1,6 @@
 "use client";
 
-import { Refrigerator } from "lucide-react";
+import { AlertTriangle, Refrigerator, Tags } from "lucide-react";
 import { addPantryItem } from "@/app/dashboard/pantry/actions";
 import {
   EmptyState,
@@ -24,6 +24,8 @@ type PantryItem = {
 
 export function PantryView({ items }: { items: PantryItem[] }) {
   const { pending, submit } = useModuleAction(addPantryItem);
+  const lowStock = items.filter((item) => item.stock_level <= 25);
+  const categories = new Set(items.map((item) => item.category)).size;
 
   return (
     <>
@@ -69,6 +71,27 @@ export function PantryView({ items }: { items: PantryItem[] }) {
             detail="In your pantry"
             icon={Refrigerator}
             className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+          />
+          <StatCard
+            label="Running low"
+            value={String(lowStock.length)}
+            detail={
+              lowStock.length
+                ? `Restock: ${lowStock
+                    .slice(0, 2)
+                    .map((item) => item.name)
+                    .join(", ")}${lowStock.length > 2 ? "…" : ""}`
+                : "Everything is stocked"
+            }
+            icon={AlertTriangle}
+            className="bg-[#fff3e8] text-[#533621]"
+          />
+          <StatCard
+            label="Categories"
+            value={String(categories)}
+            detail="Types of food on hand"
+            icon={Tags}
+            className="bg-[#e8fbf8] text-[#183d3a]"
           />
         </div>
         <Panel title="Stock levels" className="mt-4">

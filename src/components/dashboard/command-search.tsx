@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -90,6 +91,12 @@ export function CommandSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  // true on the client after hydration, false during SSR — needed for the portal.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -114,7 +121,12 @@ export function CommandSearch() {
   useEffect(() => {
     if (!open) return;
     const frame = requestAnimationFrame(() => inputRef.current?.focus());
-    return () => cancelAnimationFrame(frame);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [open]);
 
   function openSearch() {
@@ -169,13 +181,15 @@ export function CommandSearch() {
         <Search size={17} />
       </button>
 
+      {mounted &&
+        createPortal(
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-start justify-center bg-[#191621]/45 px-4 pt-[12vh] backdrop-blur-md"
+            className="fixed inset-0 z-[999] flex items-start justify-center bg-[#191621]/45 px-4 pt-[12vh] backdrop-blur-md"
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) setOpen(false);
             }}
@@ -277,7 +291,9 @@ export function CommandSearch() {
             </motion.section>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+          document.body,
+        )}
     </>
   );
 }

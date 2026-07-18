@@ -52,8 +52,8 @@ export function DashboardShell({
   const initials = displayName.trim().charAt(0).toUpperCase() || "V";
 
   return (
-    <main className="min-h-screen p-3 sm:p-5">
-      <div className="glass mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1500px] overflow-hidden rounded-[2rem] border border-white/65 shadow-[0_30px_90px_rgba(54,43,34,.14)]">
+    <main className="min-h-screen p-2 sm:p-3">
+      <div className="glass mx-auto flex min-h-[calc(100vh-1.5rem)] w-full overflow-hidden rounded-[1.6rem] border border-white/65 shadow-[0_30px_90px_rgba(54,43,34,.14)]">
         <aside className="hidden w-72 shrink-0 flex-col border-r border-black/5 bg-[#fdfbf4]/68 p-6 lg:flex">
           <div className="mb-7 flex items-center gap-2" aria-hidden>
             <span className="size-3 rounded-full bg-[#ff5f57] shadow-inner" />
