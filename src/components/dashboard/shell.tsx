@@ -5,12 +5,16 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Apple,
+  BrainCircuit,
   ChevronRight,
   Dumbbell,
+  FileBarChart,
   LayoutDashboard,
   LogOut,
+  Refrigerator,
   Search,
   Settings2,
+  Shield,
   ShoppingBasket,
   WalletCards,
 } from "lucide-react";
@@ -23,7 +27,11 @@ const navItems = [
   { icon: Apple, label: "Nutrition", href: "/dashboard/nutrition" },
   { icon: Dumbbell, label: "Movement", href: "/dashboard/movement" },
   { icon: ShoppingBasket, label: "Groceries", href: "/dashboard/groceries" },
+  { icon: Refrigerator, label: "Pantry", href: "/dashboard/pantry" },
   { icon: WalletCards, label: "Spending", href: "/dashboard/spending" },
+  { icon: FileBarChart, label: "Reports", href: "/dashboard/reports" },
+  { icon: BrainCircuit, label: "AI Engine", href: "/dashboard/ai" },
+  { icon: Settings2, label: "Settings", href: "/dashboard/settings" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -33,9 +41,11 @@ function isActive(pathname: string, href: string) {
 
 export function DashboardShell({
   displayName,
+  isStaff = false,
   children,
 }: {
   displayName: string;
+  isStaff?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -76,15 +86,26 @@ export function DashboardShell({
           <div className="mt-auto rounded-2xl bg-gradient-to-br from-[#292433] to-[#3e3156] p-4 text-white">
             <p className="text-sm font-bold">Your weekly story is ready.</p>
             <Link
-              href="/dashboard"
+              href="/dashboard/reports"
               className="mt-3 flex items-center gap-1 text-xs font-bold text-white/60 transition hover:text-white"
             >
               Open report <ChevronRight size={13} />
             </Link>
           </div>
-          <button className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-[#77727e] transition hover:bg-white/70">
+          {isStaff && (
+            <Link
+              href="/admin"
+              className="mt-3 flex items-center gap-3 rounded-xl bg-[#f0edff] px-3 py-2.5 text-sm font-bold text-[#5f4fd6] transition hover:bg-white"
+            >
+              <Shield size={17} /> Admin console
+            </Link>
+          )}
+          <Link
+            href="/dashboard/settings"
+            className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-[#77727e] transition hover:bg-white/70"
+          >
             <Settings2 size={17} /> Preferences
-          </button>
+          </Link>
         </aside>
 
         <section className="min-w-0 flex-1 bg-[#f8f7fb]/65">

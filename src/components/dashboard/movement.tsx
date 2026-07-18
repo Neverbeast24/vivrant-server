@@ -1,42 +1,44 @@
 "use client";
 
-import { motion } from "motion/react";
-import { Activity, Bike, Dumbbell, Flame, Footprints, Heart, Plus, Timer } from "lucide-react";
-import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
+import { Flame, Footprints, Heart, Timer } from "lucide-react";
+import { logWorkout } from "@/app/dashboard/movement/actions";
+import { PageHeader, Panel, Stagger, StatCard } from "@/components/dashboard/ui";
+import { useModuleAction } from "@/components/dashboard/use-module-action";
 
-const week: [string, number][] = [
-  ["M", 45],
-  ["T", 80],
-  ["W", 30],
-  ["T", 95],
-  ["F", 70],
-  ["S", 60],
-  ["S", 20],
-];
+type Workout = {
+  id: number;
+  title: string;
+  activity_type: string;
+  duration_minutes: number | null;
+  calories_burned: number | null;
+};
 
-const sessions: [typeof Activity, string, string, string][] = [
-  [Footprints, "Morning walk", "38 min · 3.1 km", "Done"],
-  [Dumbbell, "Upper body strength", "25 min", "Planned"],
-  [Bike, "Evening cycle", "40 min", "Planned"],
-];
+export function MovementView({ workouts }: { workouts: Workout[] }) {
+  const { pending, submit } = useModuleAction(logWorkout);
+  const totalMinutes = workouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
 
-export function MovementView() {
   return (
     <>
-      <PageHeader
-        eyebrow="MOVEMENT"
-        title="Move a little"
-        highlight="today."
-        action={
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#24212e] px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#7557ff]"
-          >
-            <Plus size={16} /> Start a session
-          </motion.button>
-        }
-      />
+      <PageHeader eyebrow="MOVEMENT" title="Move a little" highlight="today." />
+
+      <Panel title="Log a workout" className="mb-4">
+        <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <input name="title" required placeholder="Workout title" className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm sm:col-span-2" />
+          <select name="activity_type" defaultValue="walk" className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm">
+            <option value="walk">Walk</option>
+            <option value="run">Run</option>
+            <option value="strength">Strength</option>
+            <option value="cycle">Cycle</option>
+            <option value="yoga">Yoga</option>
+            <option value="other">Other</option>
+          </select>
+          <input name="duration_minutes" type="number" min={1} required placeholder="Minutes" className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm" />
+          <input name="calories_burned" type="number" min={0} placeholder="Calories" className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm" />
+          <button disabled={pending} className="rounded-2xl bg-[#24212e] px-4 py-3 text-sm font-bold text-white sm:col-span-2 lg:col-span-4">
+            {pending ? "Saving…" : "Log workout"}
+          </button>
+        </form>
+      </Panel>
 
       <Stagger>
         <div className="grid gap-4 sm:grid-cols-4">
@@ -49,8 +51,8 @@ export function MovementView() {
           />
           <StatCard
             label="Active min"
-            value="38"
-            detail="Goal 45 min"
+            value={String(totalMinutes)}
+            detail={`${workouts.length} sessions`}
             icon={Timer}
             className="bg-[#e8fbf8] text-[#183d3a]"
           />
@@ -71,78 +73,18 @@ export function MovementView() {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <Panel
-            title="Activity this week"
-            right={
-              <span className="rounded-full bg-[#f3f0ff] px-3 py-1.5 text-xs font-bold text-[#6f55df]">
-                4 active days
-              </span>
-            }
-          >
-            <Bars data={week} activeIndex={3} />
-          </Panel>
-
-          <Panel title="Daily goal">
-            <div className="flex flex-col items-center justify-center py-2">
-              <div className="relative grid size-40 place-items-center">
-                <svg viewBox="0 0 120 120" className="size-40 -rotate-90">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#ece9f2" strokeWidth="12" />
-                  <motion.circle
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    fill="none"
-                    stroke="url(#ring)"
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 52}
-                    initial={{ strokeDashoffset: 2 * Math.PI * 52 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 52 * (1 - 0.78) }}
-                    transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                  <defs>
-                    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#7657ff" />
-                      <stop offset="1" stopColor="#23d4df" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute text-center">
-                  <p className="text-3xl font-black">78%</p>
-                  <p className="text-[10px] font-bold text-[#a09ba7]">of daily goal</p>
-                </div>
-              </div>
-            </div>
-          </Panel>
-        </div>
-
         <Panel title="Sessions" className="mt-4">
-          <div className="space-y-3">
-            {sessions.map(([Icon, name, meta, status]) => (
-              <motion.div
-                key={name}
-                whileHover={{ x: 4 }}
-                className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white/70 p-4"
-              >
-                <span className="grid size-11 place-items-center rounded-xl bg-[#f0edff] text-[#7557ff]">
-                  <Icon size={18} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold">{name}</p>
-                  <p className="truncate text-xs text-[#847f8c]">{meta}</p>
+          <div className="space-y-2">
+            {workouts.map((workout) => (
+              <div key={workout.id} className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/70 px-4 py-3">
+                <div>
+                  <p className="text-sm font-bold">{workout.title}</p>
+                  <p className="text-xs capitalize text-[#847f8c]">{workout.activity_type}</p>
                 </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-[10px] font-black ${
-                    status === "Done"
-                      ? "bg-[#e6faf6] text-[#12a595]"
-                      : "bg-[#f2eff8] text-[#7c718a]"
-                  }`}
-                >
-                  {status}
-                </span>
-              </motion.div>
+                <span className="text-xs font-black">{workout.duration_minutes ?? 0} min</span>
+              </div>
             ))}
+            {!workouts.length && <p className="text-sm text-[#9a95a0]">No workouts logged yet.</p>}
           </div>
         </Panel>
       </Stagger>

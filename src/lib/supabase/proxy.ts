@@ -28,9 +28,10 @@ export async function updateSession(request: NextRequest) {
   // getClaims verifies and refreshes the session without trusting local storage.
   const { data } = await supabase.auth.getClaims();
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
+  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
   const isLogin = request.nextUrl.pathname === "/login";
 
-  if (isDashboard && !data?.claims) {
+  if ((isDashboard || isAdmin) && !data?.claims) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
