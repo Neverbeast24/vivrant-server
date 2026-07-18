@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import {
+  AnimatePresence,
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  type MotionValue,
+} from "motion/react";
 import { ShoppingCart } from "lucide-react";
 import { Brand } from "@/components/brand";
 
@@ -38,15 +46,17 @@ const FOODS: Food[] = [
   { id: "icecream", emoji: "🍦", name: "Ice cream", kind: "unhealthy", tip: "Dessert energy only" },
 ];
 
-/* Fixed slots around the panel; each floating food lives in one. */
+/* Fixed slots around the panel; each floating food lives in one.
+   `depth` controls how far it drifts with the pointer, `dx`/`dy` control
+   the size of its own wandering loop. */
 const SLOTS = [
-  { className: "left-[8%] top-[16%]", duration: 7 },
-  { className: "right-[14%] top-[13%]", duration: 8.5 },
-  { className: "left-[30%] top-[28%]", duration: 6.5 },
-  { className: "right-[8%] top-[38%]", duration: 9 },
-  { className: "left-[6%] top-[78%]", duration: 7.5 },
-  { className: "right-[28%] top-[58%]", duration: 8 },
-  { className: "left-[34%] top-[70%]", duration: 6.8 },
+  { className: "left-[8%] top-[16%]", duration: 7, depth: 34, dx: 14, dy: 18 },
+  { className: "right-[14%] top-[13%]", duration: 8.5, depth: 52, dx: -18, dy: 14 },
+  { className: "left-[30%] top-[28%]", duration: 6.5, depth: 24, dx: 12, dy: 20 },
+  { className: "right-[8%] top-[38%]", duration: 9, depth: 44, dx: -14, dy: 22 },
+  { className: "left-[6%] top-[78%]", duration: 7.5, depth: 58, dx: 16, dy: 12 },
+  { className: "right-[28%] top-[58%]", duration: 8, depth: 30, dx: -12, dy: 18 },
+  { className: "left-[34%] top-[70%]", duration: 6.8, depth: 48, dx: 18, dy: 16 },
 ];
 
 function shuffle<T>(list: T[]) {
@@ -56,6 +66,29 @@ function shuffle<T>(list: T[]) {
     [next[i], next[j]] = [next[j], next[i]];
   }
   return next;
+}
+
+type Parallax = { x: MotionValue<number>; y: MotionValue<number> };
+
+/** Wrapper that drifts with the pointer; higher depth moves further. */
+function ParallaxLayer({
+  parallax,
+  depth,
+  className,
+  children,
+}: {
+  parallax: Parallax;
+  depth: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const x = useTransform(parallax.x, (value) => value * depth);
+  const y = useTransform(parallax.y, (value) => value * depth);
+  return (
+    <motion.div style={{ x, y }} className={className}>
+      {children}
+    </motion.div>
+  );
 }
 
 export function HeroPanel() {
@@ -69,6 +102,35 @@ export function HeroPanel() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const respawnTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Pointer-follow effects: parallax drift for floating items + spotlight.
+  const sectionRef = useRef<HTMLElement>(null);
+  const rawX = useMotionValue(0);
+  const rawY = useMotionValue(0);
+  const parallaxX = useSpring(rawX, { stiffness: 55, damping: 16, mass: 0.6 });
+  const parallaxY = useSpring(rawY, { stiffness: 55, damping: 16, mass: 0.6 });
+  const parallax: Parallax = { x: parallaxX, y: parallaxY };
+  const spotX = useMotionValue(-400);
+  const spotY = useMotionValue(-400);
+  const spotlight = useMotionTemplate`radial-gradient(24rem circle at ${spotX}px ${spotY}px, rgba(139,112,255,.15), transparent 70%)`;
+
+  function handlePointerMove(event: React.PointerEvent<HTMLElement>) {
+    const bounds = sectionRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const px = event.clientX - bounds.left;
+    const py = event.clientY - bounds.top;
+    rawX.set((px / bounds.width) * 2 - 1);
+    rawY.set((py / bounds.height) * 2 - 1);
+    spotX.set(px);
+    spotY.set(py);
+  }
+
+  function handlePointerLeave() {
+    rawX.set(0);
+    rawY.set(0);
+    spotX.set(-400);
+    spotY.set(-400);
+  }
 
   useEffect(() => {
     // Random picks happen after mount only, so SSR and client HTML match.
@@ -132,7 +194,12 @@ export function HeroPanel() {
   }
 
   return (
-    <section className="relative hidden overflow-hidden bg-[#1b1826] p-12 text-white lg:flex lg:flex-col">
+    <section
+      ref={sectionRef}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+      className="relative hidden overflow-hidden bg-[#1b1826] p-12 text-white lg:flex lg:flex-col"
+    >
       {/* Ambient glow + grid backdrop */}
       <div className="animate-glow absolute -left-32 top-24 size-[30rem] rounded-full bg-[#5f45e6]/28 blur-[100px]" />
       <div className="animate-glow-slow absolute -bottom-44 right-0 size-[32rem] rounded-full bg-[#0fb3ab]/20 blur-[110px]" />
@@ -145,44 +212,56 @@ export function HeroPanel() {
           backgroundSize: "56px 56px",
         }}
       />
+      {/* Cursor spotlight follows the pointer */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: spotlight }}
+      />
 
-      {/* Floating foods */}
+      {/* Floating foods — they wander on their own and drift with the cursor */}
       {slots.map((food, index) =>
         food ? (
-          <motion.button
+          <ParallaxLayer
             key={`${food.id}-${index}`}
-            type="button"
-            draggable
-            title={`${food.name} — drag or tap to add to the cart`}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: [0, -10, 0],
-            }}
-            exit={{ opacity: 0, scale: 0.4 }}
-            transition={{
-              opacity: { duration: 0.5 },
-              scale: { duration: 0.5 },
-              y: {
-                duration: SLOTS[index].duration,
-                repeat: Infinity,
-                ease: "easeInOut",
-              },
-            }}
-            whileHover={{ scale: 1.25, rotate: 8 }}
-            whileTap={{ scale: 0.9 }}
-            onDragStartCapture={(event) => {
-              const data = (event as unknown as React.DragEvent<HTMLButtonElement>)
-                .dataTransfer;
-              data.setData("text/food-slot", `${food.id}:${index}`);
-              data.effectAllowed = "copy";
-            }}
-            onClick={() => collect(food, index)}
-            className={`focus-ring absolute z-10 grid size-12 cursor-grab place-items-center rounded-2xl border border-white/10 bg-white/6 text-2xl backdrop-blur-md transition-colors active:cursor-grabbing hover:border-white/30 hover:bg-white/12 ${SLOTS[index].className}`}
+            parallax={parallax}
+            depth={SLOTS[index].depth}
+            className={`absolute z-10 ${SLOTS[index].className}`}
           >
-            {food.emoji}
-          </motion.button>
+            <motion.button
+              type="button"
+              draggable
+              title={`${food.name} — drag or tap to add to the cart`}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                x: [0, SLOTS[index].dx, -SLOTS[index].dx * 0.6, 0],
+                y: [0, -SLOTS[index].dy, SLOTS[index].dy * 0.5, 0],
+                rotate: [0, 4, -4, 0],
+              }}
+              exit={{ opacity: 0, scale: 0.4 }}
+              transition={{
+                opacity: { duration: 0.5 },
+                scale: { duration: 0.5 },
+                x: { duration: SLOTS[index].duration * 1.4, repeat: Infinity, ease: "easeInOut" },
+                y: { duration: SLOTS[index].duration, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: SLOTS[index].duration * 1.8, repeat: Infinity, ease: "easeInOut" },
+              }}
+              whileHover={{ scale: 1.25 }}
+              whileTap={{ scale: 0.9 }}
+              onDragStartCapture={(event) => {
+                const data = (event as unknown as React.DragEvent<HTMLButtonElement>)
+                  .dataTransfer;
+                data.setData("text/food-slot", `${food.id}:${index}`);
+                data.effectAllowed = "copy";
+              }}
+              onClick={() => collect(food, index)}
+              className="focus-ring grid size-12 cursor-grab place-items-center rounded-2xl border border-white/10 bg-white/6 text-2xl backdrop-blur-md transition-colors active:cursor-grabbing hover:border-white/30 hover:bg-white/12"
+            >
+              {food.emoji}
+            </motion.button>
+          </ParallaxLayer>
         ) : null,
       )}
 
