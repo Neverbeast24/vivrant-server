@@ -1,103 +1,28 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { generateHealthInsight } from "@/lib/ai/gemini";
+import { z } from "zod";
+import { buildUserContext } from "@/lib/ai/context";
+import {
+  askViva,
+  draftReminder,
+  generateHealthInsight,
+} from "@/lib/ai/gemini";
 import { createClient } from "@/lib/supabase/server";
 
-function dayStartIso() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function weekStartDate() {
-  const d = new Date();
-  d.setDate(d.getDate() - 6);
-  return d.toISOString().slice(0, 10);
-}
-
-async function buildUserContext(userId: string) {
-  const supabase = await createClient();
-  const since = dayStartIso();
-  const weekStart = weekStartDate();
-
-  const [profile, checkins, meals, workouts, expenses, pantry, groceries] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("birth_date, sex, height_cm, weight_kg, goal_weight_kg, activity_level, health_focus, daily_step_goal, daily_water_goal_ml, monthly_health_budget, bio")
-      .eq("user_id", userId)
-      .maybeSingle(),
-    supabase
-      .from("daily_checkins")
-      .select("checkin_date, energy, mood, steps, water_ml, sleep_minutes, note")
-      .eq("user_id", userId)
-      .gte("checkin_date", weekStart)
-      .order("checkin_date", { ascending: false }),
-    supabase
-      .from("nutrition_logs")
-      .select("meal_name, meal_type, calories, protein_g, logged_at")
-      .eq("user_id", userId)
-      .gte("logged_at", since)
-      .order("logged_at", { ascending: false })
-      .limit(12),
-    supabase
-      .from("workout_logs")
-      .select("title, activity_type, duration_minutes, calories_burned, logged_at")
-      .eq("user_id", userId)
-      .gte("logged_at", since)
-      .order("logged_at", { ascending: false })
-      .limit(12),
-    supabase
-      .from("expenses")
-      .select("title, category, amount, spent_at")
-      .eq("user_id", userId)
-      .order("spent_at", { ascending: false })
-      .limit(12),
-    supabase
-      .from("pantry_items")
-      .select("name, category, stock_level")
-      .eq("user_id", userId)
-      .order("stock_level", { ascending: true })
-      .limit(12),
-    supabase
-      .from("grocery_items")
-      .select("name, quantity, is_checked")
-      .eq("user_id", userId)
-      .eq("is_checked", false)
-      .limit(12),
-  ]);
-
-  return JSON.stringify(
-    {
-      today: new Date().toISOString().slice(0, 10),
-      timezone: "Asia/Manila",
-      health_profile: profile.data ?? null,
-      checkins_last_7_days: checkins.data ?? [],
-      meals_today: meals.data ?? [],
-      workouts_today: workouts.data ?? [],
-      recent_expenses: expenses.data ?? [],
-      low_pantry_items: pantry.data ?? [],
-      open_grocery_list: groceries.data ?? [],
-    },
-    null,
-    2,
-  );
-}
-
-export async function generateInsight(_formData: FormData) {
-  void _formData;
+async function requireSignedIn() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Not signed in." };
+  if (!user) return { supabase, user: null as null };
+  return { supabase, user };
+}
 
-  if (!process.env.GEMINI_API_KEY) {
-    return {
-      ok: false,
-      message: "Gemini is not configured. Add GEMINI_API_KEY to your server environment.",
-    };
-  }
+export async function generateInsight(_formData?: FormData) {
+  void _formData;
+  const { supabase, user } = await requireSignedIn();
+  if (!user) return { ok: false, message: "Not signed in." };
 
   try {
     const context = await buildUserContext(user.id);
@@ -113,10 +38,61 @@ export async function generateInsight(_formData: FormData) {
 
     revalidatePath("/dashboard/ai");
     revalidatePath("/dashboard");
-    return { ok: true, message: "New Gemini insight generated." };
+    return {
+      ok: true,
+      message: "New Gemini insight generated.",
+      insight,
+    };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Gemini could not generate an insight.";
+    return { ok: false, message };
+  }
+}
+
+export async function askVivaQuestion(formData: FormData) {
+  const parsed = z
+    .object({ question: z.string().trim().min(3).max(500) })
+    .safeParse({ question: formData.get("question") });
+  if (!parsed.success) {
+    return { ok: false, message: "Ask a short question (at least a few words)." };
+  }
+
+  const { user } = await requireSignedIn();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  try {
+    const context = await buildUserContext(user.id);
+    const reply = await askViva(context, parsed.data.question);
+    return {
+      ok: true,
+      message: "VIVA answered.",
+      reply,
+      question: parsed.data.question,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "VIVA could not answer right now.";
+    return { ok: false, message };
+  }
+}
+
+export async function generateReminderDraft(_formData?: FormData) {
+  void _formData;
+  const { user } = await requireSignedIn();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  try {
+    const context = await buildUserContext(user.id);
+    const reminder = await draftReminder(context);
+    return {
+      ok: true,
+      message: "Reminder draft ready. Connect Firebase VAPID to send it as a push.",
+      reminder,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not draft a reminder.";
     return { ok: false, message };
   }
 }

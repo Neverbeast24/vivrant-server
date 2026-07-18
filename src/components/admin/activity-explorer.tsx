@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Activity, LayoutList, PieChart, Search, UserRound } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { Activity, LayoutList, PieChart, Search, Sparkles, UserRound } from "lucide-react";
+import { toast } from "sonner";
+import { summarizeMemberWithAi } from "@/app/admin/activity/ai-actions";
 
 export type MemberOption = {
   user_id: string;
@@ -41,6 +43,13 @@ export function ActivityExplorer({
   const [memberId, setMemberId] = useState("all");
   const [module, setModule] = useState("all");
   const [view, setView] = useState<"records" | "reports">("records");
+  const [summarizing, startSummary] = useTransition();
+  const [summary, setSummary] = useState<{
+    title: string;
+    summary: string;
+    risks: string[];
+    wins: string[];
+  } | null>(null);
 
   const memberMap = useMemo(
     () => new Map(members.map((member) => [member.user_id, member])),
@@ -75,12 +84,28 @@ export function ActivityExplorer({
           module: label,
           total: rows.length,
           members: memberCounts.size,
-          topMember: top ? memberMap.get(top[0])?.display_name ?? "Unknown" : null,
+          topMember: top ? (memberMap.get(top[0])?.display_name ?? "Unknown") : null,
           topCount: top?.[1] ?? 0,
           latest: rows[0]?.timestamp ?? null,
         };
       });
   }, [filtered, memberMap]);
+
+  function summarizeSelected() {
+    if (memberId === "all") {
+      toast.error("Select one member to generate an AI week summary.");
+      return;
+    }
+    startSummary(async () => {
+      const result = await summarizeMemberWithAi(memberId);
+      if (!result.ok || !("summary" in result) || !result.summary) {
+        toast.error(result.message);
+        return;
+      }
+      setSummary(result.summary);
+      toast.success(result.message);
+    });
+  }
 
   return (
     <>
@@ -94,34 +119,69 @@ export function ActivityExplorer({
             key={String(label)}
             className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4] p-5 shadow-[0_14px_32px_rgba(64,49,38,.07)]"
           >
-            <p className="text-[11px] font-black uppercase tracking-wider text-[#8a8491]">
-              {label}
-            </p>
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#8a8491]">{label}</p>
             <p className="font-display mt-3 text-4xl">{value}</p>
             <p className="mt-2 text-xs text-[#9a95a0]">{detail}</p>
           </article>
         ))}
       </div>
 
-      <div className="mt-5 inline-flex rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4]/90 p-1 shadow-sm">
-        {(
-          [
-            ["records", "Full records", LayoutList],
-            ["reports", "Module reports", PieChart],
-          ] as const
-        ).map(([key, label, Icon]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setView(key)}
-            className={`focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition ${
-              view === key ? "bg-[#26222f] text-white shadow" : "text-[#6b6675] hover:bg-white"
-            }`}
-          >
-            <Icon size={14} /> {label}
-          </button>
-        ))}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4]/90 p-1 shadow-sm">
+          {(
+            [
+              ["records", "Full records", LayoutList],
+              ["reports", "Module reports", PieChart],
+            ] as const
+          ).map(([key, label, Icon]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setView(key)}
+              className={`focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition ${
+                view === key ? "bg-[#26222f] text-white shadow" : "text-[#6b6675] hover:bg-white"
+              }`}
+            >
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          disabled={summarizing || memberId === "all"}
+          onClick={summarizeSelected}
+          className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#26222f] px-4 py-2.5 text-xs font-black text-white disabled:opacity-50"
+        >
+          <Sparkles size={14} />
+          {summarizing ? "Summarizing…" : "AI member summary"}
+        </button>
       </div>
+
+      {summary && (
+        <section className="mt-4 rounded-[1.5rem] border border-[#5f45e6]/15 bg-[#efeaff]/70 p-5">
+          <p className="text-[11px] font-black tracking-[0.16em] text-[#5f45e6]">AI SUPPORT SUMMARY</p>
+          <h2 className="font-display mt-2 text-2xl">{summary.title}</h2>
+          <p className="mt-3 text-sm leading-7 text-[#5f5867]">{summary.summary}</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-black text-[#8a8491]">Wins</p>
+              <ul className="mt-2 space-y-1 text-sm text-[#4c4757]">
+                {summary.wins.map((win) => (
+                  <li key={win}>• {win}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-black text-[#8a8491]">Watch-outs</p>
+              <ul className="mt-2 space-y-1 text-sm text-[#4c4757]">
+                {summary.risks.map((risk) => (
+                  <li key={risk}>• {risk}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mt-4 rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[1fr_14rem_12rem]">
@@ -187,8 +247,8 @@ export function ActivityExplorer({
               </p>
               {report.topMember && (
                 <p className="mt-3 border-t border-black/5 pt-3 text-xs text-[#77727f]">
-                  Most active: <span className="font-black text-[#332f3c]">{report.topMember}</span>{" "}
-                  ({report.topCount})
+                  Most active: <span className="font-black text-[#332f3c]">{report.topMember}</span> (
+                  {report.topCount})
                 </p>
               )}
             </article>
@@ -196,7 +256,11 @@ export function ActivityExplorer({
         </section>
       )}
 
-      <section className={`mt-5 overflow-hidden rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 shadow-sm ${view === "reports" ? "hidden" : ""}`}>
+      <section
+        className={`mt-5 overflow-hidden rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 shadow-sm ${
+          view === "reports" ? "hidden" : ""
+        }`}
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-black/6 bg-[#f4efe4]/70 text-[10px] font-black uppercase tracking-wider text-[#8a8491]">
@@ -226,9 +290,7 @@ export function ActivityExplorer({
                     </td>
                     <td className="px-5 py-4">
                       <p className="font-bold">{record.title}</p>
-                      <p className="mt-0.5 max-w-md truncate text-xs text-[#847f8c]">
-                        {record.detail}
-                      </p>
+                      <p className="mt-0.5 max-w-md truncate text-xs text-[#847f8c]">{record.detail}</p>
                     </td>
                     <td className="px-5 py-4 font-black">{record.value}</td>
                     <td className="px-5 py-4 text-xs text-[#847f8c]">

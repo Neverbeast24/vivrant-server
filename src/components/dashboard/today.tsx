@@ -32,6 +32,11 @@ export type TodayData = {
   stepGoal: number;
   waterGoalMl: number;
   healthFocus: string | null;
+  latestInsight: {
+    title: string;
+    body: string;
+    score: number | null;
+  } | null;
 };
 
 function formatSleep(minutes: number | null) {
@@ -94,7 +99,8 @@ export function TodayView({ data }: { data: TodayData }) {
   ] as const;
 
   const suggestion =
-    energy > 0 && energy < 55
+    data.latestInsight?.body ??
+    (energy > 0 && energy < 55
       ? "Your energy looks low. A short walk and a protein snack can help reset the afternoon."
       : steps < stepGoal * 0.5
         ? "You’re under halfway to your step goal. A brisk 15-minute walk would help."
@@ -102,7 +108,9 @@ export function TodayView({ data }: { data: TodayData }) {
           ? "No meals logged yet. Capture breakfast or lunch so VIVA can spot patterns."
           : data.healthFocus === "sleep"
             ? "Protect a consistent bedtime tonight; your sleep focus benefits most from regular timing."
-            : "A protein-rich snack now may keep your afternoon energy steady.";
+            : "A protein-rich snack now may keep your afternoon energy steady.");
+
+  const suggestionTitle = data.latestInsight?.title ?? "VIVA suggests";
 
   return (
     <>
@@ -216,15 +224,21 @@ export function TodayView({ data }: { data: TodayData }) {
                   <Sparkles size={18} />
                 </span>
                 <span className="text-[10px] font-black tracking-wider text-[#8a7e98]">
-                  VIVA SUGGESTS
+                  {data.latestInsight ? "LATEST INSIGHT" : "VIVA SUGGESTS"}
                 </span>
               </div>
-              <p className="mt-7 text-base font-bold leading-6">{suggestion}</p>
+              <p className="mt-5 text-sm font-black text-[#332f3c]">{suggestionTitle}</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#5f5867]">{suggestion}</p>
+              {data.latestInsight?.score != null && (
+                <p className="mt-3 text-[11px] font-bold text-[#8a8491]">
+                  Decision score {data.latestInsight.score}/100
+                </p>
+              )}
               <Link
                 href="/dashboard/ai"
                 className="mt-5 flex w-fit items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:gap-2"
               >
-                See options <ChevronRight size={13} />
+                Ask VIVA <ChevronRight size={13} />
               </Link>
             </motion.article>
           </Stagger>

@@ -1,20 +1,25 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Activity,
   ArrowUpRight,
   Dumbbell,
   Flame,
+  Sparkles,
   Utensils,
   WalletCards,
 } from "lucide-react";
+import { toast } from "sonner";
+import { generateWeeklyStory } from "@/app/dashboard/reports/ai-actions";
 import {
   Bars,
   EmptyState,
   ListRow,
   PageHeader,
   Panel,
+  PrimaryButton,
   Progress,
   Stagger,
   StatCard,
@@ -48,11 +53,60 @@ function buildSummary(data: ReportsData) {
 
 export function ReportsView({ data }: { data: ReportsData }) {
   const maxCategory = Math.max(1, ...data.categoryTotals.map((row) => row.total));
+  const [writing, startWrite] = useTransition();
+  const [story, setStory] = useState<{
+    title: string;
+    story: string;
+    focuses: string[];
+    score: number;
+  } | null>(null);
+
+  function writeStory() {
+    startWrite(async () => {
+      const result = await generateWeeklyStory();
+      if (!result.ok || !("story" in result) || !result.story) {
+        toast.error(result.message);
+        return;
+      }
+      setStory(result.story);
+      toast.success(result.message);
+    });
+  }
 
   return (
     <>
-      <PageHeader eyebrow="REPORTS" title="Your weekly" highlight="story." />
+      <PageHeader
+        eyebrow="REPORTS"
+        title="Your weekly"
+        highlight="story."
+        action={
+          <PrimaryButton disabled={writing} onClick={writeStory} className="rounded-full px-5">
+            <Sparkles size={14} className="mr-1.5" />
+            {writing ? "Writing…" : "AI weekly story"}
+          </PrimaryButton>
+        }
+      />
       <Stagger>
+        {story && (
+          <Panel
+            title={story.title}
+            className="mb-4"
+            right={<span className="text-xs font-black text-[#5f45e6]">{story.score}/100</span>}
+          >
+            <p className="text-sm leading-7 text-[#6f6b79]">{story.story}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {story.focuses.map((focus) => (
+                <span
+                  key={focus}
+                  className="rounded-full bg-[#ece7fb] px-3 py-1 text-[11px] font-black text-[#5f45e6]"
+                >
+                  {focus}
+                </span>
+              ))}
+            </div>
+          </Panel>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Check-ins"
@@ -93,7 +147,10 @@ export function ReportsView({ data }: { data: ReportsData }) {
               </span>
             }
           >
-            <Bars data={data.weekActivity} activeIndex={new Date().getDay() === 0 ? 6 : new Date().getDay() - 1} />
+            <Bars
+              data={data.weekActivity}
+              activeIndex={new Date().getDay() === 0 ? 6 : new Date().getDay() - 1}
+            />
           </Panel>
 
           <Panel title="Spending by category">
@@ -107,9 +164,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
                   <Progress value={(row.total / maxCategory) * 100} />
                 </div>
               ))}
-              {!data.categoryTotals.length && (
-                <EmptyState>No expenses yet this month.</EmptyState>
-              )}
+              {!data.categoryTotals.length && <EmptyState>No expenses yet this month.</EmptyState>}
             </div>
           </Panel>
         </div>
@@ -121,7 +176,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
               href="/dashboard/ai"
               className="mt-5 inline-flex items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:gap-2"
             >
-              Generate an AI insight <ArrowUpRight size={13} />
+              Ask VIVA <ArrowUpRight size={13} />
             </Link>
           </Panel>
 

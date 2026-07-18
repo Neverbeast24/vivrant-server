@@ -1,13 +1,14 @@
 "use client";
 
-import { useTransition } from "react";
-import { CheckCircle2, Pause, Target, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { CheckCircle2, Pause, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   addHealthGoal,
   deleteHealthGoal,
   updateGoalStatus,
 } from "@/app/dashboard/goals/actions";
+import { acceptSuggestedGoal, suggestGoalsWithAi } from "@/app/dashboard/goals/ai-actions";
 import {
   EmptyState,
   FormField,
@@ -29,9 +30,19 @@ export type HealthGoal = {
   status: "active" | "completed" | "paused";
 };
 
+type SuggestedGoal = {
+  title: string;
+  category: string;
+  target_value: number | null;
+  unit: string | null;
+  why: string;
+};
+
 export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
   const { pending, submit } = useModuleAction(addHealthGoal);
   const [busy, start] = useTransition();
+  const [suggesting, startSuggest] = useTransition();
+  const [ideas, setIdeas] = useState<SuggestedGoal[]>([]);
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -41,8 +52,73 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
     });
   }
 
+  function suggest() {
+    startSuggest(async () => {
+      const result = await suggestGoalsWithAi();
+      if (!result.ok || !("goals" in result) || !result.goals) {
+        toast.error(result.message);
+        return;
+      }
+      setIdeas(result.goals);
+      toast.success(result.message);
+    });
+  }
+
   return (
-    <Panel title="Health goals" className="mt-4">
+    <Panel
+      title="Health goals"
+      className="mt-4"
+      right={
+        <button
+          type="button"
+          disabled={suggesting}
+          onClick={suggest}
+          className="inline-flex items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+        >
+          <Sparkles size={13} />
+          {suggesting ? "Suggesting…" : "AI suggest"}
+        </button>
+      }
+    >
+      {ideas.length > 0 && (
+        <div className="mb-5 space-y-2 rounded-2xl border border-[#5f45e6]/15 bg-[#ece7fb]/50 p-3">
+          {ideas.map((idea) => (
+            <div
+              key={idea.title}
+              className="flex flex-col gap-2 rounded-xl bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="text-sm font-black">{idea.title}</p>
+                <p className="mt-1 text-xs text-[#847f8c]">
+                  {idea.category}
+                  {idea.target_value != null
+                    ? ` · ${idea.target_value}${idea.unit ? ` ${idea.unit}` : ""}`
+                    : ""}
+                  {" — "}
+                  {idea.why}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    const result = await acceptSuggestedGoal(idea);
+                    if (result.ok) {
+                      setIdeas((prev) => prev.filter((row) => row.title !== idea.title));
+                    }
+                    return result;
+                  })
+                }
+                className="rounded-full bg-[#26222f] px-3 py-1.5 text-[11px] font-black text-white"
+              >
+                Add goal
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <form action={submit} className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <FormField label="Goal" hint="Required" className="sm:col-span-2">
           <input name="title" required placeholder="e.g. Walk 8,000 steps daily" className={fieldClass} />

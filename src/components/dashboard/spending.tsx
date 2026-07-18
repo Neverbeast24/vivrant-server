@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { HeartPulse, Trash2, TrendingDown, WalletCards } from "lucide-react";
+import { useState, useTransition } from "react";
+import { HeartPulse, Sparkles, Trash2, TrendingDown, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { addExpense, deleteExpense } from "@/app/dashboard/spending/actions";
+import { coachSpendingWithAi } from "@/app/dashboard/spending/ai-actions";
 import {
   EmptyState,
   FormField,
@@ -36,6 +37,14 @@ export function SpendingView({
 }) {
   const { pending, submit } = useModuleAction(addExpense);
   const [deleting, startDelete] = useTransition();
+  const [coaching, startCoach] = useTransition();
+  const [advice, setAdvice] = useState<{
+    title: string;
+    body: string;
+    swap: string;
+    score: number;
+  } | null>(null);
+
   const total = expenses.reduce((sum, row) => sum + Number(row.amount), 0);
   const remaining = Math.max(0, monthlyBudget - total);
   const remainingPct = monthlyBudget > 0 ? Math.round((remaining / monthlyBudget) * 100) : 0;
@@ -46,9 +55,40 @@ export function SpendingView({
     ? Math.min(100, Math.round((wellnessShare / expenses.length) * 70 + remainingPct * 0.3))
     : 0;
 
+  function coach() {
+    startCoach(async () => {
+      const result = await coachSpendingWithAi();
+      if (!result.ok || !("advice" in result) || !result.advice) {
+        toast.error(result.message);
+        return;
+      }
+      setAdvice(result.advice);
+      toast.success(result.message);
+    });
+  }
+
   return (
     <>
-      <PageHeader eyebrow="SPENDING" title="Invest in" highlight="wellbeing." />
+      <PageHeader
+        eyebrow="SPENDING"
+        title="Invest in"
+        highlight="wellbeing."
+        action={
+          <PrimaryButton disabled={coaching} onClick={coach} className="rounded-full px-5">
+            <Sparkles size={14} className="mr-1.5" />
+            {coaching ? "Coaching…" : "Budget coach"}
+          </PrimaryButton>
+        }
+      />
+
+      {advice && (
+        <Panel title={advice.title} className="mb-4" right={<span className="text-xs font-black text-[#5f45e6]">{advice.score}/100</span>}>
+          <p className="text-sm leading-6 text-[#6f6b79]">{advice.body}</p>
+          <p className="mt-3 rounded-xl bg-[#ece7fb]/80 px-3 py-2 text-xs font-bold text-[#5f45e6]">
+            This week’s swap: {advice.swap}
+          </p>
+        </Panel>
+      )}
 
       <Panel title="Add expense" className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

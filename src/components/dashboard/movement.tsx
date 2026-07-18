@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { Flame, Footprints, Heart, Timer, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Flame, Footprints, Heart, Sparkles, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteWorkout, logWorkout } from "@/app/dashboard/movement/actions";
+import { suggestWorkoutWithAi } from "@/app/dashboard/movement/ai-actions";
 import {
   EmptyState,
   FormField,
@@ -36,6 +37,13 @@ export function MovementView({
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
+  const [suggesting, startSuggest] = useTransition();
+  const [title, setTitle] = useState("");
+  const [activity, setActivity] = useState("walk");
+  const [duration, setDuration] = useState("");
+  const [calories, setCalories] = useState("");
+  const [reason, setReason] = useState<string | null>(null);
+
   const totalMinutes = workouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
   const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0);
   const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
@@ -44,17 +52,62 @@ export function MovementView({
     Math.round(totalMinutes * 1.8 + workouts.length * 8 + Math.min(steps, stepGoal) / 80),
   );
 
+  function suggest() {
+    startSuggest(async () => {
+      const result = await suggestWorkoutWithAi();
+      if (!result.ok || !("suggestion" in result) || !result.suggestion) {
+        toast.error(result.message);
+        return;
+      }
+      const s = result.suggestion;
+      setTitle(s.title);
+      setActivity(s.activity_type);
+      setDuration(String(s.duration_minutes));
+      setCalories(String(s.calories_burned));
+      setReason(s.reason);
+      toast.success(result.message);
+    });
+  }
+
   return (
     <>
-      <PageHeader eyebrow="MOVEMENT" title="Move a little" highlight="today." />
+      <PageHeader
+        eyebrow="MOVEMENT"
+        title="Move a little"
+        highlight="today."
+        action={
+          <PrimaryButton disabled={suggesting} onClick={suggest} className="rounded-full px-5">
+            <Sparkles size={14} className="mr-1.5" />
+            {suggesting ? "Planning…" : "Suggest workout"}
+          </PrimaryButton>
+        }
+      />
+
+      {reason && (
+        <p className="mb-4 rounded-2xl border border-[#5f45e6]/15 bg-[#ece7fb]/70 px-4 py-3 text-sm font-semibold text-[#5f45e6]">
+          {reason}
+        </p>
+      )}
 
       <Panel title="Log a workout" className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <FormField label="Workout" hint="Required" className="sm:col-span-2">
-            <input name="title" required placeholder="e.g. Morning walk" className={fieldClass} />
+            <input
+              name="title"
+              required
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="e.g. Morning walk"
+              className={fieldClass}
+            />
           </FormField>
           <FormField label="Activity">
-            <select name="activity_type" defaultValue="walk" className={fieldClass}>
+            <select
+              name="activity_type"
+              value={activity}
+              onChange={(event) => setActivity(event.target.value)}
+              className={fieldClass}
+            >
               <option value="walk">Walk</option>
               <option value="run">Run</option>
               <option value="strength">Strength</option>
@@ -64,10 +117,27 @@ export function MovementView({
             </select>
           </FormField>
           <FormField label="Duration" hint="minutes">
-            <input name="duration_minutes" type="number" min={1} required placeholder="30" className={fieldClass} />
+            <input
+              name="duration_minutes"
+              type="number"
+              min={1}
+              required
+              value={duration}
+              onChange={(event) => setDuration(event.target.value)}
+              placeholder="30"
+              className={fieldClass}
+            />
           </FormField>
           <FormField label="Energy burned" hint="kcal">
-            <input name="calories_burned" type="number" min={0} placeholder="0" className={fieldClass} />
+            <input
+              name="calories_burned"
+              type="number"
+              min={0}
+              value={calories}
+              onChange={(event) => setCalories(event.target.value)}
+              placeholder="0"
+              className={fieldClass}
+            />
           </FormField>
           <PrimaryButton disabled={pending} className="sm:col-span-2 lg:col-span-4">
             {pending ? "Saving…" : "Log workout"}

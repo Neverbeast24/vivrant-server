@@ -24,40 +24,48 @@ export default async function DashboardPage() {
   const weekStart = weekAgo.toISOString().slice(0, 10);
   const dayStart = startOfDayIso();
 
-  const [checkinRes, weekRes, expensesRes, mealsRes, workoutsRes, profileRes] = await Promise.all([
-    supabase
-      .from("daily_checkins")
-      .select("energy, mood, steps, water_ml, sleep_minutes")
-      .eq("user_id", user.id)
-      .eq("checkin_date", today)
-      .maybeSingle(),
-    supabase
-      .from("daily_checkins")
-      .select("checkin_date, energy")
-      .eq("user_id", user.id)
-      .gte("checkin_date", weekStart)
-      .lte("checkin_date", today),
-    supabase
-      .from("expenses")
-      .select("amount, spent_at")
-      .eq("user_id", user.id)
-      .gte("spent_at", dayStart),
-    supabase
-      .from("nutrition_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("logged_at", dayStart),
-    supabase
-      .from("workout_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("logged_at", dayStart),
-    supabase
-      .from("profiles")
-      .select("daily_step_goal, daily_water_goal_ml, health_focus")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-  ]);
+  const [checkinRes, weekRes, expensesRes, mealsRes, workoutsRes, profileRes, insightRes] =
+    await Promise.all([
+      supabase
+        .from("daily_checkins")
+        .select("energy, mood, steps, water_ml, sleep_minutes")
+        .eq("user_id", user.id)
+        .eq("checkin_date", today)
+        .maybeSingle(),
+      supabase
+        .from("daily_checkins")
+        .select("checkin_date, energy")
+        .eq("user_id", user.id)
+        .gte("checkin_date", weekStart)
+        .lte("checkin_date", today),
+      supabase
+        .from("expenses")
+        .select("amount, spent_at")
+        .eq("user_id", user.id)
+        .gte("spent_at", dayStart),
+      supabase
+        .from("nutrition_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("logged_at", dayStart),
+      supabase
+        .from("workout_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("logged_at", dayStart),
+      supabase
+        .from("profiles")
+        .select("daily_step_goal, daily_water_goal_ml, health_focus")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("ai_recommendations")
+        .select("title, body, score")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
   const energyByDate = new Map(
     (weekRes.data ?? []).map((row) => [row.checkin_date as string, Number(row.energy ?? 0)]),
@@ -95,6 +103,13 @@ export default async function DashboardPage() {
         stepGoal: profileRes.data?.daily_step_goal ?? 8000,
         waterGoalMl: profileRes.data?.daily_water_goal_ml ?? 2400,
         healthFocus: profileRes.data?.health_focus ?? null,
+        latestInsight: insightRes.data
+          ? {
+              title: insightRes.data.title,
+              body: insightRes.data.body,
+              score: insightRes.data.score,
+            }
+          : null,
       }}
     />
   );

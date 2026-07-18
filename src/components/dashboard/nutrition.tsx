@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { Apple, Droplets, Flame, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Apple, Droplets, Flame, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteMeal, logMeal } from "@/app/dashboard/nutrition/actions";
+import { estimateMealWithAi } from "@/app/dashboard/nutrition/ai-actions";
 import {
   EmptyState,
   FormField,
@@ -39,6 +40,14 @@ export function NutritionView({
 }) {
   const { pending, submit } = useModuleAction(logMeal);
   const [deleting, startDelete] = useTransition();
+  const [estimating, startEstimate] = useTransition();
+  const [mealName, setMealName] = useState("");
+  const [calories, setCalories] = useState("");
+  const [protein, setProtein] = useState("");
+  const [carbs, setCarbs] = useState("");
+  const [fat, setFat] = useState("");
+  const [tip, setTip] = useState<string | null>(null);
+
   const totalCalories = meals.reduce((sum, meal) => sum + (meal.calories ?? 0), 0);
   const totalProtein = meals.reduce((sum, meal) => sum + (meal.protein_g ?? 0), 0);
   const waterLiters = waterMl / 1000;
@@ -54,14 +63,56 @@ export function NutritionView({
     ),
   );
 
+  function estimate(formData: FormData) {
+    startEstimate(async () => {
+      const result = await estimateMealWithAi(formData);
+      if (!result.ok || !("estimate" in result) || !result.estimate) {
+        toast.error(result.message);
+        return;
+      }
+      const { estimate: e } = result;
+      setMealName(e.meal_name);
+      setCalories(String(e.calories));
+      setProtein(String(e.protein_g));
+      setCarbs(String(e.carbs_g));
+      setFat(String(e.fat_g));
+      setTip(e.tip);
+      toast.success(result.message);
+    });
+  }
+
   return (
     <>
       <PageHeader eyebrow="NUTRITION" title="Eat with" highlight="intention." />
 
+      <Panel title="AI meal estimate" className="mb-4" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
+        <form action={estimate} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <FormField label="Describe your meal">
+            <input
+              name="description"
+              required
+              placeholder="e.g. grilled chicken, brown rice, and mango"
+              className={fieldClass}
+            />
+          </FormField>
+          <PrimaryButton disabled={estimating} className="sm:self-end">
+            {estimating ? "Estimating…" : "Estimate macros"}
+          </PrimaryButton>
+        </form>
+        {tip && <p className="mt-3 text-sm font-semibold text-[#5f45e6]">{tip}</p>}
+      </Panel>
+
       <Panel title="Log a meal" className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <FormField label="Meal" hint="Required" className="sm:col-span-2">
-            <input name="meal_name" required placeholder="e.g. Chicken rice bowl" className={fieldClass} />
+            <input
+              name="meal_name"
+              required
+              value={mealName}
+              onChange={(event) => setMealName(event.target.value)}
+              placeholder="e.g. Chicken rice bowl"
+              className={fieldClass}
+            />
           </FormField>
           <FormField label="Meal type">
             <select name="meal_type" defaultValue="lunch" className={fieldClass}>
@@ -72,16 +123,51 @@ export function NutritionView({
             </select>
           </FormField>
           <FormField label="Calories" hint="kcal">
-            <input name="calories" type="number" min={0} placeholder="0" className={fieldClass} />
+            <input
+              name="calories"
+              type="number"
+              min={0}
+              value={calories}
+              onChange={(event) => setCalories(event.target.value)}
+              placeholder="0"
+              className={fieldClass}
+            />
           </FormField>
           <FormField label="Protein" hint="grams">
-            <input name="protein_g" type="number" min={0} step="0.1" placeholder="0" className={fieldClass} />
+            <input
+              name="protein_g"
+              type="number"
+              min={0}
+              step="0.1"
+              value={protein}
+              onChange={(event) => setProtein(event.target.value)}
+              placeholder="0"
+              className={fieldClass}
+            />
           </FormField>
           <FormField label="Carbs" hint="grams">
-            <input name="carbs_g" type="number" min={0} step="0.1" placeholder="0" className={fieldClass} />
+            <input
+              name="carbs_g"
+              type="number"
+              min={0}
+              step="0.1"
+              value={carbs}
+              onChange={(event) => setCarbs(event.target.value)}
+              placeholder="0"
+              className={fieldClass}
+            />
           </FormField>
           <FormField label="Fat" hint="grams">
-            <input name="fat_g" type="number" min={0} step="0.1" placeholder="0" className={fieldClass} />
+            <input
+              name="fat_g"
+              type="number"
+              min={0}
+              step="0.1"
+              value={fat}
+              onChange={(event) => setFat(event.target.value)}
+              placeholder="0"
+              className={fieldClass}
+            />
           </FormField>
           <PrimaryButton disabled={pending} className="sm:col-span-2 lg:col-span-6">
             {pending ? "Saving…" : "Log meal"}

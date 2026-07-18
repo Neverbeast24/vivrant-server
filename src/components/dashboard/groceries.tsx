@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Package, ShoppingBasket, Sparkles, Trash2 } from "lucide-react";
 import {
@@ -9,6 +9,10 @@ import {
   deleteGroceryItem,
   toggleGroceryItem,
 } from "@/app/dashboard/groceries/actions";
+import {
+  addPlanItemsToList,
+  generateSmartGroceryPlan,
+} from "@/app/dashboard/groceries/ai-actions";
 import {
   EmptyState,
   FormField,
@@ -30,6 +34,13 @@ type GroceryItem = {
   is_checked: boolean;
 };
 
+type Plan = {
+  title: string;
+  summary: string;
+  meals: string[];
+  items: { name: string; category: string; quantity: string }[];
+};
+
 const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
   produce: { label: "Fruits & vegetables", emoji: "🥬" },
   protein: { label: "Meat & protein", emoji: "🍗" },
@@ -47,6 +58,8 @@ const CATEGORY_ORDER = Object.keys(CATEGORY_META);
 export function GroceriesView({ items }: { items: GroceryItem[] }) {
   const { pending, submit } = useModuleAction(addGroceryItem);
   const [togglePending, startToggle] = useTransition();
+  const [planning, startPlan] = useTransition();
+  const [plan, setPlan] = useState<Plan | null>(null);
   const done = items.filter((item) => item.is_checked).length;
 
   const grouped = CATEGORY_ORDER.map((key) => ({
@@ -71,9 +84,61 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
     });
   }
 
+  function buildPlan() {
+    startPlan(async () => {
+      const result = await generateSmartGroceryPlan();
+      if (!result.ok || !("plan" in result) || !result.plan) {
+        toast.error(result.message);
+        return;
+      }
+      setPlan(result.plan);
+      toast.success(result.message);
+    });
+  }
+
   return (
     <>
-      <PageHeader eyebrow="GROCERIES" title="Shop" highlight="smarter." />
+      <PageHeader
+        eyebrow="GROCERIES"
+        title="Shop"
+        highlight="smarter."
+        action={
+          <PrimaryButton disabled={planning} onClick={buildPlan} className="rounded-full px-5">
+            <Sparkles size={14} className="mr-1.5" />
+            {planning ? "Planning…" : "AI meal + list"}
+          </PrimaryButton>
+        }
+      />
+
+      {plan && (
+        <Panel title={plan.title} className="mb-4" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
+          <p className="text-sm leading-6 text-[#6f6b79]">{plan.summary}</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {plan.meals.map((meal) => (
+              <div key={meal} className="rounded-xl border border-[#26222f]/8 bg-[#f4efe4]/50 px-3 py-2 text-xs font-bold">
+                {meal}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 space-y-2">
+            {plan.items.map((item) => (
+              <div key={`${item.name}-${item.quantity}`} className="flex items-center justify-between rounded-xl border border-black/5 bg-white/70 px-3 py-2 text-sm">
+                <span className="font-bold">{item.name}</span>
+                <span className="text-xs text-[#847f8c]">
+                  {CATEGORY_META[item.category]?.emoji ?? "🛒"} {item.quantity}
+                </span>
+              </div>
+            ))}
+          </div>
+          <PrimaryButton
+            disabled={togglePending}
+            className="mt-4"
+            onClick={() => runAction(() => addPlanItemsToList(plan.items))}
+          >
+            Add all to shopping list
+          </PrimaryButton>
+        </Panel>
+      )}
 
       <Panel title="Add grocery item" className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-4">
