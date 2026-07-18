@@ -46,7 +46,7 @@ export function SocialAuth({ next }: { next?: string }) {
           whileTap={{ scale: 0.98 }}
           disabled={pending !== null}
           onClick={() => signInWith("google")}
-          className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm font-black text-[#4e4956] shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+          className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4] px-4 py-3.5 text-sm font-black text-[#4e4956] shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending === "google" ? (
             <Loader2 size={17} className="animate-spin" />

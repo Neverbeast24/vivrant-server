@@ -99,7 +99,7 @@ export function Panel({
         hidden: { opacity: 0, y: 18 },
         show: { opacity: 1, y: 0 },
       }}
-      className={`rounded-[1.6rem] border border-white bg-white/75 p-5 shadow-sm sm:p-6 ${className}`}
+      className={`rounded-[1.6rem] border border-[#26222f]/6 bg-[#fdfbf4]/80 p-5 shadow-sm sm:p-6 ${className}`}
     >
       {(title || right) && (
         <div className="mb-6 flex items-center justify-between">
@@ -130,7 +130,7 @@ export function Bars({
             className={`w-full max-w-10 rounded-full ${
               index === activeIndex
                 ? "bg-gradient-to-t from-[#7657ff] to-[#23d4df]"
-                : "bg-[#ebe8f2]"
+                : "bg-[#eae4d6]"
             }`}
           />
           <span className="text-[10px] font-bold text-[#a19ca7]">{label}</span>

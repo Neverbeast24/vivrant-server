@@ -52,7 +52,7 @@ async function postJson(url: string, payload: unknown) {
 }
 
 const inputShell =
-  "flex items-center gap-3 rounded-2xl border border-black/7 bg-white/70 px-4 py-3.5 shadow-sm transition focus-within:border-[#7557ff]/40 focus-within:ring-4 focus-within:ring-[#7557ff]/8";
+  "flex items-center gap-3 rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4]/90 px-4 py-3.5 shadow-sm transition focus-within:border-[#5f45e6]/40 focus-within:ring-4 focus-within:ring-[#5f45e6]/8";
 
 export function AuthForm({
   next,
@@ -253,7 +253,7 @@ export function AuthForm({
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.985 }}
           disabled={pending}
-          className="focus-ring group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#24212e] px-5 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(36,33,46,.18)] transition hover:bg-[#7557ff] disabled:cursor-not-allowed disabled:opacity-70"
+          className="focus-ring group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#26222f] px-5 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(38,34,47,.18)] transition hover:bg-[#e4571f] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {pending ? (
             <Loader2 size={16} className="animate-spin" />
