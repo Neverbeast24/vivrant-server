@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/roles";
-import { isMachineGear, type GymExercise, type GymPlan, type GymSession } from "@/components/dashboard/gym-parts";
+import { isMachineGear, type GymExercise, type GymPlan, type GymSession } from "@/lib/gym";
 
 export async function loadGymData() {
   const { supabase, user } = await requireUser();
