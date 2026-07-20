@@ -41,12 +41,12 @@ export default async function DashboardLayout({
     (user.user_metadata?.full_name as string | undefined) ??
     (user.user_metadata?.name as string | undefined) ??
     user.email?.split("@")[0] ??
-    "VIVA member";
+    "VIVRΛNT member";
 
   return (
     <DashboardShell
       displayName={displayName}
-      nickname={user.email?.split("@")[0] ?? "viva-member"}
+      nickname={user.email?.split("@")[0] ?? "VIVRΛNT-member"}
       avatarUrl={profile?.avatar_url ?? null}
       isStaff={isStaff(profile?.role as UserRole)}
       isSuperAdmin={isSuperAdmin(profile?.role as UserRole)}

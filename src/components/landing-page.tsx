@@ -129,7 +129,7 @@ const modules: Module[] = [
   {
     icon: UserRound,
     title: "Profile & settings",
-    copy: "Keep VIVA personal, private, and adaptable.",
+    copy: "Keep VIVRΛNT personal, private, and adaptable.",
     tag: "Foundation",
     iconClass: "bg-gradient-to-br from-[#1a9b78] to-[#7ec8b8]",
   },
@@ -148,7 +148,7 @@ const journey = [
   "Set goals",
   "Set budget",
   "Log daily choices",
-  "VIVA analyzes",
+  "VIVRΛNT analyzes",
   "Receive next action",
   "Review weekly insights",
 ];
@@ -204,7 +204,7 @@ export function LandingPage() {
               Modules
             </a>
             <a href="#principles" className="transition-colors hover:text-[#0e7c66]">
-              Why VIVA
+              Why VIVRΛNT
             </a>
           </div>
           <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ export function LandingPage() {
               href="/dashboard"
               className="focus-ring hidden rounded-full bg-[#14221b] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0e7c66] sm:inline-flex"
             >
-              Open VIVA
+              Open VIVRΛNT
             </Link>
           </div>
         </div>
@@ -232,12 +232,12 @@ export function LandingPage() {
         >
           <div className="mb-7 flex flex-wrap items-center gap-3">
             <Image
-              src="/viva-logo.png"
-              alt="VIVA logo"
+              src="/vivrant-mark.png"
+              alt="VIVRΛNT logo"
               width={72}
               height={72}
               priority
-              className="rounded-2xl shadow-[0_18px_40px_rgba(88,70,190,.18)]"
+              className="size-[72px] rounded-2xl object-cover shadow-[0_18px_40px_rgba(14,124,102,.22)]"
             />
             <div className="inline-flex items-center gap-2 rounded-full border border-[#c45c2a]/20 bg-[#f6faf7]/80 px-3.5 py-2 text-xs font-bold text-[#a84b22] shadow-sm backdrop-blur-xl">
               <Sparkles size={14} />
@@ -249,7 +249,7 @@ export function LandingPage() {
             <span className="gradient-text italic">healthier.</span>
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-8 text-[#55665d]">
-            VIVA turns everyday signals into a clear, personal rhythm for
+            VIVRΛNT turns everyday signals into a clear, personal rhythm for
             nutrition, movement, goals, and mindful spending.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -336,7 +336,7 @@ export function LandingPage() {
               <div className="mt-3 grid gap-3 sm:grid-cols-[1.4fr_1fr]">
                 <div className="rounded-[1.4rem] bg-[#14221b] p-5 text-white">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white/55">VIVA INSIGHT</span>
+                    <span className="text-xs font-bold text-white/55">VIVRΛNT INSIGHT</span>
                     <BrainCircuit size={18} className="text-[#9f8aff]" />
                   </div>
                   <p className="mt-5 max-w-sm text-sm leading-6 text-white/80">
@@ -405,7 +405,7 @@ export function LandingPage() {
               Smarter daily decisions, not another pile of health data.
             </h2>
             <p className="mt-6 max-w-xl text-sm leading-7 text-white/55">
-              VIVA helps people understand what they should do next through
+              VIVRΛNT helps people understand what they should do next through
               personalized recommendations shaped by their real routines.
             </p>
           </motion.article>
@@ -434,7 +434,7 @@ export function LandingPage() {
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <span className="text-xs font-black tracking-[0.2em] text-[#0e7c66]">
-              THE VIVA ECOSYSTEM
+              THE VIVRΛNT ECOSYSTEM
             </span>
             <h2 className="font-display mt-4 max-w-2xl text-5xl leading-tight">
               Your whole health picture, finally connected.
@@ -558,7 +558,7 @@ export function LandingPage() {
                 DECISION ENGINE
               </span>
               <h2 className="font-display mt-6 max-w-2xl text-5xl leading-tight">
-                VIVA turns daily activity into your best next action.
+                VIVRΛNT turns daily activity into your best next action.
               </h2>
               <p className="mt-6 max-w-xl text-sm leading-7 text-white/55">
                 The engine evaluates goals, nutrition, workouts, spending,
@@ -664,7 +664,7 @@ export function LandingPage() {
           </div>
           <p className="font-display mx-auto mt-12 max-w-3xl text-4xl leading-tight">
             Every choice shapes your health.{" "}
-            <span className="gradient-text italic">VIVA helps shape the next one.</span>
+            <span className="gradient-text italic">VIVRΛNT helps shape the next one.</span>
           </p>
         </div>
       </section>
@@ -687,7 +687,7 @@ export function LandingPage() {
               <span className="gradient-text italic">one sign-in away.</span>
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-white/55">
-              Set your goals, log your day, and let VIVA turn the noise into one
+              Set your goals, log your day, and let VIVRΛNT turn the noise into one
               clear next action — every single morning.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -715,11 +715,11 @@ export function LandingPage() {
           <div className="flex items-center gap-7 text-xs font-bold text-[#6f8077]">
             <a href="#experience" className="transition-colors hover:text-[#0e7c66]">Experience</a>
             <a href="#modules" className="transition-colors hover:text-[#0e7c66]">Modules</a>
-            <a href="#principles" className="transition-colors hover:text-[#0e7c66]">Why VIVA</a>
+            <a href="#principles" className="transition-colors hover:text-[#0e7c66]">Why VIVRΛNT</a>
             <Link href="/login" className="transition-colors hover:text-[#0e7c66]">Sign in</Link>
           </div>
           <p className="text-xs font-semibold text-[#84948b]">
-            © {new Date().getFullYear()} VIVA · Long live life
+            © {new Date().getFullYear()} VIVRΛNT · Long live life
           </p>
         </div>
       </footer>

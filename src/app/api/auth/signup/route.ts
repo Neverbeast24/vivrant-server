@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     ok: true,
     needsConfirmation,
     message: needsConfirmation
-      ? "Check your inbox to confirm your VIVA account."
-      : "Account created. Welcome to VIVA!",
+      ? "Check your inbox to confirm your VIVRΛNT account."
+      : "Account created. Welcome to VIVRΛNT!",
   });
 }

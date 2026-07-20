@@ -35,7 +35,7 @@ type ChatTurn = {
 };
 
 const aiSubNav = [
-  { href: "/dashboard/ai", label: "Ask VIVA" },
+  { href: "/dashboard/ai", label: "Ask VIVRΛNT" },
   { href: "/dashboard/ai/insights", label: "Insights" },
   { href: "/dashboard/ai/reminders", label: "Reminders" },
 ] as const;
@@ -120,7 +120,7 @@ export function AiView({
       <ModuleSubNav items={aiSubNav} />
 
       {section === "ask" && (
-      <Panel title="Ask VIVA" right={<MessageCircle size={16} className="text-[#0e7c66]" />}>
+      <Panel title="Ask VIVRΛNT" right={<MessageCircle size={16} className="text-[#0e7c66]" />}>
           <p className="mb-4 text-sm text-[#5a6b62]">
             Ask about your energy, meals, budget, or what to do next — answers use your live logs only.
           </p>
@@ -135,7 +135,7 @@ export function AiView({
                 }`}
               >
                 <p className="text-[10px] font-black tracking-wider opacity-60">
-                  {turn.role === "user" ? "YOU" : "VIVA"}
+                  {turn.role === "user" ? "YOU" : "VIVRΛNT"}
                 </p>
                 <p className="mt-1">{turn.text}</p>
                 {turn.followUp && (
@@ -169,7 +169,7 @@ export function AiView({
       {section === "reminders" && (
         <Panel title="Push reminder draft" right={<Sparkles size={16} className="text-[#0e7c66]" />}>
           <p className="text-sm leading-6 text-[#5a6b62]">
-            VIVA can draft a notification from today’s rhythm. Sending requires your Firebase VAPID key.
+            VIVRΛNT can draft a notification from today’s rhythm. Sending requires your Firebase VAPID key.
           </p>
           <PrimaryButton
             disabled={reminderPending}
@@ -195,7 +195,7 @@ export function AiView({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-black tracking-[0.16em] text-[#0e7c66]">
-                    VIVA INSIGHT
+                    VIVRΛNT INSIGHT
                   </p>
                   <h2 className="font-display mt-2 text-xl tracking-tight">{item.title}</h2>
                   <p className="mt-3 text-sm leading-6 text-[#55665d]">{item.body}</p>

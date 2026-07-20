@@ -26,13 +26,13 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "VIVA — Long live life",
-    template: "%s · VIVA",
+    default: "VIVRΛNT — Long live life",
+    template: "%s · VIVRΛNT",
   },
   description:
-    "VIVA — Long live life. A calm, intelligent health workspace for nutrition, movement, goals, and everyday wellbeing.",
+    "VIVRΛNT — Long live life. A calm, intelligent health workspace for nutrition, movement, goals, and everyday wellbeing.",
   icons: {
-    icon: "/viva-mark.svg",
+    icon: "/vivrant-mark.png",
   },
 };
 

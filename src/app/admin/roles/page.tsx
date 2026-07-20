@@ -38,7 +38,7 @@ export default async function AdminRolesPage() {
     <>
       <h1 className="font-display text-4xl">Roles & Permissions</h1>
       <p className="mt-2 text-sm text-[#5a6b62]">
-        VIVA supports three roles aligned with the master documentation.
+        VIVRΛNT supports three roles aligned with the master documentation.
       </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">

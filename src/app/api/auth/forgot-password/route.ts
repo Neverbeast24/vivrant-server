@@ -35,6 +35,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    message: "If that email has a VIVA account, a reset link is on its way.",
+    message: "If that email has a VIVRΛNT account, a reset link is on its way.",
   });
 }

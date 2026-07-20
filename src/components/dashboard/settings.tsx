@@ -64,7 +64,7 @@ export function SettingsView({
       : null;
 
   const titles = {
-    profile: { title: "Make VIVA", highlight: "yours." },
+    profile: { title: "Make VIVRΛNT", highlight: "yours." },
     goals: { title: "Set clear", highlight: "targets." },
     history: { title: "Track your", highlight: "body story." },
     preferences: { title: "Tune your", highlight: "experience." },
@@ -218,7 +218,7 @@ export function SettingsView({
                 name="bio"
                 rows={4}
                 defaultValue={profile.bio ?? ""}
-                placeholder="Anything VIVA should consider when creating your insights…"
+                placeholder="Anything VIVRΛNT should consider when creating your insights…"
                 className={fieldClass}
               />
             </FormField>
@@ -251,7 +251,7 @@ export function SettingsView({
             </div>
             <div className="mt-4 flex items-start gap-3 rounded-2xl bg-[#d7efe6]/70 p-4 text-xs leading-5 text-[#645a78]">
               <BadgeInfo size={16} className="mt-0.5 shrink-0 text-[#0e7c66]" />
-              BMI is a general screening measure, not a diagnosis. VIVA uses your profile only
+              BMI is a general screening measure, not a diagnosis. VIVRΛNT uses your profile only
               to personalize wellness guidance.
             </div>
           </Panel>
@@ -302,7 +302,7 @@ export function SettingsView({
             <span>
               <span className="block">Push notifications</span>
               <span className="mt-0.5 block text-xs font-normal text-[#74847b]">
-                Receive reminders and new VIVA insights
+                Receive reminders and new VIVRΛNT insights
               </span>
             </span>
             <input

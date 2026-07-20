@@ -48,7 +48,7 @@ export type ReportsData = {
 function buildSummary(data: ReportsData) {
   const parts: string[] = [];
   if (data.checkins === 0) {
-    return "No check-ins yet this month. Start with a daily check-in so VIVA can build your weekly story.";
+    return "No check-ins yet this month. Start with a daily check-in so VIVRΛNT can build your weekly story.";
   }
   parts.push(`You checked in ${data.checkins} time${data.checkins === 1 ? "" : "s"} this month`);
   if (data.avgEnergy != null) parts.push(`with an average energy of ${data.avgEnergy}/100`);
@@ -210,7 +210,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
               href="/dashboard/ai"
               className="mt-5 inline-flex items-center gap-1 text-xs font-black text-[#0e7c66] transition hover:gap-2"
             >
-              Ask VIVA <ArrowUpRight size={13} />
+              Ask VIVRΛNT <ArrowUpRight size={13} />
             </Link>
           </Panel>
 

@@ -18,12 +18,12 @@ type Feedback = { tone: "error" | "notice"; text: string } | null;
 
 const COPY: Record<Mode, { eyebrow: string; title: string; blurb: string }> = {
   signin: {
-    eyebrow: "WELCOME TO VIVA",
+    eyebrow: "WELCOME TO VIVRΛNT",
     title: "Come back to yourself.",
     blurb: "Sign in to continue your healthier rhythm.",
   },
   signup: {
-    eyebrow: "JOIN VIVA",
+    eyebrow: "JOIN VIVRΛNT",
     title: "Start something kind.",
     blurb: "Create your private space in under a minute.",
   },
@@ -273,7 +273,7 @@ export function AuthForm({
       <div className="mt-5 text-center text-sm text-[#7b7682]">
         {mode === "signin" && (
           <>
-            New to VIVA?{" "}
+            New to VIVRΛNT?{" "}
             <button
               type="button"
               onClick={() => switchMode("signup")}

@@ -114,12 +114,12 @@ export function TodayView({ data }: { data: TodayData }) {
       : steps < stepGoal * 0.5
         ? "You’re under halfway to your step goal. A brisk 15-minute walk would help."
         : data.mealsToday === 0
-          ? "No meals logged yet. Capture breakfast or lunch so VIVA can spot patterns."
+          ? "No meals logged yet. Capture breakfast or lunch so VIVRΛNT can spot patterns."
           : data.healthFocus === "sleep"
             ? "Protect a consistent bedtime tonight; your sleep focus benefits most from regular timing."
             : "A protein-rich snack now may keep your afternoon energy steady.");
 
-  const suggestionTitle = data.latestInsight?.title ?? "VIVA suggests";
+  const suggestionTitle = data.latestInsight?.title ?? "VIVRΛNT suggests";
 
   return (
     <>
@@ -233,7 +233,7 @@ export function TodayView({ data }: { data: TodayData }) {
                   <Sparkles size={18} />
                 </span>
                 <span className="text-[10px] font-black tracking-wider text-[#5a6b62]">
-                  {data.latestInsight ? "LATEST INSIGHT" : "VIVA SUGGESTS"}
+                  {data.latestInsight ? "LATEST INSIGHT" : "VIVRΛNT SUGGESTS"}
                 </span>
               </div>
               <p className="mt-5 text-sm font-black text-[#1e2f26]">{suggestionTitle}</p>
@@ -247,7 +247,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 href="/dashboard/ai"
                 className="mt-5 flex w-fit items-center gap-1 text-xs font-black text-[#0e7c66] transition hover:gap-2"
               >
-                Ask VIVA <ChevronRight size={13} />
+                Ask VIVRΛNT <ChevronRight size={13} />
               </Link>
             </motion.article>
           </Stagger>

@@ -1,4 +1,4 @@
-# VIVA setup guide
+# VIVRΛNT setup guide
 
 This project is a Next.js App Router app with:
 
@@ -74,7 +74,7 @@ Supabase handles the OAuth exchange. Google must redirect to Supabase—not dire
 
 1. Open GitHub → **Settings → Developer settings → OAuth Apps**.
 2. Select **New OAuth App**.
-3. Use `VIVA` as the application name.
+3. Use `VIVRΛNT` as the application name.
 4. Homepage URL for local testing: `http://localhost:3000`.
 5. Use this exact **Authorization callback URL**:
 
@@ -86,7 +86,7 @@ Supabase handles the OAuth exchange. Google must redirect to Supabase—not dire
 
 Never place Google or GitHub client secrets in `.env.local` or any `NEXT_PUBLIC_` variable. They belong only in the Supabase provider settings.
 
-### How VIVA users are stored
+### How VIVRΛNT users are stored
 
 1. Email, Google, and GitHub accounts are created in **Authentication → Users** (`auth.users`).
 2. The database trigger creates a matching row in `public.profiles`.

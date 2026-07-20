@@ -133,7 +133,7 @@ export function Notifications({ items }: { items: NotificationItem[] }) {
               ))}
               {!rows.length && (
                 <p className="rounded-xl border border-dashed border-[#14221b]/10 px-3 py-8 text-center text-xs text-[#7a8a81]">
-                  No notifications yet. Admin broadcasts and VIVA updates will show here.
+                  No notifications yet. Admin broadcasts and VIVRΛNT updates will show here.
                 </p>
               )}
             </div>

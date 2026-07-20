@@ -46,7 +46,7 @@ export default function GlobalError({
             <span style={{ width: 12, height: 12, borderRadius: 999, background: "#febc2e" }} />
             <span style={{ width: 12, height: 12, borderRadius: 999, background: "#28c840" }} />
             <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "#8b8691" }}>
-              VIVA
+              VIVRΛNT
             </span>
           </div>
           <div style={{ padding: "2rem" }}>
@@ -54,7 +54,7 @@ export default function GlobalError({
               Something broke at the root.
             </h1>
             <p style={{ margin: "0.75rem 0 0", color: "#77717d", lineHeight: 1.6, fontSize: 14 }}>
-              VIVA hit an unexpected error before the page could recover. Your data is safe —
+              VIVRΛNT hit an unexpected error before the page could recover. Your data is safe —
               try again.
             </p>
             {error.digest ? (

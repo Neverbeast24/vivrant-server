@@ -1,167 +1,170 @@
-# 💜 VIVA Web
+# VIVRΛNT Web
 
-### Virtual Intelligent Vitality Assistant
+### Long live life
 
 > **Every Choice Shapes Your Health.**
 
-VIVA Web powers the backend services, REST APIs, AI Decision Engine, and administrative dashboard for the VIVA ecosystem.
+**VIVRΛNT** (stylized from *vibrant*) conveys energy, health, and vitality. It also carries **Viv**, from the Latin *vivere* (“to live”), which aligns with the product purpose. The lambda (**Λ**) is a brand stylization of the letter A. Former working name: VIVA (Virtual Intelligent Vitality Assistant).
 
-It provides secure APIs for the mobile application while enabling administrators to manage users, analytics, nutrition data, workouts, groceries, notifications, and AI-generated recommendations.
-
----
-
-# 📖 About
-
-The VIVA Web platform consists of two major components:
-
-- REST API Backend
-- Administrative Dashboard
-
-It processes user data, performs intelligent health analysis, communicates with AI services, and delivers personalized recommendations to the mobile application.
+VIVRΛNT Web is the Next.js platform for the VIVRΛNT ecosystem: member dashboard, admin console, AI coaching, and secure data services. It helps people make healthier daily choices through personalized recommendations—not tracking alone.
 
 ---
 
-# 🏗 Architecture
+# About
+
+VIVRΛNT Web includes:
+
+- **Member workspace** — daily check-ins, nutrition, movement, gym, groceries, pantry, spending, reports, and AI coaching
+- **Administrative console** — users, roles, audit logs, system settings, and (super-admin) member activity
+- **Auth & data layer** — Supabase Auth + Postgres with Row Level Security
+- **AI services** — Google Gemini coaching across modules
+- **Push & storage** — Firebase Cloud Messaging and Firebase Storage
+
+Domain logic runs mainly through **Next.js Server Actions** and App Router pages. A thin HTTP surface covers auth, search, and the FCM service worker. A full public REST API for Flutter mobile remains on the roadmap.
+
+---
+
+# Architecture
 
 ```text
-Flutter Mobile
-       │
- REST API
-       │
- Next.js (Vercel)
-       │
- ├── Supabase Auth + Postgres (RLS)
- ├── AI Decision Engine
+Browser (Landing / Login / Dashboard / Admin)
+              │
+     Next.js 16 App Router (Vercel)
+              │
+ ├── Supabase Auth (email, Google, GitHub)
+ ├── Supabase Postgres + RLS
+ ├── Server Actions (domain + AI)
+ ├── Route Handlers (auth, search, FCM SW)
+ ├── Google Gemini
  ├── Firebase Storage
  └── Firebase Cloud Messaging
+
+Planned:
+Flutter Mobile ── REST API ── VIVRΛNT Web
 ```
 
 ---
 
-# ✨ Core Modules
+# Roles
 
-## 🔐 Authentication
-
-- JWT Authentication
-- Session Management
-- Role-Based Access Control
-- Secure API Access
-
----
-
-## 👥 User Management
-
-- Users
-- Profiles
-- Health Goals
-- Health Assessment
-- Account Management
+| Role | Access |
+| --- | --- |
+| `user` | Member dashboard |
+| `admin` | Admin console (users, roles, audit, settings) |
+| `super_admin` | Admin console + cross-member activity explorer |
 
 ---
 
-## 🍽 Nutrition Management
+# Core Modules
 
-- Nutrition Database
-- Meal Records
-- Food Categories
-- Nutrition Analysis
+## Authentication
 
----
+- Email signup / login / forgot & reset password
+- Google and GitHub OAuth (via Supabase Auth)
+- Session refresh (`src/proxy.ts`)
+- Role-based access for `/dashboard` and `/admin`
 
-## 🏋 Workout Management
+## User & Profile
 
-- Workout Library
-- Exercise Categories
-- User Activity Logs
+- Profiles and avatars
+- Health goals
+- Health history
+- Preferences and account settings
 
----
+## Today
 
-## 💰 Expense Management
+- Daily check-in
+- Live stats pulse
+- Insight / coaching entry points
 
-- Expense Categories
-- Spending Reports
-- Budget Analysis
+## Nutrition
 
----
+- Meal overview and logging
+- AI meal estimate (macros)
 
-## 🛒 Grocery Management
+## Movement
 
-- Pantry Inventory
-- Grocery Lists
-- Healthy Alternatives
+- Activity overview and workout logging
+- AI workout suggestions
 
----
+## Gym
 
-## 🧠 Decision Engine
+- Exercise demos (free weights & bodyweight)
+- Machine demos and AI equipment picks
+- Session logging and history
+- AI training plans
 
-Evaluates:
+## Groceries & Pantry
 
-- Nutrition
-- Exercise
-- Spending
-- Goal Progress
-- Daily Habits
-- Historical Data
+- Smart grocery lists
+- Pantry inventory
+- AI grocery planning helpers
 
-Generates:
+## Spending
 
-- Decision Score
-- Goal Alignment Score
-- Health Investment Index
-- AI Recommendations
+- Wellness budget tracking
+- Spending coach insights
 
----
+## AI Engine
 
-## 🤖 AI Services
+- Ask VIVRΛNT (chat)
+- Insights and reminders
+- Weekly story / narrative reports
+- Cross-module coaching (meals, workouts, gym, spending, health history)
 
-Supports:
+## Reports & Notifications
 
-- OpenAI
-- Google Gemini
+- Weekly patterns and trends
+- Push notification path (FCM)
+- Goal and reminder drafting
 
-Responsibilities:
+## Admin Console
 
-- Recommendation Generation
-- Nutrition Analysis
-- Decision Support
-- Health Insights
-
----
-
-## 📊 Analytics Dashboard
-
-- User Statistics
-- Daily Activity
-- Monthly Reports
-- Decision Trends
-- Goal Progress
-- System Analytics
+- Overview counts
+- User management
+- Roles & permissions
+- Audit logs
+- System settings / service health
+- Member activity (super-admin)
 
 ---
 
-## 🔔 Notifications
+# AI Services
 
-- Push Notifications
-- Scheduled Notifications
-- Weekly Reports
-- Goal Reminders
+**Current:** Google Gemini (`@google/generative-ai`)
+
+Capabilities include:
+
+- Recommendation generation and chat
+- Nutrition / meal analysis
+- Workout and gym plan suggestions
+- Grocery and spending coaching
+- Weekly stories and health-history analysis
+- Reminder drafts
+
+**Not current:** OpenAI (removed from active stack)
+
+Formal scored indices (Decision Score, Goal Alignment Score, Health Investment Index, etc.) remain product intent; the live product delivers Gemini coaching and weekly narratives rather than a separate scored REST decision-engine API.
 
 ---
 
-# 🛠 Technology Stack
+# Technology Stack
 
 ## Frontend
 
-- Next.js (App Router)
+- Next.js 16 (App Router)
+- React 19
 - TypeScript
-- Tailwind CSS
+- Tailwind CSS 4
 - Motion animations
+- Lucide icons, Sonner toasts
 
 ## Backend & Data
 
 - Next.js Route Handlers + Server Actions
 - Supabase Postgres + Row Level Security
 - Supabase Auth
+- Zod validation
 
 ## Storage & Notifications
 
@@ -170,7 +173,6 @@ Responsibilities:
 
 ## AI
 
-- OpenAI API
 - Google Gemini API
 
 ## Deployment
@@ -179,9 +181,9 @@ Responsibilities:
 
 ---
 
-# 🚀 Quick Start
+# Quick Start
 
-See [SETUP.md](./SETUP.md) for tools, environment variables, Supabase, Firebase, and Vercel.
+See [SETUP.md](./SETUP.md) for tools, environment variables, Supabase, Firebase, OAuth, and Vercel.
 
 ```bash
 npm install
@@ -189,57 +191,106 @@ copy .env.example .env.local
 npm run dev
 ```
 
+Useful scripts:
+
+```bash
+npm run build
+npm run lint
+npm run typecheck
+```
+
+Requires **Node.js 20.9+**.
+
 ---
 
-# 📂 Project Structure
+# Project Structure
 
 ```text
 src/
 ├── app/
-│   ├── api/
-│   ├── auth/
-│   ├── dashboard/
-│   └── login/
+│   ├── page.tsx                 # Landing
+│   ├── login/                   # Auth UI
+│   ├── reset-password/
+│   ├── auth/confirm/            # Email / OAuth confirm
+│   ├── dashboard/               # Member workspace
+│   │   ├── nutrition/
+│   │   ├── movement/
+│   │   ├── gym/
+│   │   ├── groceries/
+│   │   ├── pantry/
+│   │   ├── spending/
+│   │   ├── reports/
+│   │   ├── ai/
+│   │   └── settings/
+│   ├── admin/                   # Staff console
+│   │   ├── users/
+│   │   ├── roles/
+│   │   ├── audit/
+│   │   ├── activity/
+│   │   └── settings/
+│   └── api/
+│       ├── auth/                # login, signup, forgot/reset password
+│       ├── search/
+│       └── firebase-messaging-sw/
 ├── components/
+│   ├── brand.tsx
+│   ├── landing-page.tsx
+│   ├── dashboard/
+│   └── admin/
+├── hooks/
 ├── lib/
+│   ├── ai/                      # Gemini + context
+│   ├── auth/
 │   ├── firebase/
-│   └── supabase/
-└── proxy.ts
+│   ├── supabase/
+│   ├── gym.ts
+│   ├── nav.ts
+│   └── types.ts
+└── proxy.ts                     # Session refresh
 supabase/
-└── schema.sql
+├── schema.sql
+└── migrations/
+docs/
+└── VIVRANT_Complete_Project_Documentation_SDLC.docx
 ```
 
 ---
 
-# 🔗 API Modules
+# HTTP Routes (current)
 
-- Authentication API
-- Users API
-- Goals API
-- Nutrition API
-- Workout API
-- Expense API
-- Grocery API
-- Pantry API
-- Decision Engine API
-- AI Recommendation API
-- Reports API
-- Notification API
+| Area | Routes |
+| --- | --- |
+| Auth | `POST /api/auth/login`, `/signup`, `/forgot-password`, `/reset-password` |
+| Search | `/api/search` |
+| FCM | `/api/firebase-messaging-sw` |
+
+Member and admin domain operations use **Server Actions** inside the App Router (not a full public REST catalog yet).
 
 ---
 
-# 🚀 Future Features
+# Future Features
 
-- AI Health Dashboard
-- Research Analytics
-- OCR Processing Service
-- Meal Recognition API
-- Smart Grocery Engine
-- Predictive Health Analysis
-- Wearable Integrations
+- Full mobile REST API surface for Flutter
+- Formal Decision Engine score APIs
+- OCR processing / receipt scanning
+- Meal recognition
+- Smart grocery engine upgrades
+- Predictive health analysis
+- Wearable integrations (Google Fit / Apple Health)
+- Gamification, community challenges, family accounts
 
 ---
 
-# 📄 License
+# Docs
+
+| Doc | Purpose |
+| --- | --- |
+| [SETUP.md](./SETUP.md) | Local setup, env, Supabase, Firebase, Vercel |
+| [docs/VIVA_Web_Master_Documentation.md](./docs/VIVA_Web_Master_Documentation.md) | Master notes |
+| [docs/VIVRANT_Complete_Project_Documentation_SDLC.docx](./docs/VIVRANT_Complete_Project_Documentation_SDLC.docx) | SDLC pack (Appendix E = current VIVRΛNT baseline) |
+
+---
+
+# License
 
 Academic and research purposes.

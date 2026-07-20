@@ -24,7 +24,7 @@ export default function AppError({
             <span className="size-3 rounded-full bg-[#febc2e]" />
             <span className="size-3 rounded-full bg-[#28c840]" />
           </div>
-          <span className="mx-auto pr-12 text-xs font-bold text-[#8b8691]">VIVA</span>
+          <span className="mx-auto pr-12 text-xs font-bold text-[#8b8691]">VIVRΛNT</span>
         </div>
         <div className="p-8 sm:p-10">
           <span className="grid size-12 place-items-center rounded-2xl bg-[#f8ece4] text-[#c45c2a]">
@@ -32,7 +32,7 @@ export default function AppError({
           </span>
           <h1 className="font-display mt-6 text-3xl">This page took a pause.</h1>
           <p className="mt-3 text-sm leading-6 text-[#77717d]">
-            VIVA could not finish loading this view. Your saved health data is safe;
+            VIVRΛNT could not finish loading this view. Your saved health data is safe;
             retry the request or return to your dashboard.
           </p>
           {error.digest && (

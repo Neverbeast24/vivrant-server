@@ -45,7 +45,7 @@ export async function generateInsight(_formData?: FormData) {
 
     await supabase.from("notifications").insert({
       user_id: user.id,
-      title: "New VIVA insight",
+      title: "New VIVRΛNT insight",
       body: insight.title,
       is_read: false,
     });
@@ -80,13 +80,13 @@ export async function askVivaQuestion(formData: FormData) {
     const reply = await askViva(context, parsed.data.question);
     return {
       ok: true,
-      message: "VIVA answered.",
+      message: "VIVRΛNT answered.",
       reply,
       question: parsed.data.question,
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "VIVA could not answer right now.";
+      error instanceof Error ? error.message : "VIVRΛNT could not answer right now.";
     return { ok: false, message };
   }
 }

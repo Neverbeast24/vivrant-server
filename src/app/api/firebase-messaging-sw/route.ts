@@ -21,10 +21,10 @@ firebase.initializeApp(${JSON.stringify(config)});
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "VIVA";
+  const title = payload.notification?.title || "VIVRΛNT";
   const options = {
     body: payload.notification?.body || "You have a new wellbeing update.",
-    icon: "/viva-mark.svg",
+    icon: "/vivrant-mark.png",
   };
   self.registration.showNotification(title, options);
 });

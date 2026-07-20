@@ -39,7 +39,7 @@ const dashboardDestinations = [
   { label: "Pantry", detail: "Track food and stock levels", href: "/dashboard/pantry", icon: Refrigerator, keywords: "inventory kitchen stock" },
   { label: "Spending", detail: "Review health and grocery expenses", href: "/dashboard/spending", icon: WalletCards, keywords: "money expense budget cost" },
   { label: "Reports", detail: "See trends across your wellbeing", href: "/dashboard/reports", icon: FileBarChart, keywords: "analytics trends weekly data" },
-  { label: "Ask VIVA", detail: "Chat with your health coach", href: "/dashboard/ai", icon: BrainCircuit, keywords: "assistant ask chat" },
+  { label: "Ask VIVRΛNT", detail: "Chat with your health coach", href: "/dashboard/ai", icon: BrainCircuit, keywords: "assistant ask chat" },
   { label: "AI insights", detail: "Saved recommendations", href: "/dashboard/ai/insights", icon: BrainCircuit, keywords: "insight recommendation" },
   { label: "AI reminders", detail: "Draft gentle nudges", href: "/dashboard/ai/reminders", icon: BrainCircuit, keywords: "reminder notification" },
   { label: "Health profile", detail: "Avatar and body stats", href: "/dashboard/settings", icon: Settings2, keywords: "profile weight height bmi avatar" },

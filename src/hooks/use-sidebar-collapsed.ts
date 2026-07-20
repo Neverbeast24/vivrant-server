@@ -2,8 +2,8 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-const STORAGE_KEY = "viva.sidebar.collapsed";
-const CHANGE_EVENT = "viva-sidebar-collapsed";
+const STORAGE_KEY = "vivrant.sidebar.collapsed";
+const CHANGE_EVENT = "vivrant-sidebar-collapsed";
 
 function subscribe(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);

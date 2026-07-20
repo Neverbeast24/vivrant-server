@@ -116,7 +116,7 @@ export default async function AdminOverviewPage() {
   return (
     <>
       <p className="text-[11px] font-black tracking-[0.2em] text-[#0e7c66]">ADMIN</p>
-      <h1 className="font-display mt-2 text-4xl tracking-tight">VIVA control center</h1>
+      <h1 className="font-display mt-2 text-4xl tracking-tight">VIVRΛNT control center</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5a6b62]">
         {superAdmin
           ? "Full platform visibility — every module count, audit trail, and member activity."

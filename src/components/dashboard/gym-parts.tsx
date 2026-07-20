@@ -168,7 +168,7 @@ function ExerciseGrid({
           <div className="relative aspect-video overflow-hidden bg-[#dce8e1]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={exercise.demo_thumbnail_url ?? "/viva-mark.svg"}
+              src={exercise.demo_thumbnail_url ?? "/vivrant-mark.png"}
               alt=""
               className="size-full object-cover transition duration-500 group-hover:scale-105"
             />

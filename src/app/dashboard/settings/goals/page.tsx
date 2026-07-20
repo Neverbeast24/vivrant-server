@@ -29,7 +29,7 @@ export default async function GoalsSettingsPage() {
         timezone: data?.timezone ?? "Asia/Manila",
       }}
       profile={{
-        display_name: profile?.display_name ?? "VIVA member",
+        display_name: profile?.display_name ?? "VIVRΛNT member",
         email: profile?.email ?? user.email ?? null,
         avatar_url: profile?.avatar_url ?? null,
         birth_date: profile?.birth_date ?? null,

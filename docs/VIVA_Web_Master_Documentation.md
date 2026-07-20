@@ -1,4 +1,4 @@
-# VIVA Web Master Documentation
+# VIVRΛNT Web Master Documentation
 
 This is the initial master documentation.
 
@@ -55,7 +55,7 @@ This is the initial master documentation.
 |Created|Creation Date|
 |Actions|CRUD|
 
-## Implementation Notes (VIVA Web)
+## Implementation Notes (VIVRΛNT Web)
 
 - **Data layer:** Supabase Postgres + RLS (project `gcqbuccazplfpmuhperg`)
 - **Auth:** Supabase Auth (email, Google, GitHub)

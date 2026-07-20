@@ -19,24 +19,24 @@ export function Brand({
     <Link
       href="/"
       className={`focus-ring inline-flex min-w-0 max-w-full items-center gap-3 rounded-xl ${className}`}
-      aria-label="VIVA home"
+      aria-label="VIVRΛNT home"
     >
       <Image
-        src="/viva-mark.svg"
+        src="/vivrant-mark.png"
         alt=""
         width={40}
         height={40}
         priority
-        className="size-10 shrink-0"
+        className="size-10 shrink-0 rounded-xl object-cover"
       />
       {!compact && (
         <span className="flex min-w-0 flex-col leading-none">
-          <span className={`text-[1.05rem] font-black tracking-[0.22em] ${titleClass}`}>
-            VIVA
+          <span className={`text-[1.05rem] font-black tracking-[0.18em] ${titleClass}`}>
+            VIVRΛNT
           </span>
           <span
             className={`mt-1.5 truncate text-[0.55rem] font-bold tracking-[0.18em] uppercase ${subtitleClass}`}
-            title="Virtual Intelligent Vitality Assistant · Long live life"
+            title="VIVRΛNT · Long live life"
           >
             Long live life
           </span>

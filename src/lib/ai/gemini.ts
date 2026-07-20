@@ -72,7 +72,7 @@ export type MemberSummary = {
 
 /** Compact wellness primer — better than dumping huge public datasets. */
 export const WELLNESS_GUIDE = `
-VIVA wellness principles (use as soft guidance, not medical advice):
+VIVRΛNT wellness principles (use as soft guidance, not medical advice):
 - Energy and mood improve with consistent sleep (7–9h), protein-forward meals, and daily movement.
 - Hydration target ~2–2.5L/day for most adults unless otherwise advised by a clinician.
 - Prefer whole foods, fiber, and steady protein across the day over large sugar spikes.
@@ -106,7 +106,7 @@ async function generateJson<T>(prompt: string): Promise<T> {
 }
 
 export async function generateHealthInsight(context: string): Promise<InsightPayload> {
-  const parsed = await generateJson<Partial<InsightPayload>>(`You are VIVA, a calm personal vitality coach.
+  const parsed = await generateJson<Partial<InsightPayload>>(`You are VIVRΛNT, a calm personal vitality coach.
 Using ONLY the user's recent logs below, return ONE actionable insight as JSON with keys:
 - "title": short headline (max 8 words)
 - "body": 2–3 sentences with a concrete next action for today/tomorrow
@@ -122,14 +122,14 @@ ${context}`);
     title: String(parsed.title ?? "Keep your rhythm gentle").slice(0, 120),
     body: String(
       parsed.body ??
-        "Log a check-in and one meal today so VIVA can personalize your next move.",
+        "Log a check-in and one meal today so VIVRΛNT can personalize your next move.",
     ).slice(0, 1200),
     score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 70)))),
   };
 }
 
 export async function askViva(context: string, question: string): Promise<ChatAnswer> {
-  const parsed = await generateJson<Partial<ChatAnswer>>(`You are VIVA. Answer the user's question using ONLY their logs and profile.
+  const parsed = await generateJson<Partial<ChatAnswer>>(`You are VIVRΛNT. Answer the user's question using ONLY their logs and profile.
 Return JSON:
 - "answer": 2–5 calm sentences, practical, no diagnosis
 - "follow_up": one short suggested next question they could ask
@@ -344,7 +344,7 @@ ${context}`);
 
   const days = Array.isArray(parsed.days) ? parsed.days : [];
   return {
-    title: String(parsed.title ?? "Your VIVA gym plan").slice(0, 120),
+    title: String(parsed.title ?? "Your VIVRΛNT gym plan").slice(0, 120),
     focus: String(parsed.focus ?? "full_body"),
     level: String(parsed.level ?? "beginner"),
     days_per_week: Math.max(2, Math.min(5, Math.round(Number(parsed.days_per_week ?? 3)))),
@@ -376,7 +376,7 @@ ${context}`);
 
   return {
     title: String(parsed.title ?? "Your body story").slice(0, 120),
-    body: String(parsed.body ?? "Keep logging weight weekly so VIVA can spot clearer patterns.").slice(0, 800),
+    body: String(parsed.body ?? "Keep logging weight weekly so VIVRΛNT can spot clearer patterns.").slice(0, 800),
     trend: String(parsed.trend ?? "Building history").slice(0, 80),
     next_step: String(parsed.next_step ?? "Log one weigh-in this week at the same time of day.").slice(0, 200),
     score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 60)))),

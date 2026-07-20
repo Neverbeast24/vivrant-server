@@ -104,7 +104,7 @@ export const dashboardNav: NavItem[] = [
     caption: "Personal insights",
     href: "/dashboard/ai",
     children: [
-      { label: "Ask VIVA", href: "/dashboard/ai", caption: "Chat coach" },
+      { label: "Ask VIVRΛNT", href: "/dashboard/ai", caption: "Chat coach" },
       { label: "Insights", href: "/dashboard/ai/insights", caption: "Saved recommendations" },
       { label: "Reminders", href: "/dashboard/ai/reminders", caption: "Nudge drafts" },
     ],
