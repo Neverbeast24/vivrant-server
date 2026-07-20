@@ -8,6 +8,7 @@ import {
 import { AvatarEditor } from "@/components/dashboard/avatar-editor";
 import { GoalsPanel, type HealthGoal } from "@/components/dashboard/goals";
 import { HealthHistoryPanel, type HealthHistoryEntry } from "@/components/dashboard/health-history";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   FormField,
   PageHeader,
@@ -16,6 +17,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { settingsSubNav } from "@/lib/nav";
 
 type Settings = {
   theme: string;
@@ -44,13 +46,15 @@ export type HealthProfile = {
 export function SettingsView({
   settings,
   profile,
-  goals,
-  history,
+  goals = [],
+  history = [],
+  section = "profile",
 }: {
   settings: Settings;
   profile: HealthProfile;
-  goals: HealthGoal[];
-  history: HealthHistoryEntry[];
+  goals?: HealthGoal[];
+  history?: HealthHistoryEntry[];
+  section?: "profile" | "goals" | "history" | "preferences";
 }) {
   const preferencesAction = useModuleAction(saveSettings);
   const profileAction = useModuleAction(saveHealthProfile);
@@ -59,10 +63,23 @@ export function SettingsView({
       ? profile.weight_kg / (profile.height_cm / 100) ** 2
       : null;
 
+  const titles = {
+    profile: { title: "Make VIVA", highlight: "yours." },
+    goals: { title: "Set clear", highlight: "targets." },
+    history: { title: "Track your", highlight: "body story." },
+    preferences: { title: "Tune your", highlight: "experience." },
+  } as const;
+
   return (
     <>
-      <PageHeader eyebrow="SETTINGS" title="Make VIVA" highlight="yours." />
+      <PageHeader
+        eyebrow="PROFILE"
+        title={titles[section].title}
+        highlight={titles[section].highlight}
+      />
+      <ModuleSubNav items={settingsSubNav} />
 
+      {section === "profile" && (
       <div className="grid gap-4 xl:grid-cols-[1.45fr_.75fr]">
         <Panel title="Health profile">
           <div className="mb-5">
@@ -260,12 +277,14 @@ export function SettingsView({
           </Panel>
         </div>
       </div>
+      )}
 
-      <GoalsPanel goals={goals} />
+      {section === "goals" && <GoalsPanel goals={goals} />}
 
-      <HealthHistoryPanel entries={history} />
+      {section === "history" && <HealthHistoryPanel entries={history} />}
 
-      <Panel title="App preferences" className="mt-4">
+      {section === "preferences" && (
+      <Panel title="App preferences">
         <form action={preferencesAction.submit} className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Appearance">
@@ -312,6 +331,7 @@ export function SettingsView({
           </PrimaryButton>
         </form>
       </Panel>
+      )}
     </>
   );
 }

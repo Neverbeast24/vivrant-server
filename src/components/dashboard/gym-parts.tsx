@@ -22,6 +22,7 @@ import {
   recommendMachinesWithAi,
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   EmptyState,
   FormField,
@@ -34,6 +35,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { gymSubNav } from "@/lib/nav";
 
 export type GymExercise = {
   id: number;
@@ -74,6 +76,166 @@ export type GymPlan = {
   created_at: string;
 };
 
+export function isMachineGear(equipment: string) {
+  return equipment === "machine" || equipment === "cable" || equipment === "cardio_machine";
+}
+
+export function GymOverviewStats({
+  sessionCount,
+  totalMinutes,
+  totalCalories,
+  machineCount,
+}: {
+  sessionCount: number;
+  totalMinutes: number;
+  totalCalories: number;
+  machineCount: number;
+}) {
+  return (
+    <Stagger>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Sessions logged"
+          value={String(sessionCount)}
+          detail="Your gym history"
+          icon={Dumbbell}
+          className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+        />
+        <StatCard
+          label="Training time"
+          value={String(totalMinutes)}
+          detail="Minutes recorded"
+          icon={Clock3}
+          className="bg-[#e8fbf8] text-[#183d3a]"
+        />
+        <StatCard
+          label="Energy burned"
+          value={String(totalCalories)}
+          detail="From gym sessions"
+          icon={Flame}
+          className="bg-[#fff3e8] text-[#533621]"
+        />
+        <StatCard
+          label="Machine demos"
+          value={String(machineCount)}
+          detail="Guided gym equipment"
+          icon={Cog}
+          className="bg-[#f3f0ff] text-[#3d2f7a]"
+        />
+      </div>
+    </Stagger>
+  );
+}
+
+function DemoModal({
+  exercise,
+  onClose,
+}: {
+  exercise: GymExercise;
+  onClose: () => void;
+}) {
+  const src = `${exercise.demo_video_url}${exercise.demo_video_url.includes("?") ? "&" : "?"}rel=0`;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[95] grid place-items-center bg-[#191621]/55 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 12, opacity: 0 }}
+        className="w-full max-w-3xl overflow-hidden rounded-[1.6rem] border border-white/20 bg-[#fdfbf4] shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-black/5 px-5 py-4">
+          <div>
+            <p className="text-sm font-black">{exercise.name}</p>
+            <p className="mt-0.5 text-xs capitalize text-[#847f8c]">
+              {exercise.muscle_group} · {exercise.equipment.replaceAll("_", " ")} · {exercise.difficulty}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-9 place-items-center rounded-xl bg-[#eee8dc]"
+            aria-label="Close demo"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="aspect-video bg-black">
+          <iframe
+            title={`${exercise.name} demo`}
+            src={src}
+            className="size-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+        {exercise.cues && (
+          <p className="px-5 py-4 text-sm leading-6 text-[#6f6b79]">{exercise.cues}</p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ExerciseGrid({
+  exercises,
+  onSelect,
+}: {
+  exercises: GymExercise[];
+  onSelect: (exercise: GymExercise) => void;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {exercises.map((exercise) => (
+        <button
+          key={exercise.id}
+          type="button"
+          onClick={() => onSelect(exercise)}
+          className="group overflow-hidden rounded-[1.3rem] border border-[#26222f]/8 bg-[#fdfbf4] text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="relative aspect-video overflow-hidden bg-[#eee8dc]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={exercise.demo_thumbnail_url ?? "/viva-mark.svg"}
+              alt=""
+              className="size-full object-cover transition duration-500 group-hover:scale-105"
+            />
+            <span className="absolute inset-0 grid place-items-center bg-[#191621]/25 opacity-0 transition group-hover:opacity-100">
+              <span className="grid size-12 place-items-center rounded-full bg-white text-[#5f45e6] shadow-lg">
+                <Play size={18} fill="currentColor" />
+              </span>
+            </span>
+            {isMachineGear(exercise.equipment) && (
+              <span className="absolute left-3 top-3 rounded-full bg-[#26222f]/85 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
+                Machine
+              </span>
+            )}
+          </div>
+          <div className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-black">{exercise.name}</p>
+              <span className="rounded-full bg-[#ece7fb] px-2 py-0.5 text-[10px] font-black capitalize text-[#5f45e6]">
+                {exercise.difficulty}
+              </span>
+            </div>
+            <p className="mt-1 text-xs capitalize text-[#847f8c]">
+              {exercise.muscle_group} · {exercise.equipment.replaceAll("_", " ")}
+            </p>
+          </div>
+        </button>
+      ))}
+      {!exercises.length && <EmptyState>No demos in this filter.</EmptyState>}
+    </div>
+  );
+}
+
 const muscleFilters = [
   "all",
   "legs",
@@ -88,78 +250,64 @@ const muscleFilters = [
   "mobility",
 ] as const;
 
-const equipmentFilters = [
-  { id: "all", label: "All demos" },
-  { id: "machines", label: "Machines" },
-  { id: "cable", label: "Cables" },
-  { id: "cardio_machine", label: "Cardio machines" },
-  { id: "dumbbell", label: "Dumbbells" },
-  { id: "bodyweight", label: "Bodyweight" },
-] as const;
-
-function isMachineGear(equipment: string) {
-  return equipment === "machine" || equipment === "cable" || equipment === "cardio_machine";
-}
-
-function matchesEquipment(equipment: string, filter: (typeof equipmentFilters)[number]["id"]) {
-  if (filter === "all") return true;
-  if (filter === "machines") return equipment === "machine";
-  return equipment === filter;
-}
-
-export function GymView({
-  exercises,
-  sessions,
-  plans,
-}: {
-  exercises: GymExercise[];
-  sessions: GymSession[];
-  plans: GymPlan[];
-}) {
-  const { pending, submit } = useModuleAction(logGymSession);
-  const [busy, start] = useTransition();
-  const [planning, startPlan] = useTransition();
-  const [recommending, startRecommend] = useTransition();
+export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
   const [muscle, setMuscle] = useState<(typeof muscleFilters)[number]>("all");
-  const [equipment, setEquipment] = useState<(typeof equipmentFilters)[number]["id"]>("machines");
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
-  const [machineRecs, setMachineRecs] = useState<MachineRecommendationPayload | null>(null);
-
-  const bySlug = useMemo(
-    () => new Map(exercises.map((item) => [item.slug, item])),
-    [exercises],
+  const freeWeight = exercises.filter((item) => !isMachineGear(item.equipment));
+  const filtered = useMemo(
+    () =>
+      muscle === "all" ? freeWeight : freeWeight.filter((item) => item.muscle_group === muscle),
+    [freeWeight, muscle],
   );
 
-  const machineCount = exercises.filter((item) => isMachineGear(item.equipment)).length;
+  return (
+    <>
+      <PageHeader eyebrow="GYM · DEMOS" title="Form first," highlight="then load." />
+      <ModuleSubNav items={gymSubNav} />
+      <Panel title="Free-weight & bodyweight demos" right={<Play size={16} className="text-[#5f45e6]" />}>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {muscleFilters.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setMuscle(item)}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-black capitalize transition ${
+                muscle === item
+                  ? "bg-[#26222f] text-white"
+                  : "bg-[#f4efe4] text-[#6b6675] hover:bg-white"
+              }`}
+            >
+              {item === "all" ? "All muscles" : item}
+            </button>
+          ))}
+        </div>
+        <ExerciseGrid exercises={filtered} onSelect={setActiveDemo} />
+      </Panel>
+      <AnimatePresence>
+        {activeDemo && <DemoModal exercise={activeDemo} onClose={() => setActiveDemo(null)} />}
+      </AnimatePresence>
+    </>
+  );
+}
+
+export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
+  const [muscle, setMuscle] = useState<(typeof muscleFilters)[number]>("all");
+  const [gear, setGear] = useState<"all" | "machine" | "cable" | "cardio_machine">("all");
+  const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
+  const [recommending, startRecommend] = useTransition();
+  const [machineRecs, setMachineRecs] = useState<MachineRecommendationPayload | null>(null);
+  const bySlug = useMemo(() => new Map(exercises.map((item) => [item.slug, item])), [exercises]);
+  const machines = exercises.filter((item) => isMachineGear(item.equipment));
 
   const filtered = useMemo(
     () =>
-      exercises.filter((item) => {
+      machines.filter((item) => {
         const muscleOk = muscle === "all" || item.muscle_group === muscle;
-        const gearOk = matchesEquipment(item.equipment, equipment);
+        const gearOk = gear === "all" || item.equipment === gear;
         return muscleOk && gearOk;
       }),
-    [equipment, exercises, muscle],
+    [gear, machines, muscle],
   );
-
-  const totalMinutes = sessions.reduce((sum, row) => sum + (row.duration_minutes ?? 0), 0);
-  const totalCalories = sessions.reduce((sum, row) => sum + (row.calories_burned ?? 0), 0);
-
-  function run(action: () => Promise<{ ok: boolean; message: string }>) {
-    start(async () => {
-      const result = await action();
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
-    });
-  }
-
-  function generatePlan() {
-    startPlan(async () => {
-      const result = await createAiGymPlan();
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
-    });
-  }
 
   function recommendMachines() {
     startRecommend(async () => {
@@ -173,74 +321,29 @@ export function GymView({
     });
   }
 
-  function openDemoBySlug(slug: string | null) {
-    if (!slug) return;
-    const demo = bySlug.get(slug);
-    if (demo) setActiveDemo(demo);
-    else toast.error("Demo video not found for that machine.");
-  }
-
   return (
     <>
       <PageHeader
-        eyebrow="GYM"
-        title="Train with"
-        highlight="intention."
+        eyebrow="GYM · MACHINES"
+        title="Know the"
+        highlight="equipment."
         action={
-          <div className="flex flex-wrap gap-2">
-            <PrimaryButton
-              disabled={recommending}
-              onClick={recommendMachines}
-              className="rounded-full bg-[#5f45e6] px-5"
-            >
-              <Cog size={14} className="mr-1.5 inline" />
-              {recommending ? "Matching…" : "AI machine picks"}
-            </PrimaryButton>
-            <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
-              <Sparkles size={14} className="mr-1.5 inline" />
-              {planning ? "Building plan…" : "AI gym plan"}
-            </PrimaryButton>
-          </div>
+          <PrimaryButton
+            disabled={recommending}
+            onClick={recommendMachines}
+            className="rounded-full bg-[#5f45e6] px-5"
+          >
+            <Cog size={14} className="mr-1.5 inline" />
+            {recommending ? "Matching…" : "AI machine picks"}
+          </PrimaryButton>
         }
       />
-
-      <Stagger>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Sessions logged"
-            value={String(sessions.length)}
-            detail="Your gym history"
-            icon={Dumbbell}
-            className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
-          />
-          <StatCard
-            label="Training time"
-            value={String(totalMinutes)}
-            detail="Minutes recorded"
-            icon={Clock3}
-            className="bg-[#e8fbf8] text-[#183d3a]"
-          />
-          <StatCard
-            label="Energy burned"
-            value={String(totalCalories)}
-            detail="From gym sessions"
-            icon={Flame}
-            className="bg-[#fff3e8] text-[#533621]"
-          />
-          <StatCard
-            label="Machine demos"
-            value={String(machineCount)}
-            detail="Guided gym equipment"
-            icon={Cog}
-            className="bg-[#f3f0ff] text-[#3d2f7a]"
-          />
-        </div>
-      </Stagger>
+      <ModuleSubNav items={gymSubNav} />
 
       {machineRecs && (
         <Panel
           title={machineRecs.title}
-          className="mt-4"
+          className="mb-4"
           right={
             <span className="rounded-full bg-[#ece7fb] px-3 py-1 text-[11px] font-black text-[#5f45e6]">
               {machineRecs.focus}
@@ -287,20 +390,25 @@ export function GymView({
         </Panel>
       )}
 
-      <Panel title="Demo library" className="mt-4" right={<Play size={16} className="text-[#5f45e6]" />}>
+      <Panel title="Machine demo library" right={<Cog size={16} className="text-[#5f45e6]" />}>
         <div className="mb-3 flex flex-wrap gap-2">
-          {equipmentFilters.map((item) => (
+          {(
+            [
+              ["all", "All machines"],
+              ["machine", "Strength machines"],
+              ["cable", "Cables"],
+              ["cardio_machine", "Cardio machines"],
+            ] as const
+          ).map(([id, label]) => (
             <button
-              key={item.id}
+              key={id}
               type="button"
-              onClick={() => setEquipment(item.id)}
+              onClick={() => setGear(id)}
               className={`rounded-full px-3 py-1.5 text-[11px] font-black transition ${
-                equipment === item.id
-                  ? "bg-[#5f45e6] text-white"
-                  : "bg-[#ece7fb] text-[#5f45e6] hover:bg-white"
+                gear === id ? "bg-[#5f45e6] text-white" : "bg-[#ece7fb] text-[#5f45e6] hover:bg-white"
               }`}
             >
-              {item.label}
+              {label}
             </button>
           ))}
         </div>
@@ -320,50 +428,33 @@ export function GymView({
             </button>
           ))}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((exercise) => (
-            <button
-              key={exercise.id}
-              type="button"
-              onClick={() => setActiveDemo(exercise)}
-              className="group overflow-hidden rounded-[1.3rem] border border-[#26222f]/8 bg-[#fdfbf4] text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="relative aspect-video overflow-hidden bg-[#eee8dc]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={exercise.demo_thumbnail_url ?? "/viva-mark.svg"}
-                  alt=""
-                  className="size-full object-cover transition duration-500 group-hover:scale-105"
-                />
-                <span className="absolute inset-0 grid place-items-center bg-[#191621]/25 opacity-0 transition group-hover:opacity-100">
-                  <span className="grid size-12 place-items-center rounded-full bg-white text-[#5f45e6] shadow-lg">
-                    <Play size={18} fill="currentColor" />
-                  </span>
-                </span>
-                {isMachineGear(exercise.equipment) && (
-                  <span className="absolute left-3 top-3 rounded-full bg-[#26222f]/85 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
-                    Machine
-                  </span>
-                )}
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-black">{exercise.name}</p>
-                  <span className="rounded-full bg-[#ece7fb] px-2 py-0.5 text-[10px] font-black capitalize text-[#5f45e6]">
-                    {exercise.difficulty}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs capitalize text-[#847f8c]">
-                  {exercise.muscle_group} · {exercise.equipment.replaceAll("_", " ")}
-                </p>
-              </div>
-            </button>
-          ))}
-          {!filtered.length && <EmptyState>No demos in this filter.</EmptyState>}
-        </div>
+        <ExerciseGrid exercises={filtered} onSelect={setActiveDemo} />
       </Panel>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
+      <AnimatePresence>
+        {activeDemo && <DemoModal exercise={activeDemo} onClose={() => setActiveDemo(null)} />}
+      </AnimatePresence>
+    </>
+  );
+}
+
+export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
+  const { pending, submit } = useModuleAction(logGymSession);
+  const [busy, start] = useTransition();
+
+  function run(action: () => Promise<{ ok: boolean; message: string }>) {
+    start(async () => {
+      const result = await action();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
+  return (
+    <>
+      <PageHeader eyebrow="GYM · SESSIONS" title="Log what you" highlight="trained." />
+      <ModuleSubNav items={gymSubNav} />
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
         <Panel title="Log a gym session">
           <form action={submit} className="grid gap-3 sm:grid-cols-2">
             <FormField label="Session title" hint="Required" className="sm:col-span-2">
@@ -391,7 +482,7 @@ export function GymView({
               <textarea
                 name="exercises"
                 rows={4}
-                placeholder={"Leg press machine\nLat pulldown\nCable face pull\nTreadmill intervals"}
+                placeholder={"Leg press machine\nLat pulldown\nCable face pull"}
                 className={`${fieldClass} min-h-28 resize-y`}
               />
             </FormField>
@@ -431,8 +522,52 @@ export function GymView({
           </div>
         </Panel>
       </div>
+    </>
+  );
+}
 
-      <Panel title="Saved AI gym plans" className="mt-4">
+export function GymPlansView({
+  plans,
+  exercises,
+}: {
+  plans: GymPlan[];
+  exercises: GymExercise[];
+}) {
+  const [busy, start] = useTransition();
+  const [planning, startPlan] = useTransition();
+  const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
+
+  function run(action: () => Promise<{ ok: boolean; message: string }>) {
+    start(async () => {
+      const result = await action();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
+  function generatePlan() {
+    startPlan(async () => {
+      const result = await createAiGymPlan();
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="GYM · AI PLANS"
+        title="Programs that"
+        highlight="fit you."
+        action={
+          <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
+            <Sparkles size={14} className="mr-1.5 inline" />
+            {planning ? "Building plan…" : "Generate AI plan"}
+          </PrimaryButton>
+        }
+      />
+      <ModuleSubNav items={gymSubNav} />
+      <Panel title="Saved AI gym plans">
         <div className="space-y-4">
           {plans.map((plan) => (
             <article key={plan.id} className="rounded-[1.3rem] border border-[#26222f]/8 bg-[#f4efe4]/45 p-4">
@@ -468,7 +603,7 @@ export function GymView({
                             {linked ? (
                               <button
                                 type="button"
-                                onClick={() => openDemoBySlug(linked.slug)}
+                                onClick={() => setActiveDemo(linked)}
                                 className="font-bold text-[#5f45e6] underline-offset-2 hover:underline"
                               >
                                 {ex.name}
@@ -491,56 +626,8 @@ export function GymView({
           )}
         </div>
       </Panel>
-
       <AnimatePresence>
-        {activeDemo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[95] grid place-items-center bg-[#191621]/55 p-4 backdrop-blur-sm"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setActiveDemo(null);
-            }}
-          >
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 12, opacity: 0 }}
-              className="w-full max-w-3xl overflow-hidden rounded-[1.6rem] border border-white/20 bg-[#fdfbf4] shadow-2xl"
-            >
-              <div className="flex items-center justify-between border-b border-black/5 px-5 py-4">
-                <div>
-                  <p className="text-sm font-black">{activeDemo.name}</p>
-                  <p className="mt-0.5 text-xs capitalize text-[#847f8c]">
-                    {activeDemo.muscle_group} · {activeDemo.equipment.replaceAll("_", " ")} ·{" "}
-                    {activeDemo.difficulty}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveDemo(null)}
-                  className="grid size-9 place-items-center rounded-xl bg-[#eee8dc]"
-                  aria-label="Close demo"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="aspect-video bg-black">
-                <iframe
-                  title={`${activeDemo.name} demo`}
-                  src={`${activeDemo.demo_video_url}${activeDemo.demo_video_url.includes("?") ? "&" : "?"}rel=0`}
-                  className="size-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-              {activeDemo.cues && (
-                <p className="px-5 py-4 text-sm leading-6 text-[#6f6b79]">{activeDemo.cues}</p>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
+        {activeDemo && <DemoModal exercise={activeDemo} onClose={() => setActiveDemo(null)} />}
       </AnimatePresence>
     </>
   );

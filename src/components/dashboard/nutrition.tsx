@@ -16,6 +16,7 @@ import {
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 
 type Meal = {
@@ -29,14 +30,21 @@ type Meal = {
   logged_at: string;
 };
 
+const nutritionSubNav = [
+  { href: "/dashboard/nutrition", label: "Overview" },
+  { href: "/dashboard/nutrition/log", label: "Log meal" },
+] as const;
+
 export function NutritionView({
   meals,
   waterMl = 0,
   waterGoalMl = 2400,
+  mode = "overview",
 }: {
   meals: Meal[];
   waterMl?: number;
   waterGoalMl?: number;
+  mode?: "overview" | "log";
 }) {
   const { pending, submit } = useModuleAction(logMeal);
   const [deleting, startDelete] = useTransition();
@@ -83,8 +91,15 @@ export function NutritionView({
 
   return (
     <>
-      <PageHeader eyebrow="NUTRITION" title="Eat with" highlight="intention." />
+      <PageHeader
+        eyebrow="NUTRITION"
+        title={mode === "log" ? "Log with" : "Eat with"}
+        highlight="intention."
+      />
+      <ModuleSubNav items={nutritionSubNav} />
 
+      {mode === "log" && (
+        <>
       <Panel title="AI meal estimate" className="mb-4" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
         <form action={estimate} className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <FormField label="Describe your meal">
@@ -174,7 +189,10 @@ export function NutritionView({
           </PrimaryButton>
         </form>
       </Panel>
+        </>
+      )}
 
+      {mode === "overview" && (
       <Stagger>
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
@@ -238,6 +256,7 @@ export function NutritionView({
           </div>
         </Panel>
       </Stagger>
+      )}
     </>
   );
 }

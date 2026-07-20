@@ -26,15 +26,26 @@ import {
 
 const dashboardDestinations = [
   { label: "Today", detail: "Daily health overview and quick check-in", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview mood energy water steps" },
-  { label: "Nutrition", detail: "Log meals, calories, and protein", href: "/dashboard/nutrition", icon: Apple, keywords: "food meal calorie protein diet" },
-  { label: "Movement", detail: "Record workouts and activity", href: "/dashboard/movement", icon: Dumbbell, keywords: "exercise workout calories minutes steps" },
-  { label: "Gym", detail: "Demo videos, AI plans, and gym sessions", href: "/dashboard/gym", icon: Weight, keywords: "gym demo video training plan strength" },
+  { label: "Nutrition", detail: "Meal overview and macros", href: "/dashboard/nutrition", icon: Apple, keywords: "food meal calorie protein diet" },
+  { label: "Log meal", detail: "Add a meal with AI estimate", href: "/dashboard/nutrition/log", icon: Apple, keywords: "log food meal" },
+  { label: "Movement", detail: "Activity overview", href: "/dashboard/movement", icon: Dumbbell, keywords: "exercise workout calories minutes steps" },
+  { label: "Log workout", detail: "Record a movement session", href: "/dashboard/movement/log", icon: Dumbbell, keywords: "log workout" },
+  { label: "Gym", detail: "Gym home and quick links", href: "/dashboard/gym", icon: Weight, keywords: "gym overview" },
+  { label: "Gym demos", detail: "Free-weight and bodyweight videos", href: "/dashboard/gym/demos", icon: Weight, keywords: "demo video form" },
+  { label: "Gym machines", detail: "Machine demos and AI picks", href: "/dashboard/gym/machines", icon: Weight, keywords: "machine cable cardio equipment" },
+  { label: "Gym sessions", detail: "Log and review gym training", href: "/dashboard/gym/sessions", icon: Weight, keywords: "session log history" },
+  { label: "Gym plans", detail: "AI training programs", href: "/dashboard/gym/plans", icon: Weight, keywords: "plan program ai" },
   { label: "Groceries", detail: "Manage your shopping list", href: "/dashboard/groceries", icon: ShoppingBasket, keywords: "shopping food list buy" },
   { label: "Pantry", detail: "Track food and stock levels", href: "/dashboard/pantry", icon: Refrigerator, keywords: "inventory kitchen stock" },
   { label: "Spending", detail: "Review health and grocery expenses", href: "/dashboard/spending", icon: WalletCards, keywords: "money expense budget cost" },
   { label: "Reports", detail: "See trends across your wellbeing", href: "/dashboard/reports", icon: FileBarChart, keywords: "analytics trends weekly data" },
-  { label: "AI Engine", detail: "Ask VIVA about your health data", href: "/dashboard/ai", icon: BrainCircuit, keywords: "assistant insight ask recommendation" },
-  { label: "Profile & settings", detail: "Body profile, health history, and preferences", href: "/dashboard/settings", icon: Settings2, keywords: "profile weight height body history bmi account preferences name" },
+  { label: "Ask VIVA", detail: "Chat with your health coach", href: "/dashboard/ai", icon: BrainCircuit, keywords: "assistant ask chat" },
+  { label: "AI insights", detail: "Saved recommendations", href: "/dashboard/ai/insights", icon: BrainCircuit, keywords: "insight recommendation" },
+  { label: "AI reminders", detail: "Draft gentle nudges", href: "/dashboard/ai/reminders", icon: BrainCircuit, keywords: "reminder notification" },
+  { label: "Health profile", detail: "Avatar and body stats", href: "/dashboard/settings", icon: Settings2, keywords: "profile weight height bmi avatar" },
+  { label: "Goals", detail: "Health targets", href: "/dashboard/settings/goals", icon: Settings2, keywords: "goals targets" },
+  { label: "Health history", detail: "Body measurements over time", href: "/dashboard/settings/history", icon: Settings2, keywords: "history measurements weight" },
+  { label: "Preferences", detail: "Theme and notifications", href: "/dashboard/settings/preferences", icon: Settings2, keywords: "settings theme timezone" },
 ] as const;
 
 const adminDestinations = [

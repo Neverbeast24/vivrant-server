@@ -2,21 +2,27 @@ import type { Metadata } from "next";
 import { SettingsView } from "@/components/dashboard/settings";
 import { requireUser } from "@/lib/auth/roles";
 
-export const metadata: Metadata = { title: "Health Profile" };
+export const metadata: Metadata = { title: "Health History" };
 
-export default async function SettingsPage() {
+export default async function HistorySettingsPage() {
   const { supabase, user } = await requireUser();
 
-  const [settingsRes, profileRes] = await Promise.all([
+  const [settingsRes, profileRes, historyRes] = await Promise.all([
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+    supabase
+      .from("health_history")
+      .select("id, recorded_at, weight_kg, height_cm, body_fat_pct, waist_cm, note, source")
+      .eq("user_id", user.id)
+      .order("recorded_at", { ascending: false })
+      .limit(40),
   ]);
   const data = settingsRes.data;
   const profile = profileRes.data;
 
   return (
     <SettingsView
-      section="profile"
+      section="history"
       settings={{
         theme: data?.theme ?? "light",
         notifications_enabled: data?.notifications_enabled ?? true,
@@ -39,6 +45,13 @@ export default async function SettingsPage() {
         monthly_health_budget: Number(profile?.monthly_health_budget ?? 2000),
         bio: profile?.bio ?? null,
       }}
+      history={(historyRes.data ?? []).map((entry) => ({
+        ...entry,
+        weight_kg: entry.weight_kg == null ? null : Number(entry.weight_kg),
+        height_cm: entry.height_cm == null ? null : Number(entry.height_cm),
+        body_fat_pct: entry.body_fat_pct == null ? null : Number(entry.body_fat_pct),
+        waist_cm: entry.waist_cm == null ? null : Number(entry.waist_cm),
+      }))}
     />
   );
 }

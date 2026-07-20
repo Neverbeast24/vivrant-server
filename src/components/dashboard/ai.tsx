@@ -17,6 +17,7 @@ import {
   Stagger,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 
 type Insight = {
@@ -33,7 +34,19 @@ type ChatTurn = {
   followUp?: string;
 };
 
-export function AiView({ insights }: { insights: Insight[] }) {
+const aiSubNav = [
+  { href: "/dashboard/ai", label: "Ask VIVA" },
+  { href: "/dashboard/ai/insights", label: "Insights" },
+  { href: "/dashboard/ai/reminders", label: "Reminders" },
+] as const;
+
+export function AiView({
+  insights,
+  section = "ask",
+}: {
+  insights: Insight[];
+  section?: "ask" | "insights" | "reminders";
+}) {
   const { pending, submit } = useModuleAction(generateInsight);
   const [chatPending, startChat] = useTransition();
   const [reminderPending, startReminder] = useTransition();
@@ -78,21 +91,36 @@ export function AiView({ insights }: { insights: Insight[] }) {
     <>
       <PageHeader
         eyebrow="AI DECISION ENGINE"
-        title="Your best"
-        highlight="next action."
+        title={
+          section === "insights"
+            ? "Saved"
+            : section === "reminders"
+              ? "Gentle"
+              : "Your best"
+        }
+        highlight={
+          section === "insights"
+            ? "insights."
+            : section === "reminders"
+              ? "nudges."
+              : "next action."
+        }
         action={
-          <PrimaryButton
-            disabled={pending}
-            onClick={() => submit(new FormData())}
-            className="rounded-full px-5"
-          >
-            {pending ? "Generating…" : "Generate insight"}
-          </PrimaryButton>
+          section === "insights" ? (
+            <PrimaryButton
+              disabled={pending}
+              onClick={() => submit(new FormData())}
+              className="rounded-full px-5"
+            >
+              {pending ? "Generating…" : "Generate insight"}
+            </PrimaryButton>
+          ) : undefined
         }
       />
+      <ModuleSubNav items={aiSubNav} />
 
-      <div className="mb-4 grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
-        <Panel title="Ask VIVA" right={<MessageCircle size={16} className="text-[#5f45e6]" />}>
+      {section === "ask" && (
+      <Panel title="Ask VIVA" right={<MessageCircle size={16} className="text-[#5f45e6]" />}>
           <p className="mb-4 text-sm text-[#77727f]">
             Ask about your energy, meals, budget, or what to do next — answers use your live logs only.
           </p>
@@ -136,7 +164,9 @@ export function AiView({ insights }: { insights: Insight[] }) {
             </PrimaryButton>
           </form>
         </Panel>
+      )}
 
+      {section === "reminders" && (
         <Panel title="Push reminder draft" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
           <p className="text-sm leading-6 text-[#77727f]">
             VIVA can draft a notification from today’s rhythm. Sending requires your Firebase VAPID key.
@@ -144,19 +174,20 @@ export function AiView({ insights }: { insights: Insight[] }) {
           <PrimaryButton
             disabled={reminderPending}
             onClick={draftReminder}
-            className="mt-4 w-full rounded-full"
+            className="mt-4 w-full max-w-sm rounded-full"
           >
             {reminderPending ? "Drafting…" : "Draft reminder"}
           </PrimaryButton>
           {reminder && (
-            <div className="mt-4 rounded-2xl border border-[#26222f]/8 bg-[#f4efe4]/60 p-4">
+            <div className="mt-4 max-w-lg rounded-2xl border border-[#26222f]/8 bg-[#f4efe4]/60 p-4">
               <p className="text-sm font-black">{reminder.title}</p>
               <p className="mt-2 text-sm leading-6 text-[#6f6b79]">{reminder.body}</p>
             </div>
           )}
         </Panel>
-      </div>
+      )}
 
+      {section === "insights" && (
       <Stagger>
         <div className="grid gap-4">
           {insights.map((item) => (
@@ -189,6 +220,7 @@ export function AiView({ insights }: { insights: Insight[] }) {
           )}
         </div>
       </Stagger>
+      )}
     </>
   );
 }

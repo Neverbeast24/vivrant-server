@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { SettingsView } from "@/components/dashboard/settings";
 import { requireUser } from "@/lib/auth/roles";
 
-export const metadata: Metadata = { title: "Health Profile" };
+export const metadata: Metadata = { title: "Preferences" };
 
-export default async function SettingsPage() {
+export default async function PreferencesSettingsPage() {
   const { supabase, user } = await requireUser();
 
   const [settingsRes, profileRes] = await Promise.all([
@@ -16,7 +16,7 @@ export default async function SettingsPage() {
 
   return (
     <SettingsView
-      section="profile"
+      section="preferences"
       settings={{
         theme: data?.theme ?? "light",
         notifications_enabled: data?.notifications_enabled ?? true,

@@ -16,6 +16,7 @@ import {
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 
 type Workout = {
@@ -26,14 +27,21 @@ type Workout = {
   calories_burned: number | null;
 };
 
+const movementSubNav = [
+  { href: "/dashboard/movement", label: "Overview" },
+  { href: "/dashboard/movement/log", label: "Log workout" },
+] as const;
+
 export function MovementView({
   workouts,
   steps = 0,
   stepGoal = 8000,
+  mode = "overview",
 }: {
   workouts: Workout[];
   steps?: number;
   stepGoal?: number;
+  mode?: "overview" | "log";
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
@@ -73,16 +81,21 @@ export function MovementView({
     <>
       <PageHeader
         eyebrow="MOVEMENT"
-        title="Move a little"
-        highlight="today."
+        title={mode === "log" ? "Log your" : "Move a little"}
+        highlight={mode === "log" ? "workout." : "today."}
         action={
-          <PrimaryButton disabled={suggesting} onClick={suggest} className="rounded-full px-5">
-            <Sparkles size={14} className="mr-1.5" />
-            {suggesting ? "Planning…" : "Suggest workout"}
-          </PrimaryButton>
+          mode === "log" ? (
+            <PrimaryButton disabled={suggesting} onClick={suggest} className="rounded-full px-5">
+              <Sparkles size={14} className="mr-1.5" />
+              {suggesting ? "Planning…" : "Suggest workout"}
+            </PrimaryButton>
+          ) : undefined
         }
       />
+      <ModuleSubNav items={movementSubNav} />
 
+      {mode === "log" && (
+        <>
       {reason && (
         <p className="mb-4 rounded-2xl border border-[#5f45e6]/15 bg-[#ece7fb]/70 px-4 py-3 text-sm font-semibold text-[#5f45e6]">
           {reason}
@@ -144,7 +157,10 @@ export function MovementView({
           </PrimaryButton>
         </form>
       </Panel>
+        </>
+      )}
 
+      {mode === "overview" && (
       <Stagger>
         <div className="grid gap-4 sm:grid-cols-4">
           <StatCard
@@ -211,6 +227,7 @@ export function MovementView({
           </div>
         </Panel>
       </Stagger>
+      )}
     </>
   );
 }

@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import { MovementView } from "@/components/dashboard/movement";
 import { requireUser } from "@/lib/auth/roles";
 
-export const metadata: Metadata = { title: "Movement" };
+export const metadata: Metadata = { title: "Log Workout" };
 
-export default async function MovementPage() {
+export default async function MovementLogPage() {
   const { supabase, user } = await requireUser();
   const today = new Date().toISOString().slice(0, 10);
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
 
-  const [workoutsRes, checkinRes] = await Promise.all([
+  const [workoutsRes, checkinRes, profile] = await Promise.all([
     supabase
       .from("workout_logs")
       .select("*")
@@ -24,19 +24,19 @@ export default async function MovementPage() {
       .eq("user_id", user.id)
       .eq("checkin_date", today)
       .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("daily_step_goal")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("daily_step_goal")
-    .eq("user_id", user.id)
-    .maybeSingle();
 
   return (
     <MovementView
-      mode="overview"
+      mode="log"
       workouts={workoutsRes.data ?? []}
       steps={checkinRes.data?.steps ?? 0}
-      stepGoal={profile?.daily_step_goal ?? 8000}
+      stepGoal={profile.data?.daily_step_goal ?? 8000}
     />
   );
 }

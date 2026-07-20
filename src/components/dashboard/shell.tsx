@@ -6,22 +6,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Apple,
-  BrainCircuit,
   ChevronRight,
-  Dumbbell,
-  FileBarChart,
-  LayoutDashboard,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  Refrigerator,
-  Settings2,
   Shield,
-  ShoppingBasket,
-  WalletCards,
-  Weight,
   X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
@@ -31,69 +21,8 @@ import {
   type NotificationItem,
 } from "@/components/dashboard/notifications";
 import { CommandSearch } from "@/components/dashboard/command-search";
+import { DashboardNavigation } from "@/components/dashboard/dashboard-navigation";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
-
-const navItems = [
-  { icon: LayoutDashboard, label: "Today", caption: "Your daily rhythm", href: "/dashboard" },
-  { icon: Apple, label: "Nutrition", caption: "Meals and hydration", href: "/dashboard/nutrition" },
-  { icon: Dumbbell, label: "Movement", caption: "Workouts and activity", href: "/dashboard/movement" },
-  { icon: Weight, label: "Gym", caption: "Demos, plans, sessions", href: "/dashboard/gym" },
-  { icon: ShoppingBasket, label: "Groceries", caption: "Smart shopping list", href: "/dashboard/groceries" },
-  { icon: Refrigerator, label: "Pantry", caption: "Stock at a glance", href: "/dashboard/pantry" },
-  { icon: WalletCards, label: "Spending", caption: "Wellness budget", href: "/dashboard/spending" },
-  { icon: FileBarChart, label: "Reports", caption: "Patterns and trends", href: "/dashboard/reports" },
-  { icon: BrainCircuit, label: "AI Engine", caption: "Personal insights", href: "/dashboard/ai" },
-  { icon: Settings2, label: "Profile", caption: "Body, goals, preferences", href: "/dashboard/settings" },
-];
-
-function isActive(pathname: string, href: string) {
-  return href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
-}
-
-function Navigation({
-  pathname,
-  collapsed = false,
-  close,
-}: {
-  pathname: string;
-  collapsed?: boolean;
-  close?: () => void;
-}) {
-  return (
-    <nav className="space-y-1.5">
-      {navItems.map((item) => {
-        const active = isActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={close}
-            title={collapsed ? item.label : undefined}
-            className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
-              collapsed ? "justify-center px-2" : "gap-3 px-3"
-            } ${active ? "bg-[#26222f] text-white shadow-[0_10px_24px_rgba(38,34,47,.18)]" : "text-[#4c4757] hover:bg-white/80 hover:text-[#26222f]"}`}
-          >
-            <span
-              className={`grid size-9 shrink-0 place-items-center rounded-xl transition ${
-                active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-[#e4ddcf]"
-              }`}
-            >
-              <item.icon size={17} />
-            </span>
-            {!collapsed && (
-              <span className="min-w-0">
-                <span className="block text-sm font-black">{item.label}</span>
-                <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#8d8794]"}`}>
-                  {item.caption}
-                </span>
-              </span>
-            )}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
 
 function Avatar({
   avatarUrl,
@@ -186,7 +115,7 @@ export function DashboardShell({
             )}
           </div>
 
-          <Navigation pathname={pathname} collapsed={!expanded} />
+          <DashboardNavigation collapsed={!expanded} />
 
           <div className="mt-auto space-y-2 pt-5">
             {expanded && (
@@ -283,7 +212,7 @@ export function DashboardShell({
                     <Brand />
                     <button type="button" onClick={() => setMobileOpen(false)} className="grid size-9 place-items-center rounded-xl bg-[#eee8dc]" aria-label="Close navigation"><X size={17} /></button>
                   </div>
-                  <Navigation pathname={pathname} close={() => setMobileOpen(false)} />
+                  <DashboardNavigation close={() => setMobileOpen(false)} />
                   <div className="mt-auto space-y-2">
                     {isStaff && <Link href="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl bg-[#ece7fb] px-3 py-3 text-sm font-bold text-[#5f4fd6]"><Shield size={17} /> Admin console</Link>}
                     <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-white/70 p-3">
