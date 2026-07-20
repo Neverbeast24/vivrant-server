@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
 
 const workoutSchema = z.object({
@@ -31,6 +32,12 @@ export async function logWorkout(formData: FormData) {
     ...parsed.data,
   });
   if (error) return { ok: false, message: error.message };
+
+  await writeAuditLog({
+    action: "workout_logged",
+    entity: "workout_logs",
+    metadata: { title: parsed.data.title, activity_type: parsed.data.activity_type },
+  });
 
   revalidatePath("/dashboard/movement");
   return { ok: true, message: "Workout logged." };

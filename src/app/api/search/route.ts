@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const isSuperAdmin = ownProfile?.role === "super_admin";
   const isStaff = ownProfile?.role === "admin" || isSuperAdmin;
 
-  const [meals, workouts, groceries, pantry, expenses, insights, profiles] =
+  const [meals, workouts, gym, goals, history, groceries, pantry, expenses, insights, profiles] =
     await Promise.all([
       supabase
         .from("nutrition_logs")
@@ -41,6 +41,21 @@ export async function GET(request: NextRequest) {
         .from("workout_logs")
         .select("id, title, activity_type, user_id")
         .ilike("title", pattern)
+        .limit(5),
+      supabase
+        .from("gym_sessions")
+        .select("id, title, focus, user_id")
+        .ilike("title", pattern)
+        .limit(5),
+      supabase
+        .from("health_goals")
+        .select("id, title, category, status, user_id")
+        .ilike("title", pattern)
+        .limit(5),
+      supabase
+        .from("health_history")
+        .select("id, note, weight_kg, recorded_at, user_id")
+        .or(`note.ilike.${pattern}`)
         .limit(5),
       supabase
         .from("grocery_items")
@@ -93,6 +108,27 @@ export async function GET(request: NextRequest) {
       detail: `${row.activity_type} workout`,
       href: row.user_id === user.id ? "/dashboard/movement" : memberHref,
       category: "Movement",
+    })),
+    ...(gym.data ?? []).map((row) => ({
+      id: `gym-${row.id}`,
+      label: row.title,
+      detail: `${String(row.focus).replaceAll("_", " ")} gym session`,
+      href: row.user_id === user.id ? "/dashboard/gym" : memberHref,
+      category: "Gym",
+    })),
+    ...(goals.data ?? []).map((row) => ({
+      id: `goal-${row.id}`,
+      label: row.title,
+      detail: `${row.category} · ${row.status}`,
+      href: row.user_id === user.id ? "/dashboard/settings" : memberHref,
+      category: "Goals",
+    })),
+    ...(history.data ?? []).map((row) => ({
+      id: `history-${row.id}`,
+      label: row.note || (row.weight_kg != null ? `${row.weight_kg} kg` : "Body measurement"),
+      detail: `Recorded ${row.recorded_at}`,
+      href: row.user_id === user.id ? "/dashboard/settings" : memberHref,
+      category: "Health history",
     })),
     ...(groceries.data ?? []).map((row) => ({
       id: `grocery-${row.id}`,

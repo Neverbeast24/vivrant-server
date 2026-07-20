@@ -297,6 +297,91 @@ ${context}`);
   };
 }
 
+export type GymPlanDay = {
+  day: string;
+  focus: string;
+  exercises: { name: string; sets: string; rest: string; notes?: string }[];
+};
+
+export type GymPlanPayload = {
+  title: string;
+  focus: string;
+  level: string;
+  days_per_week: number;
+  summary: string;
+  days: GymPlanDay[];
+};
+
+export type HealthHistoryInsight = {
+  title: string;
+  body: string;
+  trend: string;
+  next_step: string;
+  score: number;
+};
+
+export async function generateGymPlan(
+  context: string,
+  availableExercises: string,
+): Promise<GymPlanPayload> {
+  const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym / home training plan for this user.
+Use their profile, energy, goals, and recent activity. Prefer exercises from the available catalog when possible.
+Return JSON:
+- "title"
+- "focus": one of full_body, strength, fat_loss, mobility, endurance
+- "level": beginner | intermediate | advanced
+- "days_per_week": 2-5
+- "summary": 2 sentences
+- "days": array of { "day", "focus", "exercises": [{ "name", "sets", "rest", "notes" }] }
+  Include 3–5 exercises per day.
+
+AVAILABLE EXERCISES:
+${availableExercises}
+
+USER CONTEXT:
+${context}`);
+
+  const days = Array.isArray(parsed.days) ? parsed.days : [];
+  return {
+    title: String(parsed.title ?? "Your VIVA gym plan").slice(0, 120),
+    focus: String(parsed.focus ?? "full_body"),
+    level: String(parsed.level ?? "beginner"),
+    days_per_week: Math.max(2, Math.min(5, Math.round(Number(parsed.days_per_week ?? 3)))),
+    summary: String(parsed.summary ?? "A gentle plan matched to your current rhythm.").slice(0, 600),
+    days: days.slice(0, 5).map((day) => ({
+      day: String(day?.day ?? "Day").slice(0, 40),
+      focus: String(day?.focus ?? "Training").slice(0, 60),
+      exercises: (Array.isArray(day?.exercises) ? day.exercises : []).slice(0, 6).map((ex) => ({
+        name: String(ex?.name ?? "Movement").slice(0, 80),
+        sets: String(ex?.sets ?? "3 x 10").slice(0, 40),
+        rest: String(ex?.rest ?? "60s").slice(0, 20),
+        notes: ex?.notes ? String(ex.notes).slice(0, 120) : undefined,
+      })),
+    })),
+  };
+}
+
+export async function analyzeHealthHistory(context: string): Promise<HealthHistoryInsight> {
+  const parsed = await generateJson<Partial<HealthHistoryInsight>>(`Analyze this user's health history (weight/height trend) and profile.
+Return JSON:
+- "title"
+- "body": 2–3 calm sentences (no diagnosis)
+- "trend": short phrase like "Steady downward" or "Needs more data"
+- "next_step": one concrete action for this week
+- "score": 0–100 confidence
+
+USER CONTEXT:
+${context}`);
+
+  return {
+    title: String(parsed.title ?? "Your body story").slice(0, 120),
+    body: String(parsed.body ?? "Keep logging weight weekly so VIVA can spot clearer patterns.").slice(0, 800),
+    trend: String(parsed.trend ?? "Building history").slice(0, 80),
+    next_step: String(parsed.next_step ?? "Log one weigh-in this week at the same time of day.").slice(0, 200),
+    score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 60)))),
+  };
+}
+
 export async function draftReminder(context: string): Promise<InsightPayload> {
   const parsed = await generateJson<Partial<InsightPayload>>(`Draft ONE short push-notification style reminder for this user today.
 Return JSON:

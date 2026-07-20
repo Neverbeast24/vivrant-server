@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
 
 const goalSchema = z.object({
@@ -41,6 +42,12 @@ export async function addHealthGoal(formData: FormData) {
     status: "active",
   });
   if (error) return { ok: false, message: error.message };
+
+  await writeAuditLog({
+    action: "goal_created",
+    entity: "health_goals",
+    metadata: { title: parsed.data.title, category: parsed.data.category },
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");

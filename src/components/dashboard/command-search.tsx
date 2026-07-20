@@ -20,6 +20,7 @@ import {
   ShoppingBasket,
   Users,
   WalletCards,
+  Weight,
   X,
 } from "lucide-react";
 
@@ -27,19 +28,22 @@ const dashboardDestinations = [
   { label: "Today", detail: "Daily health overview and quick check-in", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview mood energy water steps" },
   { label: "Nutrition", detail: "Log meals, calories, and protein", href: "/dashboard/nutrition", icon: Apple, keywords: "food meal calorie protein diet" },
   { label: "Movement", detail: "Record workouts and activity", href: "/dashboard/movement", icon: Dumbbell, keywords: "exercise workout calories minutes steps" },
+  { label: "Gym", detail: "Demo videos, AI plans, and gym sessions", href: "/dashboard/gym", icon: Weight, keywords: "gym demo video training plan strength" },
   { label: "Groceries", detail: "Manage your shopping list", href: "/dashboard/groceries", icon: ShoppingBasket, keywords: "shopping food list buy" },
   { label: "Pantry", detail: "Track food and stock levels", href: "/dashboard/pantry", icon: Refrigerator, keywords: "inventory kitchen stock" },
   { label: "Spending", detail: "Review health and grocery expenses", href: "/dashboard/spending", icon: WalletCards, keywords: "money expense budget cost" },
   { label: "Reports", detail: "See trends across your wellbeing", href: "/dashboard/reports", icon: FileBarChart, keywords: "analytics trends weekly data" },
   { label: "AI Engine", detail: "Ask VIVA about your health data", href: "/dashboard/ai", icon: BrainCircuit, keywords: "assistant insight ask recommendation" },
-  { label: "Profile & settings", detail: "Body profile, daily goals, and preferences", href: "/dashboard/settings", icon: Settings2, keywords: "profile weight height body account preferences name" },
+  { label: "Profile & settings", detail: "Body profile, health history, and preferences", href: "/dashboard/settings", icon: Settings2, keywords: "profile weight height body history bmi account preferences name" },
 ] as const;
 
 const adminDestinations = [
   { label: "Admin overview", detail: "Platform health and latest activity", href: "/admin", icon: Shield, keywords: "admin platform overview" },
   { label: "User management", detail: "Roles, access, and account status", href: "/admin/users", icon: Users, keywords: "members accounts role status" },
   { label: "Member activity", detail: "Search all member module logs", href: "/admin/activity", icon: Activity, keywords: "logs records super admin all users" },
+  { label: "Permissions", detail: "Role matrix and access model", href: "/admin/roles", icon: Shield, keywords: "permissions roles matrix" },
   { label: "Audit logs", detail: "Administrative change history", href: "/admin/audit", icon: FileBarChart, keywords: "audit events admin actions" },
+  { label: "System settings", detail: "Service health and broadcast notices", href: "/admin/settings", icon: Settings2, keywords: "system health broadcast notifications firebase" },
 ] as const;
 
 type RemoteResult = {

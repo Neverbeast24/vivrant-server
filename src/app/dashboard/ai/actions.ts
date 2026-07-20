@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeAuditLog } from "@/lib/audit";
 import { buildUserContext } from "@/lib/ai/context";
 import {
   askViva,
@@ -35,6 +36,19 @@ export async function generateInsight(_formData?: FormData) {
       score: insight.score,
     });
     if (error) return { ok: false, message: error.message };
+
+    await writeAuditLog({
+      action: "ai_insight_generated",
+      entity: "ai_recommendations",
+      metadata: { title: insight.title, score: insight.score },
+    });
+
+    await supabase.from("notifications").insert({
+      user_id: user.id,
+      title: "New VIVA insight",
+      body: insight.title,
+      is_read: false,
+    });
 
     revalidatePath("/dashboard/ai");
     revalidatePath("/dashboard");

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
 
 const expenseSchema = z.object({
@@ -31,6 +32,12 @@ export async function addExpense(formData: FormData) {
     ...parsed.data,
   });
   if (error) return { ok: false, message: error.message };
+
+  await writeAuditLog({
+    action: "expense_added",
+    entity: "expenses",
+    metadata: { title: parsed.data.title, amount: parsed.data.amount },
+  });
 
   revalidatePath("/dashboard/spending");
   return { ok: true, message: "Expense added." };

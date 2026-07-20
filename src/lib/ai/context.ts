@@ -18,7 +18,7 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
   const since = dayStartIso();
   const weekStart = weekStartDate();
 
-  const [profile, checkins, meals, workouts, expenses, pantry, groceries, goals] =
+  const [profile, checkins, meals, workouts, expenses, pantry, groceries, goals, history, gymSessions] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -71,6 +71,18 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
         .eq("user_id", targetId)
         .eq("status", "active")
         .limit(12),
+      supabase
+        .from("health_history")
+        .select("recorded_at, weight_kg, height_cm, body_fat_pct, waist_cm, note")
+        .eq("user_id", targetId)
+        .order("recorded_at", { ascending: false })
+        .limit(12),
+      supabase
+        .from("gym_sessions")
+        .select("title, focus, duration_minutes, calories_burned, logged_at")
+        .eq("user_id", targetId)
+        .order("logged_at", { ascending: false })
+        .limit(8),
     ]);
 
   return JSON.stringify(
@@ -85,6 +97,8 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
       pantry_items: pantry.data ?? [],
       open_grocery_list: groceries.data ?? [],
       active_goals: goals.data ?? [],
+      health_history: history.data ?? [],
+      recent_gym_sessions: gymSessions.data ?? [],
     },
     null,
     2,

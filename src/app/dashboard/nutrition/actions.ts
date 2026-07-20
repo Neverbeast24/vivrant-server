@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
 
 const mealSchema = z.object({
@@ -35,6 +36,12 @@ export async function logMeal(formData: FormData) {
     ...parsed.data,
   });
   if (error) return { ok: false, message: error.message };
+
+  await writeAuditLog({
+    action: "meal_logged",
+    entity: "nutrition_logs",
+    metadata: { meal_name: parsed.data.meal_name, meal_type: parsed.data.meal_type },
+  });
 
   revalidatePath("/dashboard/nutrition");
   return { ok: true, message: "Meal logged." };

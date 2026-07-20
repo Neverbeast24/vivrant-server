@@ -1,37 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, Dumbbell, Sparkles, Utensils } from "lucide-react";
+import { Bell, Sparkles } from "lucide-react";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/app/dashboard/notifications-actions";
 
-const items = [
-  {
-    icon: Sparkles,
-    title: "New insight ready",
-    detail: "Your energy peaks after morning walks.",
-    time: "2m ago",
-    tone: "text-[#5f45e6] bg-[#ece7fb]",
-  },
-  {
-    icon: Utensils,
-    title: "Lunch reminder",
-    detail: "A protein-rich meal keeps the afternoon steady.",
-    time: "1h ago",
-    tone: "text-[#12a595] bg-[#e6faf6]",
-  },
-  {
-    icon: Dumbbell,
-    title: "Movement goal",
-    detail: "1,800 steps left to reach today's target.",
-    time: "3h ago",
-    tone: "text-[#ff7a59] bg-[#fff0e8]",
-  },
-];
+export type NotificationItem = {
+  id: number;
+  title: string;
+  body: string;
+  is_read: boolean;
+  created_at: string;
+};
 
-export function Notifications() {
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.max(0, Math.floor(diff / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+export function Notifications({ items }: { items: NotificationItem[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [unread, setUnread] = useState(() => new Set(items.map((item) => item.title)));
+  const [readOverrides, setReadOverrides] = useState<Record<number, true>>({});
+  const [, start] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
+
+  const rows = items.map((item) =>
+    readOverrides[item.id] ? { ...item, is_read: true } : item,
+  );
+  const unread = rows.filter((row) => !row.is_read).length;
 
   useEffect(() => {
     function onClick(event: MouseEvent) {
@@ -43,6 +50,24 @@ export function Notifications() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  function onRead(id: number) {
+    setReadOverrides((current) => ({ ...current, [id]: true }));
+    start(async () => {
+      await markNotificationRead(id);
+      router.refresh();
+    });
+  }
+
+  function onMarkAll() {
+    const next: Record<number, true> = {};
+    for (const item of items) next[item.id] = true;
+    setReadOverrides(next);
+    start(async () => {
+      await markAllNotificationsRead();
+      router.refresh();
+    });
+  }
+
   return (
     <div className="relative" ref={ref}>
       <motion.button
@@ -53,7 +78,7 @@ export function Notifications() {
         className="focus-ring relative grid size-10 place-items-center rounded-full bg-[#fdfbf4] text-[#676270] shadow-sm transition hover:-translate-y-0.5"
       >
         <Bell size={17} />
-        {unread.size > 0 && (
+        {unread > 0 && (
           <i className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[#ff647c]" />
         )}
       </motion.button>
@@ -69,49 +94,48 @@ export function Notifications() {
           >
             <div className="flex items-center justify-between px-2 py-1">
               <span className="text-sm font-black">Notifications</span>
-              {unread.size > 0 ? (
+              {unread > 0 ? (
                 <button
                   type="button"
-                  onClick={() => setUnread(new Set())}
+                  onClick={onMarkAll}
                   className="rounded-full bg-[#ece7fb] px-2.5 py-1 text-[10px] font-bold text-[#5f45e6] transition hover:bg-[#ded5fa]"
                 >
-                  Mark {unread.size} read
+                  Mark {unread} read
                 </button>
               ) : (
                 <span className="px-2 py-1 text-[10px] font-bold text-[#9d98a3]">All read</span>
               )}
             </div>
-            <div className="mt-2 space-y-1">
-              {items.map((item) => (
+            <div className="mt-2 max-h-80 space-y-1 overflow-y-auto">
+              {rows.map((item) => (
                 <button
-                  key={item.title}
+                  key={item.id}
                   type="button"
-                  onClick={() =>
-                    setUnread((current) => {
-                      const next = new Set(current);
-                      next.delete(item.title);
-                      return next;
-                    })
-                  }
+                  onClick={() => onRead(item.id)}
                   className={`relative flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition hover:bg-[#fdfbf4]/85 ${
-                    unread.has(item.title) ? "bg-white/45" : "opacity-65"
+                    !item.is_read ? "bg-white/45" : "opacity-65"
                   }`}
                 >
-                  <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${item.tone}`}>
-                    <item.icon size={16} />
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#ece7fb] text-[#5f45e6]">
+                    <Sparkles size={16} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-bold">{item.title}</span>
-                    <span className="block truncate text-[11px] text-[#847f8c]">
-                      {item.detail}
-                    </span>
+                    <span className="block truncate text-[11px] text-[#847f8c]">{item.body}</span>
                   </span>
-                  <span className="shrink-0 text-[10px] text-[#a9a4b0]">{item.time}</span>
-                  {unread.has(item.title) && (
+                  <span className="shrink-0 text-[10px] text-[#a9a4b0]">
+                    {timeAgo(item.created_at)}
+                  </span>
+                  {!item.is_read && (
                     <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[#5f45e6]" />
                   )}
                 </button>
               ))}
+              {!rows.length && (
+                <p className="rounded-xl border border-dashed border-[#26222f]/10 px-3 py-8 text-center text-xs text-[#9a95a0]">
+                  No notifications yet. Admin broadcasts and VIVA updates will show here.
+                </p>
+              )}
             </div>
           </motion.div>
         )}

@@ -7,9 +7,12 @@ import {
   ArrowUpRight,
   Dumbbell,
   Flame,
+  Scale,
   Sparkles,
+  Target,
   Utensils,
   WalletCards,
+  Weight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateWeeklyStory } from "@/app/dashboard/reports/ai-actions";
@@ -30,6 +33,10 @@ export type ReportsData = {
   expensesTotal: number;
   workouts: number;
   meals: number;
+  gymSessions: number;
+  gymMinutes: number;
+  activeGoals: number;
+  historyEntries: number;
   weekActivity: [string, number][];
   categoryTotals: { category: string; total: number }[];
   recentActivity: { id: string; title: string; meta: string; right: string }[];
@@ -48,6 +55,9 @@ function buildSummary(data: ReportsData) {
   if (data.meals > 0) parts.push(`logged ${data.meals} meal${data.meals === 1 ? "" : "s"}`);
   if (data.workouts > 0)
     parts.push(`and moved for ${data.totalWorkoutMinutes} minutes across ${data.workouts} sessions`);
+  if (data.gymSessions > 0)
+    parts.push(`plus ${data.gymSessions} gym session${data.gymSessions === 1 ? "" : "s"}`);
+  if (data.activeGoals > 0) parts.push(`while tracking ${data.activeGoals} active goal${data.activeGoals === 1 ? "" : "s"}`);
   return parts.join(", ") + ". Keep the rhythm gentle and consistent.";
 }
 
@@ -138,6 +148,30 @@ export function ReportsView({ data }: { data: ReportsData }) {
           />
         </div>
 
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Gym sessions"
+            value={String(data.gymSessions)}
+            detail={`${data.gymMinutes} gym minutes`}
+            icon={Weight}
+            className="bg-[#f3f0ff] text-[#3d2f7a]"
+          />
+          <StatCard
+            label="Active goals"
+            value={String(data.activeGoals)}
+            detail="From your profile"
+            icon={Target}
+            className="bg-[#e8f7ff] text-[#1f4a5c]"
+          />
+          <StatCard
+            label="Body history"
+            value={String(data.historyEntries)}
+            detail="Measurements this month"
+            icon={Scale}
+            className="bg-[#fff8e8] text-[#5c4820]"
+          />
+        </div>
+
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.5fr_1fr]">
           <Panel
             title="Activity this week"
@@ -191,7 +225,9 @@ export function ReportsView({ data }: { data: ReportsData }) {
                 />
               ))}
               {!data.recentActivity.length && (
-                <EmptyState>Log meals, workouts, or expenses to see activity here.</EmptyState>
+                <EmptyState>
+                  Log meals, workouts, gym sessions, or body history to see activity here.
+                </EmptyState>
               )}
             </div>
           </Panel>

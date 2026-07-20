@@ -44,7 +44,10 @@ export const MODULES = [
   "User Management",
   "Roles & Permissions",
   "Nutrition",
-  "Workout",
+  "Movement",
+  "Gym",
+  "Health History",
+  "Goals",
   "Expenses",
   "Grocery",
   "Pantry",
@@ -53,4 +56,5 @@ export const MODULES = [
   "Notifications",
   "Audit Logs",
   "Settings",
+  "Member Activity",
 ] as const;

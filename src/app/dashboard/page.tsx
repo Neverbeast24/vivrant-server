@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const weekStart = weekAgo.toISOString().slice(0, 10);
   const dayStart = startOfDayIso();
 
-  const [checkinRes, weekRes, expensesRes, mealsRes, workoutsRes, profileRes, insightRes] =
+  const [checkinRes, weekRes, expensesRes, mealsRes, workoutsRes, gymRes, profileRes, insightRes] =
     await Promise.all([
       supabase
         .from("daily_checkins")
@@ -50,6 +50,11 @@ export default async function DashboardPage() {
         .gte("logged_at", dayStart),
       supabase
         .from("workout_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("logged_at", dayStart),
+      supabase
+        .from("gym_sessions")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .gte("logged_at", dayStart),
@@ -98,6 +103,7 @@ export default async function DashboardPage() {
         spendToday,
         mealsToday: mealsRes.count ?? 0,
         workoutsToday: workoutsRes.count ?? 0,
+        gymToday: gymRes.count ?? 0,
         weekEnergy,
         hasCheckin: Boolean(checkin),
         stepGoal: profileRes.data?.daily_step_goal ?? 8000,

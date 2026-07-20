@@ -21,11 +21,15 @@ import {
   Shield,
   ShoppingBasket,
   WalletCards,
+  Weight,
   X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/dashboard/actions";
-import { Notifications } from "@/components/dashboard/notifications";
+import {
+  Notifications,
+  type NotificationItem,
+} from "@/components/dashboard/notifications";
 import { CommandSearch } from "@/components/dashboard/command-search";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
@@ -33,6 +37,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Today", caption: "Your daily rhythm", href: "/dashboard" },
   { icon: Apple, label: "Nutrition", caption: "Meals and hydration", href: "/dashboard/nutrition" },
   { icon: Dumbbell, label: "Movement", caption: "Workouts and activity", href: "/dashboard/movement" },
+  { icon: Weight, label: "Gym", caption: "Demos, plans, sessions", href: "/dashboard/gym" },
   { icon: ShoppingBasket, label: "Groceries", caption: "Smart shopping list", href: "/dashboard/groceries" },
   { icon: Refrigerator, label: "Pantry", caption: "Stock at a glance", href: "/dashboard/pantry" },
   { icon: WalletCards, label: "Spending", caption: "Wellness budget", href: "/dashboard/spending" },
@@ -128,6 +133,7 @@ export function DashboardShell({
   avatarUrl = null,
   isStaff = false,
   isSuperAdmin = false,
+  notifications = [],
   children,
 }: {
   displayName: string;
@@ -135,6 +141,7 @@ export function DashboardShell({
   avatarUrl?: string | null;
   isStaff?: boolean;
   isSuperAdmin?: boolean;
+  notifications?: NotificationItem[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -241,7 +248,7 @@ export function DashboardShell({
               <CommandSearch isStaff={isStaff} isSuperAdmin={isSuperAdmin} />
             </div>
             <div className="flex items-center gap-2">
-              <Notifications />
+              <Notifications items={notifications} />
               <Link
                 href="/dashboard/settings"
                 title="Your profile"

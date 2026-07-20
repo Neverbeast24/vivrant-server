@@ -14,6 +14,7 @@ import {
   Utensils,
   WalletCards,
   Waves,
+  Weight,
 } from "lucide-react";
 import { QuickCheckin } from "@/components/dashboard/quick-checkin";
 import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
@@ -27,6 +28,7 @@ export type TodayData = {
   spendToday: number;
   mealsToday: number;
   workoutsToday: number;
+  gymToday: number;
   weekEnergy: [string, number][];
   hasCheckin: boolean;
   stepGoal: number;
@@ -95,6 +97,13 @@ export function TodayView({ data }: { data: TodayData }) {
       time: "Movement",
       done: data.workoutsToday > 0,
       href: "/dashboard/movement",
+    },
+    {
+      icon: Weight,
+      label: data.gymToday > 0 ? "Gym session done" : "Train at the gym",
+      time: "Gym",
+      done: data.gymToday > 0,
+      href: "/dashboard/gym",
     },
   ] as const;
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
 
 const settingsSchema = z.object({
@@ -34,6 +35,11 @@ export async function saveSettings(formData: FormData) {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/dashboard/settings");
+  await writeAuditLog({
+    action: "settings_updated",
+    entity: "user_settings",
+    entityId: user.id,
+  });
   return { ok: true, message: "Settings saved." };
 }
 
@@ -97,13 +103,47 @@ export async function saveHealthProfile(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
+  const { data: previous } = await supabase
+    .from("profiles")
+    .select("weight_kg, height_cm")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("profiles")
     .update({ ...parsed.data, bio: parsed.data.bio || null })
     .eq("user_id", user.id);
   if (error) return { ok: false, message: error.message };
 
+  const weightChanged =
+    parsed.data.weight_kg != null &&
+    Number(previous?.weight_kg ?? NaN) !== Number(parsed.data.weight_kg);
+  const heightChanged =
+    parsed.data.height_cm != null &&
+    Number(previous?.height_cm ?? NaN) !== Number(parsed.data.height_cm);
+
+  if (weightChanged || heightChanged) {
+    await supabase.from("health_history").insert({
+      user_id: user.id,
+      recorded_at: new Date().toISOString().slice(0, 10),
+      weight_kg: parsed.data.weight_kg,
+      height_cm: parsed.data.height_cm,
+      source: "profile_update",
+      note: "Synced from health profile",
+    });
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/gym");
+  await writeAuditLog({
+    action: "health_profile_updated",
+    entity: "profiles",
+    entityId: user.id,
+    metadata: {
+      display_name: parsed.data.display_name,
+      weight_synced: weightChanged || heightChanged,
+    },
+  });
   return { ok: true, message: "Health profile updated." };
 }

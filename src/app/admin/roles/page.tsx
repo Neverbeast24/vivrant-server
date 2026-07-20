@@ -2,19 +2,21 @@ import { createClient } from "@/lib/supabase/server";
 import { MODULES, ROLE_LABELS, type UserRole } from "@/lib/types";
 
 const permissions = [
-  { module: "User Management", user: "—", admin: "Read / Update", super: "Full" },
+  { module: "User Management", user: "—", admin: "Read / Update status", super: "Full + roles" },
   { module: "Roles & Permissions", user: "—", admin: "Read", super: "Full" },
   { module: "Audit Logs", user: "—", admin: "Read", super: "Full" },
-  { module: "Platform Settings", user: "—", admin: "Read", super: "Full" },
-  { module: "Dashboard modules", user: "Own data", admin: "Own data", super: "Own + admin" },
-  { module: "AI Decision Engine", user: "Own insights", admin: "Own insights", super: "Own insights" },
-  { module: "Notifications", user: "Own", admin: "Own + broadcast", super: "Full" },
+  { module: "Platform Settings", user: "—", admin: "Read + broadcast", super: "Full" },
+  { module: "Member Activity", user: "—", admin: "—", super: "Full read" },
+  { module: "Dashboard modules", user: "Own data", admin: "Own data", super: "Own + all members" },
+  { module: "Gym / History / Goals", user: "Own data", admin: "Own data", super: "Own + all members" },
+  { module: "AI Decision Engine", user: "Own insights", admin: "Own insights", super: "Own + member summaries" },
+  { module: "Notifications", user: "Own inbox", admin: "Own + broadcast", super: "Own + broadcast" },
 ];
 
 const roleDescriptions: Record<UserRole, string> = {
-  user: "Access personal dashboard modules and own data only.",
-  admin: "Manage users, view audit logs, and support members.",
-  super_admin: "Full platform control including role assignment.",
+  user: "Access personal dashboard modules, gym, goals, health history, and own data only.",
+  admin: "Manage member status, view audit logs, broadcast notices, and use the full personal dashboard.",
+  super_admin: "Full platform control including roles, member activity explorer, and all module reports.",
 };
 
 export default async function AdminRolesPage() {

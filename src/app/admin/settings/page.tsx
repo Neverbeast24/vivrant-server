@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BroadcastForm } from "@/components/admin/broadcast-form";
 import { createClient } from "@/lib/supabase/server";
 
 function statusChip(ok: boolean, okLabel: string, missingLabel: string) {
@@ -14,9 +16,16 @@ function statusChip(ok: boolean, okLabel: string, missingLabel: string) {
 
 export default async function AdminSettingsPage() {
   const supabase = await createClient();
-  const { error: dbError } = await supabase
-    .from("profiles")
-    .select("user_id", { count: "exact", head: true });
+  const [{ error: dbError }, { data: members }, { count: noticeCount }] = await Promise.all([
+    supabase.from("profiles").select("user_id", { count: "exact", head: true }),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name, email")
+      .eq("status", "active")
+      .order("display_name")
+      .limit(500),
+    supabase.from("notifications").select("id", { count: "exact", head: true }),
+  ]);
 
   const services = [
     {
@@ -47,14 +56,26 @@ export default async function AdminSettingsPage() {
     ["Region", "ap-southeast-2", "Sydney (closest to PH/SG)"],
     ["App URL", process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000", "Used in auth email links"],
     ["AI model", process.env.GEMINI_MODEL ?? "gemini-flash-latest", "Gemini Developer API"],
+    ["In-app notices", String(noticeCount ?? 0), "Rows in notifications table"],
   ] as const;
 
   return (
     <>
       <h1 className="font-display text-4xl">Admin Settings</h1>
       <p className="mt-2 text-sm text-[#77727f]">
-        Platform configuration and service health for the VIVA web console.
+        Platform configuration, service health, and member notifications.
       </p>
+
+      <div className="mt-8">
+        <p className="mb-3 text-xs font-black tracking-wide text-[#8a8491]">BROADCAST NOTICE</p>
+        <BroadcastForm members={members ?? []} />
+        <p className="mt-2 text-xs text-[#9a95a0]">
+          Notices are saved in Supabase and appear in every member&apos;s bell menu.{" "}
+          <Link href="/admin/audit" className="font-bold text-[#5f45e6]">
+            View audit trail
+          </Link>
+        </p>
+      </div>
 
       <div className="mt-8">
         <p className="mb-3 text-xs font-black tracking-wide text-[#8a8491]">SERVICE HEALTH</p>

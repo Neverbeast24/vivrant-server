@@ -24,47 +24,80 @@ export default async function ReportsPage() {
   weekAgo.setDate(weekAgo.getDate() - 6);
   const weekIso = weekAgo.toISOString();
 
-  const [checkins, meals, workouts, expenses, weekMeals, weekWorkouts, weekCheckins] =
-    await Promise.all([
-      supabase
-        .from("daily_checkins")
-        .select("energy")
-        .eq("user_id", user.id)
-        .gte("created_at", monthIso),
-      supabase
-        .from("nutrition_logs")
-        .select("meal_name, meal_type, calories, logged_at")
-        .eq("user_id", user.id)
-        .gte("logged_at", monthIso)
-        .order("logged_at", { ascending: false }),
-      supabase
-        .from("workout_logs")
-        .select("title, activity_type, duration_minutes, logged_at")
-        .eq("user_id", user.id)
-        .gte("logged_at", monthIso)
-        .order("logged_at", { ascending: false }),
-      supabase
-        .from("expenses")
-        .select("title, category, amount, spent_at")
-        .eq("user_id", user.id)
-        .gte("spent_at", monthIso)
-        .order("spent_at", { ascending: false }),
-      supabase
-        .from("nutrition_logs")
-        .select("logged_at")
-        .eq("user_id", user.id)
-        .gte("logged_at", weekIso),
-      supabase
-        .from("workout_logs")
-        .select("logged_at")
-        .eq("user_id", user.id)
-        .gte("logged_at", weekIso),
-      supabase
-        .from("daily_checkins")
-        .select("checkin_date")
-        .eq("user_id", user.id)
-        .gte("checkin_date", weekIso.slice(0, 10)),
-    ]);
+  const [
+    checkins,
+    meals,
+    workouts,
+    expenses,
+    gymSessions,
+    goals,
+    history,
+    weekMeals,
+    weekWorkouts,
+    weekCheckins,
+    weekGym,
+  ] = await Promise.all([
+    supabase
+      .from("daily_checkins")
+      .select("energy")
+      .eq("user_id", user.id)
+      .gte("created_at", monthIso),
+    supabase
+      .from("nutrition_logs")
+      .select("meal_name, meal_type, calories, logged_at")
+      .eq("user_id", user.id)
+      .gte("logged_at", monthIso)
+      .order("logged_at", { ascending: false }),
+    supabase
+      .from("workout_logs")
+      .select("title, activity_type, duration_minutes, logged_at")
+      .eq("user_id", user.id)
+      .gte("logged_at", monthIso)
+      .order("logged_at", { ascending: false }),
+    supabase
+      .from("expenses")
+      .select("title, category, amount, spent_at")
+      .eq("user_id", user.id)
+      .gte("spent_at", monthIso)
+      .order("spent_at", { ascending: false }),
+    supabase
+      .from("gym_sessions")
+      .select("title, focus, duration_minutes, calories_burned, logged_at")
+      .eq("user_id", user.id)
+      .gte("logged_at", monthIso)
+      .order("logged_at", { ascending: false }),
+    supabase
+      .from("health_goals")
+      .select("title, category, status, target_value, current_value, unit, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("health_history")
+      .select("recorded_at, weight_kg, height_cm, body_fat_pct, note")
+      .eq("user_id", user.id)
+      .gte("recorded_at", monthIso.slice(0, 10))
+      .order("recorded_at", { ascending: false }),
+    supabase
+      .from("nutrition_logs")
+      .select("logged_at")
+      .eq("user_id", user.id)
+      .gte("logged_at", weekIso),
+    supabase
+      .from("workout_logs")
+      .select("logged_at")
+      .eq("user_id", user.id)
+      .gte("logged_at", weekIso),
+    supabase
+      .from("daily_checkins")
+      .select("checkin_date")
+      .eq("user_id", user.id)
+      .gte("checkin_date", weekIso.slice(0, 10)),
+    supabase
+      .from("gym_sessions")
+      .select("logged_at")
+      .eq("user_id", user.id)
+      .gte("logged_at", weekIso),
+  ]);
 
   const expensesTotal = (expenses.data ?? []).reduce(
     (sum, row) => sum + Number(row.amount ?? 0),
@@ -78,7 +111,6 @@ export default async function ReportsPage() {
     ? Math.round(energies.reduce((sum, value) => sum + value, 0) / energies.length)
     : null;
 
-  // Weekly activity = count of logs per weekday (meals + workouts + check-ins).
   const perDay = new Map<string, number>();
   for (const row of weekMeals.data ?? []) {
     const key = String(row.logged_at).slice(0, 10);
@@ -90,6 +122,10 @@ export default async function ReportsPage() {
   }
   for (const row of weekCheckins.data ?? []) {
     const key = String(row.checkin_date).slice(0, 10);
+    perDay.set(key, (perDay.get(key) ?? 0) + 1);
+  }
+  for (const row of weekGym.data ?? []) {
+    const key = String(row.logged_at).slice(0, 10);
     perDay.set(key, (perDay.get(key) ?? 0) + 1);
   }
   const maxPerDay = Math.max(1, ...perDay.values());
@@ -108,26 +144,44 @@ export default async function ReportsPage() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
+  const activeGoals = (goals.data ?? []).filter((row) => row.status === "active").length;
+  const gymMinutes = (gymSessions.data ?? []).reduce(
+    (sum, row) => sum + Number(row.duration_minutes ?? 0),
+    0,
+  );
+
   const recentActivity: ReportsData["recentActivity"] = [
-    ...(meals.data ?? []).slice(0, 4).map((row, index) => ({
+    ...(meals.data ?? []).slice(0, 3).map((row, index) => ({
       id: `meal-${index}`,
       title: row.meal_name as string,
       meta: `Meal · ${row.meal_type}`,
       right: `${row.calories ?? 0} kcal`,
     })),
-    ...(workouts.data ?? []).slice(0, 4).map((row, index) => ({
+    ...(workouts.data ?? []).slice(0, 3).map((row, index) => ({
       id: `workout-${index}`,
       title: row.title as string,
       meta: `Workout · ${row.activity_type}`,
       right: `${row.duration_minutes ?? 0} min`,
     })),
-    ...(expenses.data ?? []).slice(0, 4).map((row, index) => ({
+    ...(gymSessions.data ?? []).slice(0, 3).map((row, index) => ({
+      id: `gym-${index}`,
+      title: row.title as string,
+      meta: `Gym · ${String(row.focus).replaceAll("_", " ")}`,
+      right: `${row.duration_minutes ?? 0} min`,
+    })),
+    ...(history.data ?? []).slice(0, 2).map((row, index) => ({
+      id: `history-${index}`,
+      title: row.weight_kg != null ? `${row.weight_kg} kg` : "Body check",
+      meta: `History · ${row.recorded_at}`,
+      right: row.body_fat_pct != null ? `${row.body_fat_pct}%` : "—",
+    })),
+    ...(expenses.data ?? []).slice(0, 2).map((row, index) => ({
       id: `expense-${index}`,
       title: row.title as string,
       meta: `Expense · ${row.category}`,
       right: `₱${Number(row.amount ?? 0).toLocaleString()}`,
     })),
-  ].slice(0, 8);
+  ].slice(0, 10);
 
   return (
     <ReportsView
@@ -135,6 +189,10 @@ export default async function ReportsPage() {
         checkins: checkins.data?.length ?? 0,
         meals: meals.data?.length ?? 0,
         workouts: workouts.data?.length ?? 0,
+        gymSessions: gymSessions.data?.length ?? 0,
+        gymMinutes,
+        activeGoals,
+        historyEntries: history.data?.length ?? 0,
         expensesTotal,
         weekActivity,
         categoryTotals,

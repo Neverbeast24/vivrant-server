@@ -5,7 +5,9 @@ import {
   saveHealthProfile,
   saveSettings,
 } from "@/app/dashboard/settings/actions";
+import { AvatarEditor } from "@/components/dashboard/avatar-editor";
 import { GoalsPanel, type HealthGoal } from "@/components/dashboard/goals";
+import { HealthHistoryPanel, type HealthHistoryEntry } from "@/components/dashboard/health-history";
 import {
   FormField,
   PageHeader,
@@ -25,6 +27,7 @@ type Settings = {
 export type HealthProfile = {
   display_name: string;
   email: string | null;
+  avatar_url: string | null;
   birth_date: string | null;
   sex: string | null;
   height_cm: number | null;
@@ -42,10 +45,12 @@ export function SettingsView({
   settings,
   profile,
   goals,
+  history,
 }: {
   settings: Settings;
   profile: HealthProfile;
   goals: HealthGoal[];
+  history: HealthHistoryEntry[];
 }) {
   const preferencesAction = useModuleAction(saveSettings);
   const profileAction = useModuleAction(saveHealthProfile);
@@ -60,6 +65,9 @@ export function SettingsView({
 
       <div className="grid gap-4 xl:grid-cols-[1.45fr_.75fr]">
         <Panel title="Health profile">
+          <div className="mb-5">
+            <AvatarEditor displayName={profile.display_name} avatarUrl={profile.avatar_url} />
+          </div>
           <form action={profileAction.submit} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Display name" hint="Required">
@@ -254,6 +262,8 @@ export function SettingsView({
       </div>
 
       <GoalsPanel goals={goals} />
+
+      <HealthHistoryPanel entries={history} />
 
       <Panel title="App preferences" className="mt-4">
         <form action={preferencesAction.submit} className="space-y-5">

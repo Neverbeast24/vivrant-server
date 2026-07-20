@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const { supabase, user } = await requireUser();
 
-  const [settingsRes, profileRes, goalsRes] = await Promise.all([
+  const [settingsRes, profileRes, goalsRes, historyRes] = await Promise.all([
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
     supabase
@@ -15,6 +15,12 @@ export default async function SettingsPage() {
       .select("id, title, category, target_value, current_value, unit, target_date, status")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("health_history")
+      .select("id, recorded_at, weight_kg, height_cm, body_fat_pct, waist_cm, note, source")
+      .eq("user_id", user.id)
+      .order("recorded_at", { ascending: false })
+      .limit(40),
   ]);
   const data = settingsRes.data;
   const profile = profileRes.data;
@@ -30,6 +36,7 @@ export default async function SettingsPage() {
       profile={{
         display_name: profile?.display_name ?? "VIVA member",
         email: profile?.email ?? user.email ?? null,
+        avatar_url: profile?.avatar_url ?? null,
         birth_date: profile?.birth_date ?? null,
         sex: profile?.sex ?? null,
         height_cm: profile?.height_cm ?? null,
@@ -47,6 +54,13 @@ export default async function SettingsPage() {
         current_value: Number(goal.current_value ?? 0),
         target_value: goal.target_value == null ? null : Number(goal.target_value),
         status: goal.status as "active" | "completed" | "paused",
+      }))}
+      history={(historyRes.data ?? []).map((entry) => ({
+        ...entry,
+        weight_kg: entry.weight_kg == null ? null : Number(entry.weight_kg),
+        height_cm: entry.height_cm == null ? null : Number(entry.height_cm),
+        body_fat_pct: entry.body_fat_pct == null ? null : Number(entry.body_fat_pct),
+        waist_cm: entry.waist_cm == null ? null : Number(entry.waist_cm),
       }))}
     />
   );
