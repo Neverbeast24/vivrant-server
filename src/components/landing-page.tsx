@@ -9,18 +9,25 @@ import {
   Bell,
   BrainCircuit,
   Check,
+  ClipboardList,
   Dumbbell,
+  FileBarChart,
   Goal,
   HeartPulse,
+  History,
   Leaf,
+  MessageCircle,
   ReceiptText,
   Refrigerator,
   ShieldCheck,
   ShoppingBasket,
   Sparkles,
+  Star,
   UserRound,
   Utensils,
   WalletCards,
+  Weight,
+  Zap,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 
@@ -64,74 +71,180 @@ type Module = {
 
 const modules: Module[] = [
   {
+    icon: HeartPulse,
+    title: "Today dashboard",
+    copy: "Start each day with check-in, live stats, and one clear next step.",
+    tag: "Daily",
+    iconClass: "bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66]",
+  },
+  {
     icon: Utensils,
     title: "Nutrition tracker",
-    copy: "Understand meals beyond simple calories.",
+    copy: "Log meals and get AI macro estimates in seconds.",
     tag: "Track",
     iconClass: "bg-gradient-to-br from-[#14b8a6] to-[#2dd4bf]",
   },
   {
     icon: Dumbbell,
-    title: "Workout tracker",
-    copy: "Build movement around your energy and goals.",
+    title: "Movement",
+    copy: "Workouts, steps, and AI suggestions that match your energy.",
     tag: "Track",
     iconClass: "bg-gradient-to-br from-[#fb7185] to-[#f472b6]",
   },
   {
+    icon: Weight,
+    title: "Gym & machines",
+    copy: "Demos, machine picks, session logs, and AI training plans.",
+    tag: "Train",
+    iconClass: "bg-gradient-to-br from-[#6366f1] to-[#818cf8]",
+  },
+  {
     icon: ReceiptText,
-    title: "Health expenses",
-    copy: "Connect spending decisions with wellbeing.",
+    title: "Health spending",
+    copy: "Track wellness budget and see where money helps or hurts health.",
     tag: "Track",
     iconClass: "bg-gradient-to-br from-[#f59e0b] to-[#fbbf24]",
   },
   {
     icon: Refrigerator,
     title: "Smart pantry",
-    copy: "Use what you have and reduce food waste.",
+    copy: "Know what you have and cook with less waste.",
     tag: "Plan",
     iconClass: "bg-gradient-to-br from-[#38bdf8] to-[#22d3ee]",
   },
   {
     icon: ShoppingBasket,
     title: "Grocery planner",
-    copy: "Create healthier, budget-aware lists.",
+    copy: "Healthier lists with budget-aware AI suggestions.",
     tag: "Plan",
     iconClass: "bg-gradient-to-br from-[#a3e635] to-[#4ade80]",
   },
   {
     icon: Goal,
-    title: "Goal setup",
-    copy: "Turn wellbeing priorities into clear targets.",
+    title: "Goals & profile",
+    copy: "Turn priorities into targets you can actually follow.",
     tag: "Plan",
     iconClass: "bg-gradient-to-br from-[#2a9d8f] to-[#0e7c66]",
   },
   {
-    icon: Activity,
-    title: "Health dashboard",
-    copy: "See daily signals in one calm workspace.",
+    icon: MessageCircle,
+    title: "Ask VIVRΛNT",
+    copy: "Chat with your AI coach across nutrition, gym, and spending.",
+    tag: "AI",
+    iconClass: "bg-gradient-to-br from-[#8b5cf6] to-[#a78bfa]",
+  },
+  {
+    icon: FileBarChart,
+    title: "Weekly reports",
+    copy: "Story-style summaries of patterns, wins, and what to adjust.",
     tag: "Understand",
-    iconClass: "bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66]",
+    iconClass: "bg-gradient-to-br from-[#ec4899] to-[#f472b6]",
+  },
+  {
+    icon: History,
+    title: "Health history",
+    copy: "Keep conditions, notes, and context for smarter recommendations.",
+    tag: "Understand",
+    iconClass: "bg-gradient-to-br from-[#64748b] to-[#94a3b8]",
   },
   {
     icon: Bell,
     title: "Smart reminders",
-    copy: "Get useful prompts without notification noise.",
+    copy: "Useful nudges without notification overload.",
     tag: "Understand",
     iconClass: "bg-gradient-to-br from-[#fb923c] to-[#f97316]",
   },
   {
+    icon: ClipboardList,
+    title: "Admin console",
+    copy: "Users, roles, audit logs, and system health for staff.",
+    tag: "Foundation",
+    iconClass: "bg-gradient-to-br from-[#334155] to-[#475569]",
+  },
+  {
     icon: ShieldCheck,
     title: "Private & secure",
-    copy: "Row-level protection around every record.",
+    copy: "Supabase Auth and row-level protection on every record.",
     tag: "Foundation",
-    iconClass: "bg-gradient-to-br from-[#64748b] to-[#94a3b8]",
+    iconClass: "bg-gradient-to-br from-[#0e7490] to-[#06b6d4]",
   },
   {
     icon: UserRound,
     title: "Profile & settings",
-    copy: "Keep VIVRΛNT personal, private, and adaptable.",
+    copy: "Avatars, preferences, and a space that feels truly yours.",
     tag: "Foundation",
     iconClass: "bg-gradient-to-br from-[#1a9b78] to-[#7ec8b8]",
+  },
+];
+
+const pricingPlans = [
+  {
+    name: "Starter",
+    price: "Free",
+    period: "forever",
+    blurb: "Everything you need to build a healthier daily rhythm.",
+    highlight: false,
+    features: [
+      "Today dashboard & check-ins",
+      "Nutrition, movement & spending logs",
+      "Pantry & grocery planner",
+      "Basic AI insights",
+      "Weekly report preview",
+    ],
+    cta: "Get started free",
+  },
+  {
+    name: "Plus",
+    price: "₱299",
+    period: "/ month",
+    blurb: "Full AI coaching, gym plans, and deeper weekly stories.",
+    highlight: true,
+    features: [
+      "Everything in Starter",
+      "Ask VIVRΛNT unlimited chat",
+      "Gym demos, machines & AI plans",
+      "Full weekly reports & reminders",
+      "Health history analysis",
+      "Priority AI responses",
+    ],
+    cta: "Start Plus trial",
+  },
+  {
+    name: "Campus",
+    price: "Custom",
+    period: "research & teams",
+    blurb: "Admin console, member activity, and analytics for programs.",
+    highlight: false,
+    features: [
+      "Everything in Plus",
+      "Admin & super-admin roles",
+      "Audit logs & member activity",
+      "Bulk onboarding support",
+      "Research analytics export",
+      "Dedicated setup help",
+    ],
+    cta: "Contact for access",
+  },
+];
+
+const testimonials = [
+  {
+    quote: "It finally feels like one app instead of five trackers fighting each other.",
+    name: "Maya R.",
+    role: "Nutrition focus",
+    accent: "from-[#14b8a6] to-[#0e7c66]",
+  },
+  {
+    quote: "The gym module with machine demos is genuinely useful — not just another logbook.",
+    name: "Jon K.",
+    role: "Strength training",
+    accent: "from-[#6366f1] to-[#818cf8]",
+  },
+  {
+    quote: "Weekly reports read like a coach talking to me, not a spreadsheet yelling.",
+    name: "Ari S.",
+    role: "Budget + wellness",
+    accent: "from-[#f59e0b] to-[#fb7185]",
   },
 ];
 
@@ -171,20 +284,24 @@ const heroChips = [
 ];
 
 const marqueeItems = [
+  "Today dashboard",
   "Nutrition tracker",
-  "Workout tracker",
+  "Movement & workouts",
+  "Gym & machines",
   "Smart pantry",
   "Grocery planner",
-  "Health expenses",
-  "AI recommendations",
-  "Goal setup",
+  "Health spending",
+  "Ask VIVRΛNT",
   "Weekly reports",
+  "Health history",
   "Smart reminders",
+  "Admin console",
   "Decision engine",
+  "Goal setup",
 ];
 
 const heroStats: [string, string][] = [
-  ["10+", "connected modules"],
+  ["15+", "connected modules"],
   ["1", "clear next action daily"],
   ["24/7", "AI watching your rhythm"],
   ["100%", "your data, protected"],
@@ -193,34 +310,36 @@ const heroStats: [string, string][] = [
 export function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+        <div className="animate-glow absolute -left-32 top-20 size-[28rem] rounded-full bg-[#0e7c66]/18 blur-[100px]" />
+        <div className="animate-glow-slow absolute -right-24 top-1/3 size-[24rem] rounded-full bg-[#2a9d8f]/16 blur-[90px]" />
+        <div className="animate-glow absolute bottom-0 left-1/3 size-[20rem] rounded-full bg-[#c45c2a]/10 blur-[80px]" />
+      </div>
+
       <nav className="sticky top-0 z-50 border-b border-[#14221b]/6 bg-[#e8efe9]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
           <Brand />
-          <div className="hidden items-center gap-8 text-sm font-semibold text-[#696574] md:flex">
+          <div className="hidden items-center gap-7 text-sm font-semibold text-[#696574] lg:flex">
             <a href="#experience" className="transition-colors hover:text-[#0e7c66]">
               Experience
             </a>
             <a href="#modules" className="transition-colors hover:text-[#0e7c66]">
               Modules
             </a>
+            <a href="#pricing" className="transition-colors hover:text-[#0e7c66]">
+              Pricing
+            </a>
             <a href="#principles" className="transition-colors hover:text-[#0e7c66]">
               Why VIVRΛNT
             </a>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="focus-ring rounded-full border border-[#14221b]/12 bg-[#f6faf7]/80 px-5 py-2.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-[#14221b] hover:shadow-md"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/dashboard"
-              className="focus-ring hidden rounded-full bg-[#14221b] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0e7c66] sm:inline-flex"
-            >
-              Open VIVRΛNT
-            </Link>
-          </div>
+          <Link
+            href="/login"
+            className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#14221b] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0e7c66] hover:shadow-md"
+          >
+            Get started
+            <ArrowUpRight size={15} />
+          </Link>
         </div>
       </nav>
 
@@ -254,10 +373,10 @@ export function LandingPage() {
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Link
-              href="/dashboard"
+              href="/login"
               className="focus-ring group inline-flex items-center gap-2 rounded-full bg-[#14221b] px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_34px_rgba(20,34,27,.22)] transition hover:-translate-y-1 hover:bg-[#0e7c66]"
             >
-              Explore your space
+              Get started free
               <ArrowUpRight
                 size={17}
                 className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
@@ -265,7 +384,10 @@ export function LandingPage() {
             </Link>
             <span className="flex items-center gap-2 text-sm font-semibold text-[#777280]">
               <Check size={16} className="text-[#21b5a5]" />
-              Built for a gentler routine
+              Already have an account?{" "}
+              <Link href="/login" className="font-bold text-[#0e7c66] underline-offset-2 hover:underline">
+                Sign in
+              </Link>
             </span>
           </div>
         </motion.div>
@@ -380,13 +502,35 @@ export function LandingPage() {
             {[...marqueeItems, ...marqueeItems].map((item, index) => (
               <span
                 key={`${item}-${index}`}
-                className="inline-flex items-center gap-3 whitespace-nowrap rounded-full border border-[#14221b]/8 bg-[#e8efe9]/80 px-5 py-2 text-xs font-black tracking-wide text-[#5a6b62]"
+                className="inline-flex items-center gap-3 whitespace-nowrap rounded-full border border-[#14221b]/8 bg-[#e8efe9]/80 px-5 py-2 text-xs font-black tracking-wide text-[#5a6b62] shadow-sm"
               >
-                <span className="size-1.5 rounded-full bg-[#0e7c66]" />
+                <span
+                  className={`size-2 rounded-full ${
+                    index % 4 === 0
+                      ? "bg-[#0e7c66]"
+                      : index % 4 === 1
+                        ? "bg-[#6366f1]"
+                        : index % 4 === 2
+                          ? "bg-[#f59e0b]"
+                          : "bg-[#ec4899]"
+                  }`}
+                />
                 {item}
               </span>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-10 md:px-8">
+        <div className="flex flex-wrap items-center justify-center gap-3 rounded-[1.5rem] border border-[#0e7c66]/15 bg-gradient-to-r from-[#d7efe6]/80 via-[#f6faf7]/90 to-[#e8f5f0]/80 px-5 py-4 shadow-sm">
+          <span className="relative flex size-2.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#0e7c66] opacity-40" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-[#0e7c66]" />
+          </span>
+          <p className="text-center text-sm font-semibold text-[#3d4a42]">
+            <span className="font-black text-[#0e7c66]">Live now:</span> Gym plans, AI meal estimates, weekly reports, and 15+ modules — all in one rhythm.
+          </p>
         </div>
       </section>
 
@@ -441,7 +585,7 @@ export function LandingPage() {
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-7 text-[#5a6b62]">
-            Twelve focused modules work together so every recommendation sees
+            Fifteen focused modules work together so every recommendation sees
             the context behind your choices.
           </p>
         </div>
@@ -601,6 +745,119 @@ export function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs font-black tracking-[0.2em] text-[#0e7c66]">
+              <Zap size={14} /> REAL VOICES
+            </span>
+            <h2 className="font-display mt-4 text-4xl leading-tight sm:text-5xl">
+              People actually use this every day.
+            </h2>
+          </div>
+          <div className="flex items-center gap-1 rounded-full border border-[#14221b]/8 bg-[#f6faf7]/80 px-4 py-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star key={star} size={14} className="fill-[#f59e0b] text-[#f59e0b]" />
+            ))}
+            <span className="ml-2 text-xs font-bold text-[#5a6b62]">Loved by early testers</span>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {testimonials.map((item, index) => (
+            <motion.article
+              key={item.name}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: index * 0.08 }}
+              whileHover={{ y: -6 }}
+              className="relative overflow-hidden rounded-[1.7rem] border border-[#14221b]/8 bg-[#f6faf7]/85 p-6 shadow-[0_16px_40px_rgba(20,34,27,.06)]"
+            >
+              <div className={`absolute -right-8 -top-8 size-32 rounded-full bg-gradient-to-br ${item.accent} opacity-20 blur-2xl`} />
+              <p className="relative text-sm leading-7 text-[#3d4a42]">&ldquo;{item.quote}&rdquo;</p>
+              <div className="relative mt-6 flex items-center gap-3">
+                <span className={`grid size-10 place-items-center rounded-full bg-gradient-to-br ${item.accent} text-xs font-black text-white`}>
+                  {item.name.charAt(0)}
+                </span>
+                <div>
+                  <p className="text-sm font-black">{item.name}</p>
+                  <p className="text-[11px] font-semibold text-[#7b7685]">{item.role}</p>
+                </div>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      <section id="pricing" className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+        <div className="mb-12 text-center">
+          <span className="inline-flex items-center gap-2 text-xs font-black tracking-[0.2em] text-[#0e7c66]">
+            <WalletCards size={14} /> SIMPLE PRICING
+          </span>
+          <h2 className="font-display mt-4 text-5xl leading-tight">
+            Start free. Grow when you&apos;re ready.
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#5a6b62]">
+            No credit card for Starter. Plus unlocks the full AI coach. Campus is
+            built for research programs and admin teams.
+          </p>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-3">
+          {pricingPlans.map((plan, index) => (
+            <motion.article
+              key={plan.name}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: index * 0.08 }}
+              whileHover={{ y: -8 }}
+              className={`relative flex flex-col overflow-hidden rounded-[2rem] p-7 sm:p-8 ${
+                plan.highlight
+                  ? "border-2 border-[#0e7c66] bg-[#14221b] text-white shadow-[0_24px_60px_rgba(14,124,102,.28)]"
+                  : "border border-[#14221b]/8 bg-[#f6faf7]/90 shadow-[0_16px_40px_rgba(20,34,27,.06)]"
+              }`}
+            >
+              {plan.highlight && (
+                <span className="absolute right-6 top-6 rounded-full bg-[#0e7c66] px-3 py-1 text-[10px] font-black tracking-wider text-white">
+                  MOST POPULAR
+                </span>
+              )}
+              <p className={`text-xs font-black tracking-[0.18em] ${plan.highlight ? "text-[#49d6d9]" : "text-[#0e7c66]"}`}>
+                {plan.name.toUpperCase()}
+              </p>
+              <div className="mt-4 flex items-end gap-1">
+                <span className="font-display text-5xl tracking-tight">{plan.price}</span>
+                <span className={`mb-2 text-sm font-semibold ${plan.highlight ? "text-white/50" : "text-[#7b7685]"}`}>
+                  {plan.period}
+                </span>
+              </div>
+              <p className={`mt-3 text-sm leading-6 ${plan.highlight ? "text-white/60" : "text-[#5a6b62]"}`}>
+                {plan.blurb}
+              </p>
+              <ul className="mt-8 flex-1 space-y-3">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2.5 text-sm">
+                    <Check size={16} className={`mt-0.5 shrink-0 ${plan.highlight ? "text-[#49d6d9]" : "text-[#0e7c66]"}`} />
+                    <span className={plan.highlight ? "text-white/80" : "text-[#3d4a42]"}>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login"
+                className={`focus-ring mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-black transition hover:-translate-y-0.5 ${
+                  plan.highlight
+                    ? "bg-white text-[#14221b] hover:bg-[#d7efe6]"
+                    : "bg-[#14221b] text-white hover:bg-[#0e7c66]"
+                }`}
+              >
+                {plan.cta}
+                <ArrowUpRight size={15} />
+              </Link>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
         <div className="mb-10 text-center">
           <span className="text-xs font-black tracking-[0.2em] text-[#0e7c66]">
             HOW IT FLOWS
@@ -692,17 +949,11 @@ export function LandingPage() {
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/dashboard"
+                href="/login"
                 className="focus-ring group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-[#14221b] shadow-[0_14px_34px_rgba(0,0,0,.3)] transition hover:-translate-y-1 hover:bg-[#d7efe6]"
               >
-                Open your space
+                Get started free
                 <ArrowUpRight size={17} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </Link>
-              <Link
-                href="/login"
-                className="focus-ring rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white/85 transition hover:border-white/50 hover:text-white"
-              >
-                Sign in
               </Link>
             </div>
           </div>
@@ -712,11 +963,12 @@ export function LandingPage() {
       <footer className="border-t border-[#14221b]/8 bg-[#f6faf7]/60">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-5 py-10 md:flex-row md:px-8">
           <Brand />
-          <div className="flex items-center gap-7 text-xs font-bold text-[#6f8077]">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold text-[#6f8077] md:justify-start">
             <a href="#experience" className="transition-colors hover:text-[#0e7c66]">Experience</a>
             <a href="#modules" className="transition-colors hover:text-[#0e7c66]">Modules</a>
+            <a href="#pricing" className="transition-colors hover:text-[#0e7c66]">Pricing</a>
             <a href="#principles" className="transition-colors hover:text-[#0e7c66]">Why VIVRΛNT</a>
-            <Link href="/login" className="transition-colors hover:text-[#0e7c66]">Sign in</Link>
+            <Link href="/login" className="transition-colors hover:text-[#0e7c66]">Get started</Link>
           </div>
           <p className="text-xs font-semibold text-[#84948b]">
             © {new Date().getFullYear()} VIVRΛNT · Long live life

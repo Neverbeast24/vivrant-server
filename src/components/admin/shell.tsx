@@ -119,8 +119,8 @@ export function AdminShell({
           onMouseLeave={() => setHovering(false)}
           className="relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-black/5 bg-[#f6faf7]/72 p-4 lg:flex"
         >
-          <div className={`mb-3 flex h-12 shrink-0 items-center ${expanded ? "justify-between" : "justify-center"}`}>
-            <Brand compact={!expanded} />
+          <div className={`mb-3 flex min-h-12 shrink-0 items-center ${expanded ? "justify-between gap-3" : "justify-center"}`}>
+            <Brand compact={!expanded} className={expanded ? "min-w-0 flex-1" : undefined} />
             {expanded && (
               <button
                 type="button"

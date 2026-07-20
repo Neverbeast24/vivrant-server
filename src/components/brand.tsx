@@ -18,24 +18,26 @@ export function Brand({
   return (
     <Link
       href="/"
-      className={`focus-ring inline-flex min-w-0 max-w-full items-center gap-3 rounded-xl ${className}`}
+      className={`focus-ring inline-flex min-w-0 max-w-full items-center gap-2.5 rounded-xl ${className}`}
       aria-label="VIVRΛNT home"
     >
-      <Image
-        src="/vivrant-mark.png"
-        alt=""
-        width={40}
-        height={40}
-        priority
-        className="size-10 shrink-0 rounded-xl object-cover"
-      />
+      <span className="flex size-10 shrink-0 items-center justify-center">
+        <Image
+          src="/vivrant-mark.png"
+          alt=""
+          width={40}
+          height={40}
+          priority
+          className="block size-9 rounded-lg object-contain"
+        />
+      </span>
       {!compact && (
-        <span className="flex min-w-0 flex-col leading-none">
-          <span className={`text-[1.05rem] font-black tracking-[0.18em] ${titleClass}`}>
+        <span className="flex min-w-0 flex-col justify-center gap-1 leading-none">
+          <span className={`text-[1.02rem] font-black tracking-[0.16em] ${titleClass}`}>
             VIVRΛNT
           </span>
           <span
-            className={`mt-1.5 truncate text-[0.55rem] font-bold tracking-[0.18em] uppercase ${subtitleClass}`}
+            className={`truncate text-[0.55rem] font-bold tracking-[0.16em] uppercase ${subtitleClass}`}
             title="VIVRΛNT · Long live life"
           >
             Long live life
