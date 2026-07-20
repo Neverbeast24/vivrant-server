@@ -82,7 +82,36 @@ VIVRΛNT wellness principles (use as soft guidance, not medical advice):
 - Currency for spending advice is Philippine pesos (₱) unless the logs say otherwise.
 `.trim();
 
-export function getGeminiModel(json = true) {
+const FALLBACK_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
+] as const;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isGeminiCapacityError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("503") ||
+    message.includes("429") ||
+    message.includes("Service Unavailable") ||
+    message.includes("high demand") ||
+    message.includes("Resource exhausted")
+  );
+}
+
+function getModelChain(): string[] {
+  const primary = process.env.GEMINI_MODEL?.trim();
+  const chain = primary
+    ? [primary, ...FALLBACK_MODELS.filter((model) => model !== primary)]
+    : [...FALLBACK_MODELS];
+  return [...new Set(chain)];
+}
+
+function createGeminiModel(modelName: string, json: boolean) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Gemini is not configured. Add GEMINI_API_KEY to your server environment.");
@@ -90,7 +119,7 @@ export function getGeminiModel(json = true) {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? "gemini-flash-latest",
+    model: modelName,
     generationConfig: {
       temperature: 0.7,
       ...(json ? { responseMimeType: "application/json" as const } : {}),
@@ -98,10 +127,43 @@ export function getGeminiModel(json = true) {
   });
 }
 
+/** @deprecated Prefer generateContentWithFallback — kept for callers that need a model handle. */
+export function getGeminiModel(json = true) {
+  return createGeminiModel(process.env.GEMINI_MODEL?.trim() ?? FALLBACK_MODELS[0], json);
+}
+
+async function generateContentWithFallback(prompt: string, json: boolean): Promise<string> {
+  const models = getModelChain();
+  let lastError: unknown;
+
+  for (const modelName of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const model = createGeminiModel(modelName, json);
+        const result = await model.generateContent(`${WELLNESS_GUIDE}\n\n${prompt}`);
+        return result.response.text();
+      } catch (error) {
+        lastError = error;
+        if (isGeminiCapacityError(error)) {
+          if (attempt === 0) {
+            await sleep(900);
+            continue;
+          }
+          break;
+        }
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(
+    "Gemini is busy right now (high demand on Google's side). Wait 30–60 seconds and try again. If this keeps happening, set GEMINI_MODEL=gemini-1.5-flash in Vercel environment variables.",
+    { cause: lastError },
+  );
+}
+
 async function generateJson<T>(prompt: string): Promise<T> {
-  const model = getGeminiModel(true);
-  const result = await model.generateContent(`${WELLNESS_GUIDE}\n\n${prompt}`);
-  const text = result.response.text();
+  const text = await generateContentWithFallback(prompt, true);
   return JSON.parse(text) as T;
 }
 

@@ -55,7 +55,7 @@ export default async function AdminSettingsPage() {
     ["Project", "gcqbuccazplfpmuhperg", "Supabase project reference"],
     ["Region", "ap-southeast-2", "Sydney (closest to PH/SG)"],
     ["App URL", process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000", "Used in auth email links"],
-    ["AI model", process.env.GEMINI_MODEL ?? "gemini-flash-latest", "Gemini Developer API"],
+    ["AI model", process.env.GEMINI_MODEL ?? "gemini-2.0-flash", "Gemini Developer API"],
     ["In-app notices", String(noticeCount ?? 0), "Rows in notifications table"],
   ] as const;
 
