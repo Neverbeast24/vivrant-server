@@ -8,7 +8,7 @@ function statusChip(ok: boolean, okLabel: string, missingLabel: string) {
       {okLabel}
     </span>
   ) : (
-    <span className="rounded-full bg-[#fff0e8] px-2.5 py-1 text-[10px] font-black text-[#c24a1a]">
+    <span className="rounded-full bg-[#f8ece4] px-2.5 py-1 text-[10px] font-black text-[#a84b22]">
       {missingLabel}
     </span>
   );
@@ -62,58 +62,58 @@ export default async function AdminSettingsPage() {
   return (
     <>
       <h1 className="font-display text-4xl">Admin Settings</h1>
-      <p className="mt-2 text-sm text-[#77727f]">
+      <p className="mt-2 text-sm text-[#5a6b62]">
         Platform configuration, service health, and member notifications.
       </p>
 
       <div className="mt-8">
-        <p className="mb-3 text-xs font-black tracking-wide text-[#8a8491]">BROADCAST NOTICE</p>
+        <p className="mb-3 text-xs font-black tracking-wide text-[#6f8077]">BROADCAST NOTICE</p>
         <BroadcastForm members={members ?? []} />
-        <p className="mt-2 text-xs text-[#9a95a0]">
+        <p className="mt-2 text-xs text-[#7a8a81]">
           Notices are saved in Supabase and appear in every member&apos;s bell menu.{" "}
-          <Link href="/admin/audit" className="font-bold text-[#5f45e6]">
+          <Link href="/admin/audit" className="font-bold text-[#0e7c66]">
             View audit trail
           </Link>
         </p>
       </div>
 
       <div className="mt-8">
-        <p className="mb-3 text-xs font-black tracking-wide text-[#8a8491]">SERVICE HEALTH</p>
+        <p className="mb-3 text-xs font-black tracking-wide text-[#6f8077]">SERVICE HEALTH</p>
         <div className="grid gap-4 md:grid-cols-3">
           {services.map((service) => (
             <article
               key={service.name}
-              className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4] p-5 shadow-[0_14px_32px_rgba(64,49,38,.07)]"
+              className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7] p-5 shadow-[0_14px_32px_rgba(20,34,27,.07)]"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-bold">{service.name}</p>
                 {statusChip(service.ok, service.okLabel, service.missingLabel)}
               </div>
-              <p className="mt-2 text-xs leading-5 text-[#8a8491]">{service.detail}</p>
+              <p className="mt-2 text-xs leading-5 text-[#6f8077]">{service.detail}</p>
             </article>
           ))}
         </div>
       </div>
 
       <div className="mt-8">
-        <p className="mb-3 text-xs font-black tracking-wide text-[#8a8491]">ENVIRONMENT</p>
+        <p className="mb-3 text-xs font-black tracking-wide text-[#6f8077]">ENVIRONMENT</p>
         <div className="grid gap-4 md:grid-cols-2">
           {environment.map(([label, value, detail]) => (
             <article
               key={label}
-              className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4] p-5 shadow-[0_14px_32px_rgba(64,49,38,.07)]"
+              className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7] p-5 shadow-[0_14px_32px_rgba(20,34,27,.07)]"
             >
-              <p className="text-[11px] font-black tracking-[0.16em] text-[#5f45e6]">
+              <p className="text-[11px] font-black tracking-[0.16em] text-[#0e7c66]">
                 {label.toUpperCase()}
               </p>
               <p className="font-display mt-3 break-all text-2xl tracking-tight">{value}</p>
-              <p className="mt-1 text-xs text-[#8a8491]">{detail}</p>
+              <p className="mt-1 text-xs text-[#6f8077]">{detail}</p>
             </article>
           ))}
         </div>
       </div>
 
-      <p className="mt-8 rounded-2xl border border-dashed border-[#26222f]/12 bg-[#f4efe4]/40 px-4 py-4 text-xs leading-5 text-[#8a8491]">
+      <p className="mt-8 rounded-2xl border border-dashed border-[#14221b]/12 bg-[#e8efe9]/40 px-4 py-4 text-xs leading-5 text-[#6f8077]">
         Secrets are managed in <span className="font-bold">.env.local</span> for local
         development and Vercel environment variables for production. They are never stored
         in this dashboard or in git.

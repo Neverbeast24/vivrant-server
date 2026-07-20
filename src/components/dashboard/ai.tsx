@@ -120,8 +120,8 @@ export function AiView({
       <ModuleSubNav items={aiSubNav} />
 
       {section === "ask" && (
-      <Panel title="Ask VIVA" right={<MessageCircle size={16} className="text-[#5f45e6]" />}>
-          <p className="mb-4 text-sm text-[#77727f]">
+      <Panel title="Ask VIVA" right={<MessageCircle size={16} className="text-[#0e7c66]" />}>
+          <p className="mb-4 text-sm text-[#5a6b62]">
             Ask about your energy, meals, budget, or what to do next — answers use your live logs only.
           </p>
           <div className="mb-4 max-h-72 space-y-3 overflow-y-auto">
@@ -130,8 +130,8 @@ export function AiView({
                 key={`${turn.role}-${index}`}
                 className={`rounded-2xl px-4 py-3 text-sm leading-6 ${
                   turn.role === "user"
-                    ? "ml-8 bg-[#26222f] text-white"
-                    : "mr-8 border border-[#26222f]/8 bg-[#f4efe4]/70 text-[#4c4757]"
+                    ? "ml-8 bg-[#14221b] text-white"
+                    : "mr-8 border border-[#14221b]/8 bg-[#e8efe9]/70 text-[#3d4a42]"
                 }`}
               >
                 <p className="text-[10px] font-black tracking-wider opacity-60">
@@ -139,7 +139,7 @@ export function AiView({
                 </p>
                 <p className="mt-1">{turn.text}</p>
                 {turn.followUp && (
-                  <p className="mt-2 text-xs font-semibold text-[#5f45e6]">
+                  <p className="mt-2 text-xs font-semibold text-[#0e7c66]">
                     Try asking: {turn.followUp}
                   </p>
                 )}
@@ -167,8 +167,8 @@ export function AiView({
       )}
 
       {section === "reminders" && (
-        <Panel title="Push reminder draft" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
-          <p className="text-sm leading-6 text-[#77727f]">
+        <Panel title="Push reminder draft" right={<Sparkles size={16} className="text-[#0e7c66]" />}>
+          <p className="text-sm leading-6 text-[#5a6b62]">
             VIVA can draft a notification from today’s rhythm. Sending requires your Firebase VAPID key.
           </p>
           <PrimaryButton
@@ -179,9 +179,9 @@ export function AiView({
             {reminderPending ? "Drafting…" : "Draft reminder"}
           </PrimaryButton>
           {reminder && (
-            <div className="mt-4 max-w-lg rounded-2xl border border-[#26222f]/8 bg-[#f4efe4]/60 p-4">
+            <div className="mt-4 max-w-lg rounded-2xl border border-[#14221b]/8 bg-[#e8efe9]/60 p-4">
               <p className="text-sm font-black">{reminder.title}</p>
-              <p className="mt-2 text-sm leading-6 text-[#6f6b79]">{reminder.body}</p>
+              <p className="mt-2 text-sm leading-6 text-[#55665d]">{reminder.body}</p>
             </div>
           )}
         </Panel>
@@ -194,18 +194,18 @@ export function AiView({
             <Panel key={item.id}>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-black tracking-[0.16em] text-[#5f45e6]">
+                  <p className="text-[11px] font-black tracking-[0.16em] text-[#0e7c66]">
                     VIVA INSIGHT
                   </p>
                   <h2 className="font-display mt-2 text-xl tracking-tight">{item.title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-[#6f6b79]">{item.body}</p>
+                  <p className="mt-3 text-sm leading-6 text-[#55665d]">{item.body}</p>
                 </div>
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#ece7fb] text-[#5f45e6]">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#d7efe6] text-[#0e7c66]">
                   <BrainCircuit size={18} />
                 </span>
               </div>
               {item.score != null && (
-                <p className="mt-4 text-xs font-bold text-[#8a8491]">
+                <p className="mt-4 text-xs font-bold text-[#6f8077]">
                   Decision score: {item.score}/100
                 </p>
               )}

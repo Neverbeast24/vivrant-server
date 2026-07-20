@@ -16,7 +16,7 @@ export default function GlobalError({
           display: "grid",
           placeItems: "center",
           background: "#ede8df",
-          color: "#26222f",
+          color: "#14221b",
           fontFamily: "Segoe UI, system-ui, sans-serif",
         }}
       >
@@ -25,8 +25,8 @@ export default function GlobalError({
             width: "min(100%, 28rem)",
             margin: "1.25rem",
             borderRadius: "1.4rem",
-            border: "1px solid rgba(38,34,47,0.08)",
-            background: "#fdfbf4",
+            border: "1px solid rgba(20,34,27,0.08)",
+            background: "#f6faf7",
             boxShadow: "0 30px 90px rgba(54,43,34,0.16)",
             overflow: "hidden",
           }}
@@ -69,7 +69,7 @@ export default function GlobalError({
                 marginTop: "1.5rem",
                 border: 0,
                 borderRadius: "0.75rem",
-                background: "#26222f",
+                background: "#14221b",
                 color: "#fff",
                 fontWeight: 800,
                 fontSize: 14,

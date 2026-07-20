@@ -111,11 +111,11 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
       />
 
       {plan && (
-        <Panel title={plan.title} className="mb-4" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
-          <p className="text-sm leading-6 text-[#6f6b79]">{plan.summary}</p>
+        <Panel title={plan.title} className="mb-4" right={<Sparkles size={16} className="text-[#0e7c66]" />}>
+          <p className="text-sm leading-6 text-[#55665d]">{plan.summary}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {plan.meals.map((meal) => (
-              <div key={meal} className="rounded-xl border border-[#26222f]/8 bg-[#f4efe4]/50 px-3 py-2 text-xs font-bold">
+              <div key={meal} className="rounded-xl border border-[#14221b]/8 bg-[#e8efe9]/50 px-3 py-2 text-xs font-bold">
                 {meal}
               </div>
             ))}
@@ -124,7 +124,7 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
             {plan.items.map((item) => (
               <div key={`${item.name}-${item.quantity}`} className="flex items-center justify-between rounded-xl border border-black/5 bg-white/70 px-3 py-2 text-sm">
                 <span className="font-bold">{item.name}</span>
-                <span className="text-xs text-[#847f8c]">
+                <span className="text-xs text-[#6a7a71]">
                   {CATEGORY_META[item.category]?.emoji ?? "🛒"} {item.quantity}
                 </span>
               </div>
@@ -170,7 +170,7 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
             value={`${done}/${items.length}`}
             detail="Items checked off"
             icon={ShoppingBasket}
-            className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+            className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
           />
           <StatCard
             label="Items"
@@ -190,7 +190,7 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
                 type="button"
                 disabled={togglePending}
                 onClick={() => runAction(clearCompletedGroceries)}
-                className="text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+                className="text-xs font-black text-[#0e7c66] transition hover:opacity-70"
               >
                 Clear {done} completed
               </button>
@@ -203,11 +203,11 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
               return (
                 <section key={group.key}>
                   <header className="mb-2 flex items-center justify-between px-1">
-                    <p className="flex items-center gap-2 text-xs font-black tracking-wide text-[#6b6675]">
+                    <p className="flex items-center gap-2 text-xs font-black tracking-wide text-[#52635a]">
                       <span className="text-sm leading-none">{group.emoji}</span>
                       {group.label.toUpperCase()}
                     </p>
-                    <span className="text-[10px] font-bold text-[#a19ca7]">
+                    <span className="text-[10px] font-bold text-[#84948b]">
                       {groupDone}/{group.items.length}
                     </span>
                   </header>
@@ -217,7 +217,7 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
                         <motion.div
                           key={item.id}
                           layout
-                          className="flex w-full items-center gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/45 p-2 text-left transition hover:border-[#26222f]/12 hover:bg-[#fdfbf4]"
+                          className="flex w-full items-center gap-3 rounded-2xl border border-[#14221b]/6 bg-[#e8efe9]/45 p-2 text-left transition hover:border-[#14221b]/12 hover:bg-[#f6faf7]"
                         >
                           <button
                             type="button"
@@ -228,16 +228,16 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
                             <span className={`grid size-6 place-items-center rounded-lg border-2 ${item.is_checked ? "border-[#26bea9] bg-[#26bea9] text-white" : "border-[#d4cec0]"}`}>
                               {item.is_checked && <Check size={13} />}
                             </span>
-                            <span className={`min-w-0 flex-1 truncate text-left text-sm font-bold ${item.is_checked ? "text-[#a9a4b0] line-through" : "text-[#332f3c]"}`}>
+                            <span className={`min-w-0 flex-1 truncate text-left text-sm font-bold ${item.is_checked ? "text-[#8a9a91] line-through" : "text-[#1e2f26]"}`}>
                               {item.name}
                             </span>
                           </button>
-                          <span className="shrink-0 text-xs font-semibold text-[#847f8c]">{item.quantity ?? "—"}</span>
+                          <span className="shrink-0 text-xs font-semibold text-[#6a7a71]">{item.quantity ?? "—"}</span>
                           <button
                             type="button"
                             disabled={togglePending}
                             onClick={() => runAction(() => deleteGroceryItem(item.id))}
-                            className="grid size-8 shrink-0 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                            className="grid size-8 shrink-0 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                             aria-label={`Delete ${item.name}`}
                           >
                             <Trash2 size={14} />
@@ -255,9 +255,9 @@ export function GroceriesView({ items }: { items: GroceryItem[] }) {
 
         <motion.article
           variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-          className="mt-4 rounded-[1.4rem] border border-[#26222f]/8 bg-gradient-to-br from-[#fbf3e2] via-[#fdfbf4] to-[#efeaff] p-5"
+          className="mt-4 rounded-[1.4rem] border border-[#14221b]/8 bg-gradient-to-br from-[#e8f5f0] via-[#f6faf7] to-[#d7efe6] p-5"
         >
-          <Sparkles size={18} className="text-[#5f45e6]" />
+          <Sparkles size={18} className="text-[#0e7c66]" />
           <p className="mt-4 text-sm font-bold leading-6">
             Swap white rice for quinoa to boost protein within the same budget.
           </p>

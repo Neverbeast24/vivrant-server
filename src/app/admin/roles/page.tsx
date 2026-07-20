@@ -37,7 +37,7 @@ export default async function AdminRolesPage() {
   return (
     <>
       <h1 className="font-display text-4xl">Roles & Permissions</h1>
-      <p className="mt-2 text-sm text-[#77727f]">
+      <p className="mt-2 text-sm text-[#5a6b62]">
         VIVA supports three roles aligned with the master documentation.
       </p>
 
@@ -45,25 +45,25 @@ export default async function AdminRolesPage() {
         {roleCounts.map(({ role, count }) => (
           <article
             key={role}
-            className="rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/85 p-5 shadow-sm"
+            className="rounded-[1.5rem] border border-[#14221b]/8 bg-[#f6faf7]/85 p-5 shadow-sm"
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-black tracking-wide text-[#5f45e6]">
+              <p className="text-xs font-black tracking-wide text-[#0e7c66]">
                 {ROLE_LABELS[role].toUpperCase()}
               </p>
-              <span className="rounded-full bg-[#ece7fb] px-2.5 py-1 text-[10px] font-black text-[#5f45e6]">
+              <span className="rounded-full bg-[#d7efe6] px-2.5 py-1 text-[10px] font-black text-[#0e7c66]">
                 {count} {count === 1 ? "member" : "members"}
               </span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-[#6f6b79]">{roleDescriptions[role]}</p>
+            <p className="mt-3 text-sm leading-6 text-[#55665d]">{roleDescriptions[role]}</p>
           </article>
         ))}
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-[1.6rem] border border-[#26222f]/8 bg-[#fdfbf4]/85 shadow-sm">
+      <div className="mt-8 overflow-hidden rounded-[1.6rem] border border-[#14221b]/8 bg-[#f6faf7]/85 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-[#26222f]/8 bg-[#f4efe4]/70 text-xs font-black text-[#8a8491]">
+            <thead className="border-b border-[#14221b]/8 bg-[#e8efe9]/70 text-xs font-black text-[#6f8077]">
               <tr>
                 <th className="px-5 py-4">Module</th>
                 <th className="px-5 py-4">User</th>
@@ -86,12 +86,12 @@ export default async function AdminRolesPage() {
       </div>
 
       <div className="mt-8">
-        <p className="mb-3 text-xs font-black tracking-wide text-[#8a8491]">ALL MODULES</p>
+        <p className="mb-3 text-xs font-black tracking-wide text-[#6f8077]">ALL MODULES</p>
         <div className="flex flex-wrap gap-2">
           {MODULES.map((module) => (
             <span
               key={module}
-              className="rounded-full border border-[#26222f]/10 bg-[#f4efe4]/70 px-3 py-1.5 text-xs font-bold text-[#5f5a67]"
+              className="rounded-full border border-[#14221b]/10 bg-[#e8efe9]/70 px-3 py-1.5 text-xs font-bold text-[#5f5a67]"
             >
               {module}
             </span>

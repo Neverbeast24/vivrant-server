@@ -95,11 +95,11 @@ function NavGroup({
         title={collapsed ? item.label : undefined}
         className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
           collapsed ? "justify-center px-2" : "gap-3 px-3"
-        } ${active ? "bg-[#26222f] text-white shadow-[0_10px_24px_rgba(38,34,47,.18)]" : "text-[#4c4757] hover:bg-white/80 hover:text-[#26222f]"}`}
+        } ${active ? "bg-[#14221b] text-white shadow-[0_10px_24px_rgba(20,34,27,.18)]" : "text-[#3d4a42] hover:bg-white/80 hover:text-[#14221b]"}`}
       >
         <span
           className={`grid size-9 shrink-0 place-items-center rounded-xl transition ${
-            active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-[#e4ddcf]"
+            active ? "bg-white/10" : "bg-[#dce8e1] group-hover:bg-[#cfdcd4]"
           }`}
         >
           <item.icon size={17} />
@@ -107,7 +107,7 @@ function NavGroup({
         {!collapsed && (
           <span className="min-w-0">
             <span className="block text-sm font-black">{item.label}</span>
-            <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#8d8794]"}`}>
+            <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#718179]"}`}>
               {item.caption}
             </span>
           </span>
@@ -120,7 +120,7 @@ function NavGroup({
     <div>
       <div
         className={`flex items-center rounded-2xl transition ${
-          active && !open ? "bg-[#26222f] text-white shadow-[0_10px_24px_rgba(38,34,47,.18)]" : ""
+          active && !open ? "bg-[#14221b] text-white shadow-[0_10px_24px_rgba(20,34,27,.18)]" : ""
         }`}
       >
         <Link
@@ -129,15 +129,15 @@ function NavGroup({
           title={collapsed ? item.label : undefined}
           className={`focus-ring group flex min-w-0 flex-1 items-center py-2.5 transition ${
             collapsed ? "justify-center px-2" : "gap-3 px-3"
-          } ${active && open ? "text-[#26222f]" : active ? "text-white" : "text-[#4c4757] hover:text-[#26222f]"}`}
+          } ${active && open ? "text-[#14221b]" : active ? "text-white" : "text-[#3d4a42] hover:text-[#14221b]"}`}
         >
           <span
             className={`grid size-9 shrink-0 place-items-center rounded-xl transition ${
               active && !open
                 ? "bg-white/10"
                 : active
-                  ? "bg-[#ece7fb] text-[#5f45e6]"
-                  : "bg-[#eee8dc] group-hover:bg-[#e4ddcf]"
+                  ? "bg-[#d7efe6] text-[#0e7c66]"
+                  : "bg-[#dce8e1] group-hover:bg-[#cfdcd4]"
             }`}
           >
             <item.icon size={17} />
@@ -147,7 +147,7 @@ function NavGroup({
               <span className="block text-sm font-black">{item.label}</span>
               <span
                 className={`block truncate text-[10px] font-semibold ${
-                  active && !open ? "text-white/55" : "text-[#8d8794]"
+                  active && !open ? "text-white/55" : "text-[#718179]"
                 }`}
               >
                 {item.caption}
@@ -161,7 +161,7 @@ function NavGroup({
             onClick={onToggle}
             aria-label={`${open ? "Collapse" : "Expand"} ${item.label}`}
             className={`mr-2 grid size-8 shrink-0 place-items-center rounded-xl transition ${
-              active && !open ? "text-white/80 hover:bg-white/10" : "text-[#8d8794] hover:bg-white"
+              active && !open ? "text-white/80 hover:bg-white/10" : "text-[#718179] hover:bg-white"
             }`}
           >
             <ChevronDown size={16} className={`transition ${open ? "rotate-180" : ""}`} />
@@ -178,7 +178,7 @@ function NavGroup({
             transition={{ duration: 0.18 }}
             className="overflow-hidden"
           >
-            <div className="ml-5 mt-1 space-y-1 border-l border-[#26222f]/10 py-1 pl-3">
+            <div className="ml-5 mt-1 space-y-1 border-l border-[#14221b]/10 py-1 pl-3">
               {item.children.map((child) => {
                 const childActive = pathMatches(pathname, child.href);
                 return (
@@ -188,13 +188,13 @@ function NavGroup({
                     onClick={close}
                     className={`block rounded-xl px-3 py-2 transition ${
                       childActive
-                        ? "bg-[#ece7fb] text-[#5f45e6]"
-                        : "text-[#6b6675] hover:bg-white hover:text-[#26222f]"
+                        ? "bg-[#d7efe6] text-[#0e7c66]"
+                        : "text-[#52635a] hover:bg-white hover:text-[#14221b]"
                     }`}
                   >
                     <span className="block text-xs font-black">{child.label}</span>
                     {child.caption && (
-                      <span className="mt-0.5 block text-[10px] font-semibold text-[#9a95a0]">
+                      <span className="mt-0.5 block text-[10px] font-semibold text-[#7a8a81]">
                         {child.caption}
                       </span>
                     )}

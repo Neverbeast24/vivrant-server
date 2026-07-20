@@ -22,8 +22,8 @@ export function ModuleSubNav({
             href={item.href}
             className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-black transition ${
               active
-                ? "bg-[#26222f] text-white shadow-sm"
-                : "bg-[#f4efe4] text-[#6b6675] hover:bg-white hover:text-[#26222f]"
+                ? "bg-[#14221b] text-white shadow-sm"
+                : "bg-[#e8efe9] text-[#52635a] hover:bg-white hover:text-[#14221b]"
             }`}
           >
             {item.icon && <item.icon size={13} />}

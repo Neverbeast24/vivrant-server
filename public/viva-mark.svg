@@ -1,15 +1,15 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="v" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D33DFF"/>
-      <stop offset=".5" stop-color="#6554FF"/>
-      <stop offset="1" stop-color="#10DDEA"/>
+      <stop stop-color="#0A5C4C"/>
+      <stop offset=".55" stop-color="#0E7C66"/>
+      <stop offset="1" stop-color="#2A9D8F"/>
     </linearGradient>
     <filter id="s" x="-8" y="-8" width="80" height="80" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#5B45D7" flood-opacity=".25"/>
+      <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#0E7C66" flood-opacity=".28"/>
     </filter>
   </defs>
-  <rect width="64" height="64" rx="19" fill="#FAF9FF"/>
+  <rect width="64" height="64" rx="19" fill="#E8F5F0"/>
   <path filter="url(#s)" d="M14 16.5C12.7 14.2 14.4 11.4 17 11.4h8.2c1.5 0 2.9.9 3.5 2.3l5.8 13.6 9.2-14c.7-1.1 1.9-1.8 3.2-1.8h2.3c2.8 0 4.4 3.2 2.8 5.5L35.1 51.4c-1.4 2.1-4.5 2-5.7-.2L14 16.5Z" fill="url(#v)"/>
-  <path d="M48.5 7.5v6M45.5 10.5h6" stroke="#19DCE8" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M48.5 7.5v6M45.5 10.5h6" stroke="#2A9D8F" stroke-width="2.4" stroke-linecap="round"/>
 </svg>

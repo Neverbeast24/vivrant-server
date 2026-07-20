@@ -20,7 +20,7 @@ export default async function ResetPasswordPage() {
     <main className="flex min-h-screen flex-col px-5 py-6 sm:px-10">
       <Brand />
       <div className="animate-rise mx-auto my-auto w-full max-w-md py-14">
-        <p className="text-xs font-black tracking-[0.18em] text-[#5f45e6]">ALMOST THERE</p>
+        <p className="text-xs font-black tracking-[0.18em] text-[#0e7c66]">ALMOST THERE</p>
         <h1 className="font-display mt-4 text-5xl">Choose a new password.</h1>
         <p className="mt-4 text-sm leading-6 text-[#7b7682]">
           You&apos;re verified{data.user.email ? ` as ${data.user.email}` : ""}. Pick a

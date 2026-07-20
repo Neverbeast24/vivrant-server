@@ -17,7 +17,7 @@ export default function AppError({
 
   return (
     <main className="grid min-h-screen place-items-center bg-[#ede8df] p-5">
-      <section className="w-full max-w-lg overflow-hidden rounded-[1.6rem] border border-white/75 bg-[#fdfbf4]/90 shadow-[0_30px_90px_rgba(54,43,34,.16)] backdrop-blur-xl">
+      <section className="w-full max-w-lg overflow-hidden rounded-[1.6rem] border border-white/75 bg-[#f6faf7]/90 shadow-[0_30px_90px_rgba(54,43,34,.16)] backdrop-blur-xl">
         <div className="flex h-11 items-center border-b border-black/6 bg-white/35 px-4">
           <div className="flex gap-2" aria-hidden>
             <span className="size-3 rounded-full bg-[#ff5f57]" />
@@ -27,7 +27,7 @@ export default function AppError({
           <span className="mx-auto pr-12 text-xs font-bold text-[#8b8691]">VIVA</span>
         </div>
         <div className="p-8 sm:p-10">
-          <span className="grid size-12 place-items-center rounded-2xl bg-[#fff0e8] text-[#e4571f]">
+          <span className="grid size-12 place-items-center rounded-2xl bg-[#f8ece4] text-[#c45c2a]">
             <TriangleAlert size={21} />
           </span>
           <h1 className="font-display mt-6 text-3xl">This page took a pause.</h1>
@@ -44,7 +44,7 @@ export default function AppError({
             <button
               type="button"
               onClick={reset}
-              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-[#26222f] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#5f45e6]"
+              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-[#14221b] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#0e7c66]"
             >
               <RefreshCw size={15} /> Try again
             </button>

@@ -85,7 +85,7 @@ export function PantryView({ items }: { items: PantryItem[] }) {
             value={String(items.length)}
             detail="In your pantry"
             icon={Refrigerator}
-            className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+            className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
           />
           <StatCard
             label="Running low"
@@ -112,11 +112,11 @@ export function PantryView({ items }: { items: PantryItem[] }) {
         <Panel title="Stock levels" className="mt-4">
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/35 p-3">
+              <div key={item.id} className="rounded-2xl border border-[#14221b]/6 bg-[#e8efe9]/35 p-3">
                 <div className="mb-3 flex items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black">{item.name}</p>
-                    <p className="mt-0.5 text-[10px] capitalize text-[#918b96]">{item.category}</p>
+                    <p className="mt-0.5 text-[10px] capitalize text-[#74847b]">{item.category}</p>
                   </div>
                   <button
                     type="button"
@@ -127,12 +127,12 @@ export function PantryView({ items }: { items: PantryItem[] }) {
                   >
                     <Minus size={14} />
                   </button>
-                  <span className="w-10 text-center text-xs font-black text-[#847f8c]">{item.stock_level}%</span>
+                  <span className="w-10 text-center text-xs font-black text-[#6a7a71]">{item.stock_level}%</span>
                   <button
                     type="button"
                     disabled={updating || item.stock_level >= 100}
                     onClick={() => runAction(() => updatePantryStock(item.id, Math.min(100, item.stock_level + 10)))}
-                    className="grid size-8 place-items-center rounded-lg bg-white text-[#5f45e6] shadow-sm disabled:opacity-40"
+                    className="grid size-8 place-items-center rounded-lg bg-white text-[#0e7c66] shadow-sm disabled:opacity-40"
                     aria-label={`Increase ${item.name} stock`}
                   >
                     <Plus size={14} />
@@ -141,7 +141,7 @@ export function PantryView({ items }: { items: PantryItem[] }) {
                     type="button"
                     disabled={updating}
                     onClick={() => runAction(() => deletePantryItem(item.id))}
-                    className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                    className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                     aria-label={`Delete ${item.name}`}
                   >
                     <Trash2 size={14} />

@@ -82,9 +82,9 @@ export function SpendingView({
       />
 
       {advice && (
-        <Panel title={advice.title} className="mb-4" right={<span className="text-xs font-black text-[#5f45e6]">{advice.score}/100</span>}>
-          <p className="text-sm leading-6 text-[#6f6b79]">{advice.body}</p>
-          <p className="mt-3 rounded-xl bg-[#ece7fb]/80 px-3 py-2 text-xs font-bold text-[#5f45e6]">
+        <Panel title={advice.title} className="mb-4" right={<span className="text-xs font-black text-[#0e7c66]">{advice.score}/100</span>}>
+          <p className="text-sm leading-6 text-[#55665d]">{advice.body}</p>
+          <p className="mt-3 rounded-xl bg-[#d7efe6]/80 px-3 py-2 text-xs font-bold text-[#0e7c66]">
             This week’s swap: {advice.swap}
           </p>
         </Panel>
@@ -131,7 +131,7 @@ export function SpendingView({
             value={`₱${total.toLocaleString()}`}
             detail={`${expenses.length} expenses`}
             icon={WalletCards}
-            className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+            className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
           />
           <StatCard
             label="Budget left"
@@ -176,7 +176,7 @@ export function SpendingView({
                           else toast.error(result.message);
                         })
                       }
-                      className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                      className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                       aria-label={`Delete ${expense.title}`}
                     >
                       <Trash2 size={14} />

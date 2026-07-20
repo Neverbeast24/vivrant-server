@@ -121,17 +121,17 @@ export function ActivityExplorer({
         ].map(([label, value, detail]) => (
           <article
             key={String(label)}
-            className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4] p-5 shadow-[0_14px_32px_rgba(64,49,38,.07)]"
+            className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7] p-5 shadow-[0_14px_32px_rgba(20,34,27,.07)]"
           >
-            <p className="text-[11px] font-black uppercase tracking-wider text-[#8a8491]">{label}</p>
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#6f8077]">{label}</p>
             <p className="font-display mt-3 text-4xl">{value}</p>
-            <p className="mt-2 text-xs text-[#9a95a0]">{detail}</p>
+            <p className="mt-2 text-xs text-[#7a8a81]">{detail}</p>
           </article>
         ))}
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <div className="inline-flex rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4]/90 p-1 shadow-sm">
+        <div className="inline-flex rounded-2xl border border-[#14221b]/10 bg-[#f6faf7]/90 p-1 shadow-sm">
           {(
             [
               ["records", "Full records", LayoutList],
@@ -143,7 +143,7 @@ export function ActivityExplorer({
               type="button"
               onClick={() => setView(key)}
               className={`focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition ${
-                view === key ? "bg-[#26222f] text-white shadow" : "text-[#6b6675] hover:bg-white"
+                view === key ? "bg-[#14221b] text-white shadow" : "text-[#52635a] hover:bg-white"
               }`}
             >
               <Icon size={14} /> {label}
@@ -154,7 +154,7 @@ export function ActivityExplorer({
           type="button"
           disabled={summarizing || memberId === "all"}
           onClick={summarizeSelected}
-          className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#26222f] px-4 py-2.5 text-xs font-black text-white disabled:opacity-50"
+          className="focus-ring inline-flex items-center gap-2 rounded-full bg-[#14221b] px-4 py-2.5 text-xs font-black text-white disabled:opacity-50"
         >
           <Sparkles size={14} />
           {summarizing ? "Summarizing…" : "AI member summary"}
@@ -162,22 +162,22 @@ export function ActivityExplorer({
       </div>
 
       {summary && (
-        <section className="mt-4 rounded-[1.5rem] border border-[#5f45e6]/15 bg-[#efeaff]/70 p-5">
-          <p className="text-[11px] font-black tracking-[0.16em] text-[#5f45e6]">AI SUPPORT SUMMARY</p>
+        <section className="mt-4 rounded-[1.5rem] border border-[#0e7c66]/15 bg-[#d7efe6]/70 p-5">
+          <p className="text-[11px] font-black tracking-[0.16em] text-[#0e7c66]">AI SUPPORT SUMMARY</p>
           <h2 className="font-display mt-2 text-2xl">{summary.title}</h2>
           <p className="mt-3 text-sm leading-7 text-[#5f5867]">{summary.summary}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-black text-[#8a8491]">Wins</p>
-              <ul className="mt-2 space-y-1 text-sm text-[#4c4757]">
+              <p className="text-xs font-black text-[#6f8077]">Wins</p>
+              <ul className="mt-2 space-y-1 text-sm text-[#3d4a42]">
                 {summary.wins.map((win) => (
                   <li key={win}>• {win}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <p className="text-xs font-black text-[#8a8491]">Watch-outs</p>
-              <ul className="mt-2 space-y-1 text-sm text-[#4c4757]">
+              <p className="text-xs font-black text-[#6f8077]">Watch-outs</p>
+              <ul className="mt-2 space-y-1 text-sm text-[#3d4a42]">
                 {summary.risks.map((risk) => (
                   <li key={risk}>• {risk}</li>
                 ))}
@@ -187,9 +187,9 @@ export function ActivityExplorer({
         </section>
       )}
 
-      <section className="mt-4 rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 p-4 shadow-sm">
+      <section className="mt-4 rounded-[1.5rem] border border-[#14221b]/8 bg-[#f6faf7]/90 p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[1fr_14rem_12rem]">
-          <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#f4efe4]/60 px-3">
+          <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#e8efe9]/60 px-3">
             <Search size={15} className="text-[#8c8793]" />
             <input
               value={query}
@@ -198,7 +198,7 @@ export function ActivityExplorer({
               className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
           </label>
-          <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#f4efe4]/60 px-3">
+          <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#e8efe9]/60 px-3">
             <UserRound size={15} className="text-[#8c8793]" />
             <select
               value={memberId}
@@ -213,7 +213,7 @@ export function ActivityExplorer({
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#f4efe4]/60 px-3">
+          <label className="flex items-center gap-2 rounded-xl border border-black/8 bg-[#e8efe9]/60 px-3">
             <Activity size={15} className="text-[#8c8793]" />
             <select
               value={module}
@@ -235,23 +235,23 @@ export function ActivityExplorer({
           {moduleReports.map((report) => (
             <article
               key={report.module}
-              className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 p-5 shadow-sm"
+              className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7]/90 p-5 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <span className="rounded-full bg-[#ece7fb] px-3 py-1 text-[10px] font-black capitalize text-[#5f45e6]">
+                <span className="rounded-full bg-[#d7efe6] px-3 py-1 text-[10px] font-black capitalize text-[#0e7c66]">
                   {report.module}
                 </span>
-                <span className="text-[10px] font-bold text-[#a19ca7]">
+                <span className="text-[10px] font-bold text-[#84948b]">
                   {report.latest ? new Date(report.latest).toLocaleDateString() : "No activity"}
                 </span>
               </div>
               <p className="font-display mt-4 text-4xl tracking-tight">{report.total}</p>
-              <p className="mt-1 text-xs font-bold text-[#8a8491]">
+              <p className="mt-1 text-xs font-bold text-[#6f8077]">
                 records · {report.members} member{report.members === 1 ? "" : "s"}
               </p>
               {report.topMember && (
-                <p className="mt-3 border-t border-black/5 pt-3 text-xs text-[#77727f]">
-                  Most active: <span className="font-black text-[#332f3c]">{report.topMember}</span> (
+                <p className="mt-3 border-t border-black/5 pt-3 text-xs text-[#5a6b62]">
+                  Most active: <span className="font-black text-[#1e2f26]">{report.topMember}</span> (
                   {report.topCount})
                 </p>
               )}
@@ -261,13 +261,13 @@ export function ActivityExplorer({
       )}
 
       <section
-        className={`mt-5 overflow-hidden rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/90 shadow-sm ${
+        className={`mt-5 overflow-hidden rounded-[1.5rem] border border-[#14221b]/8 bg-[#f6faf7]/90 shadow-sm ${
           view === "reports" ? "hidden" : ""
         }`}
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="border-b border-black/6 bg-[#f4efe4]/70 text-[10px] font-black uppercase tracking-wider text-[#8a8491]">
+            <thead className="border-b border-black/6 bg-[#e8efe9]/70 text-[10px] font-black uppercase tracking-wider text-[#6f8077]">
               <tr>
                 <th className="px-5 py-4">Member</th>
                 <th className="px-5 py-4">Module</th>
@@ -283,21 +283,21 @@ export function ActivityExplorer({
                   <tr key={record.id} className="border-b border-black/5 last:border-0">
                     <td className="px-5 py-4">
                       <p className="font-bold">{member?.display_name ?? "Unknown member"}</p>
-                      <p className="mt-0.5 text-[11px] text-[#918b96]">
+                      <p className="mt-0.5 text-[11px] text-[#74847b]">
                         {member?.email ?? record.user_id.slice(0, 8)}
                       </p>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="rounded-full bg-[#ece7fb] px-2.5 py-1 text-[10px] font-black capitalize text-[#5f45e6]">
+                      <span className="rounded-full bg-[#d7efe6] px-2.5 py-1 text-[10px] font-black capitalize text-[#0e7c66]">
                         {record.module}
                       </span>
                     </td>
                     <td className="px-5 py-4">
                       <p className="font-bold">{record.title}</p>
-                      <p className="mt-0.5 max-w-md truncate text-xs text-[#847f8c]">{record.detail}</p>
+                      <p className="mt-0.5 max-w-md truncate text-xs text-[#6a7a71]">{record.detail}</p>
                     </td>
                     <td className="px-5 py-4 font-black">{record.value}</td>
-                    <td className="px-5 py-4 text-xs text-[#847f8c]">
+                    <td className="px-5 py-4 text-xs text-[#6a7a71]">
                       {new Date(record.timestamp).toLocaleString()}
                     </td>
                   </tr>
@@ -305,7 +305,7 @@ export function ActivityExplorer({
               })}
               {!filtered.length && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-14 text-center text-[#9a95a0]">
+                  <td colSpan={5} className="px-5 py-14 text-center text-[#7a8a81]">
                     No activity matches these filters.
                   </td>
                 </tr>

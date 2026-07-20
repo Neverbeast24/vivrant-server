@@ -74,7 +74,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
           type="button"
           disabled={analyzing}
           onClick={analyze}
-          className="inline-flex items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+          className="inline-flex items-center gap-1 text-xs font-black text-[#0e7c66] transition hover:opacity-70"
         >
           <Sparkles size={13} />
           {analyzing ? "Reading…" : "AI trend"}
@@ -82,22 +82,22 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#26222f]/8 bg-[#f4efe4]/50 p-4">
-          <p className="text-[10px] font-black tracking-wider text-[#8a8491]">LATEST WEIGHT</p>
+        <div className="rounded-2xl border border-[#14221b]/8 bg-[#e8efe9]/50 p-4">
+          <p className="text-[10px] font-black tracking-wider text-[#6f8077]">LATEST WEIGHT</p>
           <p className="font-display mt-2 text-3xl">
             {latest?.weight_kg != null ? `${latest.weight_kg}` : "—"}
-            <span className="ml-1 text-sm font-bold text-[#8a8491]">kg</span>
+            <span className="ml-1 text-sm font-bold text-[#6f8077]">kg</span>
           </p>
         </div>
-        <div className="rounded-2xl border border-[#26222f]/8 bg-[#f4efe4]/50 p-4">
-          <p className="text-[10px] font-black tracking-wider text-[#8a8491]">CHANGE</p>
+        <div className="rounded-2xl border border-[#14221b]/8 bg-[#e8efe9]/50 p-4">
+          <p className="text-[10px] font-black tracking-wider text-[#6f8077]">CHANGE</p>
           <p className="mt-2 flex items-center gap-2 text-lg font-black">
-            <TrendingDown size={16} className="text-[#5f45e6]" />
+            <TrendingDown size={16} className="text-[#0e7c66]" />
             {delta == null ? "—" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)} kg`}
           </p>
         </div>
-        <div className="rounded-2xl border border-[#26222f]/8 bg-[#f4efe4]/50 p-4">
-          <p className="text-[10px] font-black tracking-wider text-[#8a8491]">BMI</p>
+        <div className="rounded-2xl border border-[#14221b]/8 bg-[#e8efe9]/50 p-4">
+          <p className="text-[10px] font-black tracking-wider text-[#6f8077]">BMI</p>
           <p className="font-display mt-2 text-3xl">
             {bmiFor(latest?.weight_kg ?? null, latest?.height_cm ?? null)?.toFixed(1) ?? "—"}
           </p>
@@ -105,14 +105,14 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
       </div>
 
       {insight && (
-        <div className="mb-4 rounded-2xl border border-[#5f45e6]/15 bg-[#ece7fb]/60 p-4">
+        <div className="mb-4 rounded-2xl border border-[#0e7c66]/15 bg-[#d7efe6]/60 p-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-black">{insight.title}</p>
-            <span className="text-[10px] font-black text-[#5f45e6]">{insight.score}/100</span>
+            <span className="text-[10px] font-black text-[#0e7c66]">{insight.score}/100</span>
           </div>
           <p className="mt-2 text-sm leading-6 text-[#5f5867]">{insight.body}</p>
-          <p className="mt-3 text-xs font-bold text-[#847f8c]">Trend: {insight.trend}</p>
-          <p className="mt-1 text-xs font-black text-[#5f45e6]">Next: {insight.next_step}</p>
+          <p className="mt-3 text-xs font-bold text-[#6a7a71]">Trend: {insight.trend}</p>
+          <p className="mt-1 text-xs font-black text-[#0e7c66]">Next: {insight.next_step}</p>
         </div>
       )}
 
@@ -146,9 +146,9 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
           return (
             <div
               key={entry.id}
-              className="flex items-center gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/40 px-4 py-3"
+              className="flex items-center gap-3 rounded-2xl border border-[#14221b]/6 bg-[#e8efe9]/40 px-4 py-3"
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#ece7fb] text-[#5f45e6]">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#d7efe6] text-[#0e7c66]">
                 <Activity size={15} />
               </span>
               <div className="min-w-0 flex-1">
@@ -157,7 +157,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
                   {entry.weight_kg != null ? ` · ${entry.weight_kg} kg` : ""}
                   {bmi != null ? ` · BMI ${bmi.toFixed(1)}` : ""}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-[#847f8c]">
+                <p className="mt-0.5 truncate text-xs text-[#6a7a71]">
                   {[
                     entry.height_cm != null ? `${entry.height_cm} cm` : null,
                     entry.body_fat_pct != null ? `${entry.body_fat_pct}% fat` : null,
@@ -179,7 +179,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
                     else toast.error(result.message);
                   })
                 }
-                className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
               >
                 <Trash2 size={14} />
               </button>

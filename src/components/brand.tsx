@@ -12,8 +12,8 @@ export function Brand({
   tone = "light",
   className = "",
 }: BrandProps) {
-  const titleClass = tone === "dark" ? "text-white" : "text-[#242131]";
-  const subtitleClass = tone === "dark" ? "text-white/45" : "text-[#868291]";
+  const titleClass = tone === "dark" ? "text-white" : "text-[#14221b]";
+  const subtitleClass = tone === "dark" ? "text-white/45" : "text-[#5a6b62]";
 
   return (
     <Link

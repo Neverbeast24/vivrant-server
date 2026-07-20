@@ -101,14 +101,14 @@ export function ReportsView({ data }: { data: ReportsData }) {
           <Panel
             title={story.title}
             className="mb-4"
-            right={<span className="text-xs font-black text-[#5f45e6]">{story.score}/100</span>}
+            right={<span className="text-xs font-black text-[#0e7c66]">{story.score}/100</span>}
           >
-            <p className="text-sm leading-7 text-[#6f6b79]">{story.story}</p>
+            <p className="text-sm leading-7 text-[#55665d]">{story.story}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {story.focuses.map((focus) => (
                 <span
                   key={focus}
-                  className="rounded-full bg-[#ece7fb] px-3 py-1 text-[11px] font-black text-[#5f45e6]"
+                  className="rounded-full bg-[#d7efe6] px-3 py-1 text-[11px] font-black text-[#0e7c66]"
                 >
                   {focus}
                 </span>
@@ -123,7 +123,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
             value={String(data.checkins)}
             detail="This month"
             icon={Activity}
-            className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+            className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
           />
           <StatCard
             label="Meals logged"
@@ -144,7 +144,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
             value={`₱${data.expensesTotal.toLocaleString()}`}
             detail="This month"
             icon={WalletCards}
-            className="bg-[#fdeaf1] text-[#5a2438]"
+            className="bg-[#f3ebe6] text-[#5a2438]"
           />
         </div>
 
@@ -154,21 +154,21 @@ export function ReportsView({ data }: { data: ReportsData }) {
             value={String(data.gymSessions)}
             detail={`${data.gymMinutes} gym minutes`}
             icon={Weight}
-            className="bg-[#f3f0ff] text-[#3d2f7a]"
+            className="bg-[#e8f5f0] text-[#3d2f7a]"
           />
           <StatCard
             label="Active goals"
             value={String(data.activeGoals)}
             detail="From your profile"
             icon={Target}
-            className="bg-[#e8f7ff] text-[#1f4a5c]"
+            className="bg-[#e5f4ef] text-[#1f4a5c]"
           />
           <StatCard
             label="Body history"
             value={String(data.historyEntries)}
             detail="Measurements this month"
             icon={Scale}
-            className="bg-[#fff8e8] text-[#5c4820]"
+            className="bg-[#f3f6e9] text-[#5c4820]"
           />
         </div>
 
@@ -176,7 +176,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
           <Panel
             title="Activity this week"
             right={
-              <span className="rounded-full bg-[#f3f0ff] px-3 py-1.5 text-xs font-bold text-[#6f55df]">
+              <span className="rounded-full bg-[#e8f5f0] px-3 py-1.5 text-xs font-bold text-[#0e7c66]">
                 Check-ins + logs
               </span>
             }
@@ -193,7 +193,7 @@ export function ReportsView({ data }: { data: ReportsData }) {
                 <div key={row.category}>
                   <div className="mb-2 flex justify-between text-sm font-bold">
                     <span className="capitalize">{row.category}</span>
-                    <span className="text-[#847f8c]">₱{row.total.toLocaleString()}</span>
+                    <span className="text-[#6a7a71]">₱{row.total.toLocaleString()}</span>
                   </div>
                   <Progress value={(row.total / maxCategory) * 100} />
                 </div>
@@ -204,11 +204,11 @@ export function ReportsView({ data }: { data: ReportsData }) {
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1.5fr]">
-          <Panel title="Monthly insight" right={<Flame size={17} className="text-[#e4571f]" />}>
-            <p className="text-sm leading-7 text-[#6f6b79]">{buildSummary(data)}</p>
+          <Panel title="Monthly insight" right={<Flame size={17} className="text-[#c45c2a]" />}>
+            <p className="text-sm leading-7 text-[#55665d]">{buildSummary(data)}</p>
             <Link
               href="/dashboard/ai"
-              className="mt-5 inline-flex items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:gap-2"
+              className="mt-5 inline-flex items-center gap-1 text-xs font-black text-[#0e7c66] transition hover:gap-2"
             >
               Ask VIVA <ArrowUpRight size={13} />
             </Link>

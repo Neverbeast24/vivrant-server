@@ -140,7 +140,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 suffix={data.energy != null ? "/100" : undefined}
                 detail={data.hasCheckin ? "From today’s check-in" : "Check in to start"}
                 icon={Activity}
-                className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+                className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
               />
               <StatCard
                 label="Daily steps"
@@ -162,7 +162,7 @@ export function TodayView({ data }: { data: TodayData }) {
               <Panel
                 title="Energy this week"
                 right={
-                  <span className="rounded-full bg-[#f3f0ff] px-3 py-1.5 text-xs font-bold text-[#6f55df]">
+                  <span className="rounded-full bg-[#e8f5f0] px-3 py-1.5 text-xs font-bold text-[#0e7c66]">
                     {data.hasCheckin ? "Live" : "Sample-ready"}
                   </span>
                 }
@@ -172,12 +172,12 @@ export function TodayView({ data }: { data: TodayData }) {
 
               <motion.article
                 variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-                className="relative overflow-hidden rounded-[1.6rem] bg-[#20202a] p-6 text-white"
+                className="relative overflow-hidden rounded-[1.6rem] bg-[#16352c] p-6 text-white"
               >
-                <div className="absolute -right-10 -top-10 size-36 rounded-full bg-[#5f45e6]/40 blur-3xl" />
+                <div className="absolute -right-10 -top-10 size-36 rounded-full bg-[#0e7c66]/40 blur-3xl" />
                 <div className="relative">
                   <span className="grid size-10 place-items-center rounded-xl bg-white/10">
-                    <Moon size={19} className="text-[#c3b7ff]" />
+                    <Moon size={19} className="text-[#7ec8b8]" />
                   </span>
                   <p className="mt-8 text-xs font-bold text-white/45">SLEEP WINDOW</p>
                   <p className="mt-2 text-3xl font-black">{formatSleep(data.sleepMinutes)}</p>
@@ -195,27 +195,27 @@ export function TodayView({ data }: { data: TodayData }) {
           <Stagger>
             <Panel
               title="Today’s rhythm"
-              right={<ListChecks size={18} className="text-[#807a88]" />}
+              right={<ListChecks size={18} className="text-[#65756c]" />}
             >
               <div className="space-y-5">
                 {rhythm.map((item) => (
                   <Link key={item.label} href={item.href} className="flex items-center gap-3">
                     <span
                       className={`grid size-9 place-items-center rounded-xl ${
-                        item.done ? "bg-[#e6faf6] text-[#12a595]" : "bg-[#f2eff8] text-[#7c718a]"
+                        item.done ? "bg-[#d7efe6] text-[#0e7c66]" : "bg-[#dce8e1] text-[#5a6b62]"
                       }`}
                     >
                       <item.icon size={16} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-sm font-bold ${item.done ? "text-[#8d8894] line-through" : ""}`}>
+                      <p className={`truncate text-sm font-bold ${item.done ? "text-[#7a8a81] line-through" : ""}`}>
                         {item.label}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-[#a09ba7]">{item.time}</p>
+                      <p className="mt-0.5 text-[10px] text-[#84948b]">{item.time}</p>
                     </div>
                     <span
                       className={`size-4 rounded-full border-2 ${
-                        item.done ? "border-[#26bea9] bg-[#26bea9]" : "border-[#d8d3df]"
+                        item.done ? "border-[#0e7c66] bg-[#0e7c66]" : "border-[#cfdcd4]"
                       }`}
                     />
                   </Link>
@@ -226,26 +226,26 @@ export function TodayView({ data }: { data: TodayData }) {
             <motion.article
               variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
               whileHover={{ scale: 1.015 }}
-              className="rounded-[1.6rem] bg-gradient-to-br from-[#ddf8f3] via-[#eefaf6] to-[#f7f2ff] p-5"
+              className="rounded-[1.6rem] bg-gradient-to-br from-[#d7efe6] via-[#e8f5f0] to-[#eef4f0] p-5"
             >
               <div className="flex items-center justify-between">
-                <span className="grid size-10 place-items-center rounded-xl bg-[#fdfbf4] text-[#5f45e6] shadow-sm">
+                <span className="grid size-10 place-items-center rounded-xl bg-[#f6faf7] text-[#0e7c66] shadow-sm">
                   <Sparkles size={18} />
                 </span>
-                <span className="text-[10px] font-black tracking-wider text-[#8a7e98]">
+                <span className="text-[10px] font-black tracking-wider text-[#5a6b62]">
                   {data.latestInsight ? "LATEST INSIGHT" : "VIVA SUGGESTS"}
                 </span>
               </div>
-              <p className="mt-5 text-sm font-black text-[#332f3c]">{suggestionTitle}</p>
-              <p className="mt-2 text-sm font-bold leading-6 text-[#5f5867]">{suggestion}</p>
+              <p className="mt-5 text-sm font-black text-[#1e2f26]">{suggestionTitle}</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#3d4a42]">{suggestion}</p>
               {data.latestInsight?.score != null && (
-                <p className="mt-3 text-[11px] font-bold text-[#8a8491]">
+                <p className="mt-3 text-[11px] font-bold text-[#6f8077]">
                   Decision score {data.latestInsight.score}/100
                 </p>
               )}
               <Link
                 href="/dashboard/ai"
-                className="mt-5 flex w-fit items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:gap-2"
+                className="mt-5 flex w-fit items-center gap-1 text-xs font-black text-[#0e7c66] transition hover:gap-2"
               >
                 Ask VIVA <ChevronRight size={13} />
               </Link>

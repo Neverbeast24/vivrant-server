@@ -73,7 +73,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
           type="button"
           disabled={suggesting}
           onClick={suggest}
-          className="inline-flex items-center gap-1 text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+          className="inline-flex items-center gap-1 text-xs font-black text-[#0e7c66] transition hover:opacity-70"
         >
           <Sparkles size={13} />
           {suggesting ? "Suggesting…" : "AI suggest"}
@@ -81,7 +81,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
       }
     >
       {ideas.length > 0 && (
-        <div className="mb-5 space-y-2 rounded-2xl border border-[#5f45e6]/15 bg-[#ece7fb]/50 p-3">
+        <div className="mb-5 space-y-2 rounded-2xl border border-[#0e7c66]/15 bg-[#d7efe6]/50 p-3">
           {ideas.map((idea) => (
             <div
               key={idea.title}
@@ -89,7 +89,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
             >
               <div>
                 <p className="text-sm font-black">{idea.title}</p>
-                <p className="mt-1 text-xs text-[#847f8c]">
+                <p className="mt-1 text-xs text-[#6a7a71]">
                   {idea.category}
                   {idea.target_value != null
                     ? ` · ${idea.target_value}${idea.unit ? ` ${idea.unit}` : ""}`
@@ -110,7 +110,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
                     return result;
                   })
                 }
-                className="rounded-full bg-[#26222f] px-3 py-1.5 text-[11px] font-black text-white"
+                className="rounded-full bg-[#14221b] px-3 py-1.5 text-[11px] font-black text-white"
               >
                 Add goal
               </button>
@@ -158,23 +158,23 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
           return (
             <div
               key={goal.id}
-              className="rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/40 p-4"
+              className="rounded-2xl border border-[#14221b]/6 bg-[#e8efe9]/40 p-4"
             >
               <div className="flex items-start gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#ece7fb] text-[#5f45e6]">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#d7efe6] text-[#0e7c66]">
                   <Target size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-black">{goal.title}</p>
-                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#8a8491]">
+                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#6f8077]">
                       {goal.category}
                     </span>
-                    <span className="rounded-full bg-[#ece7fb] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#5f45e6]">
+                    <span className="rounded-full bg-[#d7efe6] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#0e7c66]">
                       {goal.status}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-[#847f8c]">
+                  <p className="mt-1 text-xs text-[#6a7a71]">
                     {goal.target_value != null
                       ? `${goal.current_value}/${goal.target_value}${goal.unit ? ` ${goal.unit}` : ""}`
                       : "No numeric target"}
@@ -201,7 +201,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => run(() => updateGoalStatus(goal.id, "paused"))}
-                      className="grid size-8 place-items-center rounded-lg text-[#8a8491] transition hover:bg-white"
+                      className="grid size-8 place-items-center rounded-lg text-[#6f8077] transition hover:bg-white"
                       title="Pause goal"
                     >
                       <Pause size={15} />
@@ -212,7 +212,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => run(() => updateGoalStatus(goal.id, "active"))}
-                      className="grid size-8 place-items-center rounded-lg text-[#5f45e6] transition hover:bg-[#ece7fb]"
+                      className="grid size-8 place-items-center rounded-lg text-[#0e7c66] transition hover:bg-[#d7efe6]"
                       title="Resume goal"
                     >
                       <Target size={15} />
@@ -222,7 +222,7 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
                     type="button"
                     disabled={busy}
                     onClick={() => run(() => deleteHealthGoal(goal.id))}
-                    className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                    className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                     title="Delete goal"
                   >
                     <Trash2 size={15} />

@@ -99,7 +99,7 @@ export function GymOverviewStats({
           value={String(sessionCount)}
           detail="Your gym history"
           icon={Dumbbell}
-          className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+          className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
         />
         <StatCard
           label="Training time"
@@ -120,7 +120,7 @@ export function GymOverviewStats({
           value={String(machineCount)}
           detail="Guided gym equipment"
           icon={Cog}
-          className="bg-[#f3f0ff] text-[#3d2f7a]"
+          className="bg-[#e8f5f0] text-[#3d2f7a]"
         />
       </div>
     </Stagger>
@@ -140,7 +140,7 @@ function DemoModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[95] grid place-items-center bg-[#191621]/55 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[95] grid place-items-center bg-[#0f1a14]/55 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -149,19 +149,19 @@ function DemoModal({
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 12, opacity: 0 }}
-        className="w-full max-w-3xl overflow-hidden rounded-[1.6rem] border border-white/20 bg-[#fdfbf4] shadow-2xl"
+        className="w-full max-w-3xl overflow-hidden rounded-[1.6rem] border border-white/20 bg-[#f6faf7] shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-black/5 px-5 py-4">
           <div>
             <p className="text-sm font-black">{exercise.name}</p>
-            <p className="mt-0.5 text-xs capitalize text-[#847f8c]">
+            <p className="mt-0.5 text-xs capitalize text-[#6a7a71]">
               {exercise.muscle_group} · {exercise.equipment.replaceAll("_", " ")} · {exercise.difficulty}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 place-items-center rounded-xl bg-[#eee8dc]"
+            className="grid size-9 place-items-center rounded-xl bg-[#dce8e1]"
             aria-label="Close demo"
           >
             <X size={16} />
@@ -177,7 +177,7 @@ function DemoModal({
           />
         </div>
         {exercise.cues && (
-          <p className="px-5 py-4 text-sm leading-6 text-[#6f6b79]">{exercise.cues}</p>
+          <p className="px-5 py-4 text-sm leading-6 text-[#55665d]">{exercise.cues}</p>
         )}
       </motion.div>
     </motion.div>
@@ -198,22 +198,22 @@ function ExerciseGrid({
           key={exercise.id}
           type="button"
           onClick={() => onSelect(exercise)}
-          className="group overflow-hidden rounded-[1.3rem] border border-[#26222f]/8 bg-[#fdfbf4] text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          className="group overflow-hidden rounded-[1.3rem] border border-[#14221b]/8 bg-[#f6faf7] text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          <div className="relative aspect-video overflow-hidden bg-[#eee8dc]">
+          <div className="relative aspect-video overflow-hidden bg-[#dce8e1]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={exercise.demo_thumbnail_url ?? "/viva-mark.svg"}
               alt=""
               className="size-full object-cover transition duration-500 group-hover:scale-105"
             />
-            <span className="absolute inset-0 grid place-items-center bg-[#191621]/25 opacity-0 transition group-hover:opacity-100">
-              <span className="grid size-12 place-items-center rounded-full bg-white text-[#5f45e6] shadow-lg">
+            <span className="absolute inset-0 grid place-items-center bg-[#0f1a14]/25 opacity-0 transition group-hover:opacity-100">
+              <span className="grid size-12 place-items-center rounded-full bg-white text-[#0e7c66] shadow-lg">
                 <Play size={18} fill="currentColor" />
               </span>
             </span>
             {isMachineGear(exercise.equipment) && (
-              <span className="absolute left-3 top-3 rounded-full bg-[#26222f]/85 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
+              <span className="absolute left-3 top-3 rounded-full bg-[#14221b]/85 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
                 Machine
               </span>
             )}
@@ -221,11 +221,11 @@ function ExerciseGrid({
           <div className="p-4">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-black">{exercise.name}</p>
-              <span className="rounded-full bg-[#ece7fb] px-2 py-0.5 text-[10px] font-black capitalize text-[#5f45e6]">
+              <span className="rounded-full bg-[#d7efe6] px-2 py-0.5 text-[10px] font-black capitalize text-[#0e7c66]">
                 {exercise.difficulty}
               </span>
             </div>
-            <p className="mt-1 text-xs capitalize text-[#847f8c]">
+            <p className="mt-1 text-xs capitalize text-[#6a7a71]">
               {exercise.muscle_group} · {exercise.equipment.replaceAll("_", " ")}
             </p>
           </div>
@@ -264,7 +264,7 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
     <>
       <PageHeader eyebrow="GYM · DEMOS" title="Form first," highlight="then load." />
       <ModuleSubNav items={gymSubNav} />
-      <Panel title="Free-weight & bodyweight demos" right={<Play size={16} className="text-[#5f45e6]" />}>
+      <Panel title="Free-weight & bodyweight demos" right={<Play size={16} className="text-[#0e7c66]" />}>
         <div className="mb-4 flex flex-wrap gap-2">
           {muscleFilters.map((item) => (
             <button
@@ -273,8 +273,8 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
               onClick={() => setMuscle(item)}
               className={`rounded-full px-3 py-1.5 text-[11px] font-black capitalize transition ${
                 muscle === item
-                  ? "bg-[#26222f] text-white"
-                  : "bg-[#f4efe4] text-[#6b6675] hover:bg-white"
+                  ? "bg-[#14221b] text-white"
+                  : "bg-[#e8efe9] text-[#52635a] hover:bg-white"
               }`}
             >
               {item === "all" ? "All muscles" : item}
@@ -331,7 +331,7 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
           <PrimaryButton
             disabled={recommending}
             onClick={recommendMachines}
-            className="rounded-full bg-[#5f45e6] px-5"
+            className="rounded-full bg-[#0e7c66] px-5"
           >
             <Cog size={14} className="mr-1.5 inline" />
             {recommending ? "Matching…" : "AI machine picks"}
@@ -345,12 +345,12 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
           title={machineRecs.title}
           className="mb-4"
           right={
-            <span className="rounded-full bg-[#ece7fb] px-3 py-1 text-[11px] font-black text-[#5f45e6]">
+            <span className="rounded-full bg-[#d7efe6] px-3 py-1 text-[11px] font-black text-[#0e7c66]">
               {machineRecs.focus}
             </span>
           }
         >
-          <p className="mb-4 text-sm leading-6 text-[#6f6b79]">{machineRecs.summary}</p>
+          <p className="mb-4 text-sm leading-6 text-[#55665d]">{machineRecs.summary}</p>
           <div className="grid gap-3 md:grid-cols-2">
             {[...machineRecs.recommendations]
               .sort((a, b) => a.priority - b.priority)
@@ -359,26 +359,26 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
                 return (
                   <article
                     key={`${item.priority}-${item.machine}`}
-                    className="rounded-[1.3rem] border border-[#26222f]/8 bg-[#fdfbf4] p-4 shadow-sm"
+                    className="rounded-[1.3rem] border border-[#14221b]/8 bg-[#f6faf7] p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-black tracking-wide text-[#5f45e6]">
+                        <p className="text-[11px] font-black tracking-wide text-[#0e7c66]">
                           PICK #{item.priority}
                         </p>
                         <p className="mt-1 text-sm font-black">{item.machine}</p>
                       </div>
-                      <span className="rounded-full bg-[#f4efe4] px-2.5 py-1 text-[10px] font-black text-[#6b6675]">
+                      <span className="rounded-full bg-[#e8efe9] px-2.5 py-1 text-[10px] font-black text-[#52635a]">
                         {item.sets}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs leading-5 text-[#6f6b79]">{item.why}</p>
-                    <p className="mt-2 text-xs leading-5 text-[#847f8c]">{item.how_to_use}</p>
+                    <p className="mt-2 text-xs leading-5 text-[#55665d]">{item.why}</p>
+                    <p className="mt-2 text-xs leading-5 text-[#6a7a71]">{item.how_to_use}</p>
                     {demo && (
                       <button
                         type="button"
                         onClick={() => setActiveDemo(demo)}
-                        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#26222f] px-3 py-1.5 text-[11px] font-black text-white transition hover:bg-[#5f45e6]"
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#14221b] px-3 py-1.5 text-[11px] font-black text-white transition hover:bg-[#0e7c66]"
                       >
                         <Play size={12} fill="currentColor" /> Watch demo
                       </button>
@@ -390,7 +390,7 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
         </Panel>
       )}
 
-      <Panel title="Machine demo library" right={<Cog size={16} className="text-[#5f45e6]" />}>
+      <Panel title="Machine demo library" right={<Cog size={16} className="text-[#0e7c66]" />}>
         <div className="mb-3 flex flex-wrap gap-2">
           {(
             [
@@ -405,7 +405,7 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
               type="button"
               onClick={() => setGear(id)}
               className={`rounded-full px-3 py-1.5 text-[11px] font-black transition ${
-                gear === id ? "bg-[#5f45e6] text-white" : "bg-[#ece7fb] text-[#5f45e6] hover:bg-white"
+                gear === id ? "bg-[#0e7c66] text-white" : "bg-[#d7efe6] text-[#0e7c66] hover:bg-white"
               }`}
             >
               {label}
@@ -420,8 +420,8 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
               onClick={() => setMuscle(item)}
               className={`rounded-full px-3 py-1.5 text-[11px] font-black capitalize transition ${
                 muscle === item
-                  ? "bg-[#26222f] text-white"
-                  : "bg-[#f4efe4] text-[#6b6675] hover:bg-white"
+                  ? "bg-[#14221b] text-white"
+                  : "bg-[#e8efe9] text-[#52635a] hover:bg-white"
               }`}
             >
               {item === "all" ? "All muscles" : item}
@@ -495,7 +495,7 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
           </form>
         </Panel>
 
-        <Panel title="Recent sessions" right={<Target size={16} className="text-[#5f45e6]" />}>
+        <Panel title="Recent sessions" right={<Target size={16} className="text-[#0e7c66]" />}>
           <div className="space-y-2">
             {sessions.map((session) => (
               <ListRow
@@ -509,7 +509,7 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => run(() => deleteGymSession(session.id))}
-                      className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                      className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                       aria-label={`Delete ${session.title}`}
                     >
                       <Trash2 size={14} />
@@ -570,20 +570,20 @@ export function GymPlansView({
       <Panel title="Saved AI gym plans">
         <div className="space-y-4">
           {plans.map((plan) => (
-            <article key={plan.id} className="rounded-[1.3rem] border border-[#26222f]/8 bg-[#f4efe4]/45 p-4">
+            <article key={plan.id} className="rounded-[1.3rem] border border-[#14221b]/8 bg-[#e8efe9]/45 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-black">{plan.title}</p>
-                  <p className="mt-1 text-xs capitalize text-[#847f8c]">
+                  <p className="mt-1 text-xs capitalize text-[#6a7a71]">
                     {plan.focus.replace("_", " ")} · {plan.level} · {plan.days_per_week} days/week
                   </p>
-                  {plan.summary && <p className="mt-2 text-sm leading-6 text-[#6f6b79]">{plan.summary}</p>}
+                  {plan.summary && <p className="mt-2 text-sm leading-6 text-[#55665d]">{plan.summary}</p>}
                 </div>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => run(() => deleteGymPlan(plan.id))}
-                  className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                  className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -591,7 +591,7 @@ export function GymPlansView({
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {(plan.days ?? []).map((day) => (
                   <div key={`${plan.id}-${day.day}`} className="rounded-2xl border border-black/5 bg-white/80 p-3">
-                    <p className="text-xs font-black text-[#5f45e6]">{day.day}</p>
+                    <p className="text-xs font-black text-[#0e7c66]">{day.day}</p>
                     <p className="mt-1 text-sm font-bold">{day.focus}</p>
                     <ul className="mt-2 space-y-1.5">
                       {(day.exercises ?? []).map((ex) => {
@@ -599,17 +599,17 @@ export function GymPlansView({
                           (item) => item.name.toLowerCase() === ex.name.toLowerCase(),
                         );
                         return (
-                          <li key={`${day.day}-${ex.name}`} className="text-xs text-[#6f6b79]">
+                          <li key={`${day.day}-${ex.name}`} className="text-xs text-[#55665d]">
                             {linked ? (
                               <button
                                 type="button"
                                 onClick={() => setActiveDemo(linked)}
-                                className="font-bold text-[#5f45e6] underline-offset-2 hover:underline"
+                                className="font-bold text-[#0e7c66] underline-offset-2 hover:underline"
                               >
                                 {ex.name}
                               </button>
                             ) : (
-                              <span className="font-bold text-[#332f3c]">{ex.name}</span>
+                              <span className="font-bold text-[#1e2f26]">{ex.name}</span>
                             )}{" "}
                             · {ex.sets} · rest {ex.rest}
                           </li>

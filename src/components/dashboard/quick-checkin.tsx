@@ -43,7 +43,7 @@ export function QuickCheckin() {
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.97 }}
         onClick={() => setOpen(true)}
-        className="focus-ring inline-flex items-center justify-center gap-2 self-start rounded-full bg-[#26222f] px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#5f45e6]"
+        className="focus-ring inline-flex items-center justify-center gap-2 self-start rounded-full bg-[#14221b] px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#0e7c66]"
       >
         <Plus size={16} /> Quick check-in
       </motion.button>
@@ -78,7 +78,7 @@ export function QuickCheckin() {
                   type="button"
                   aria-label="Close"
                   onClick={() => setOpen(false)}
-                  className="focus-ring grid size-9 place-items-center rounded-full bg-[#fdfbf4]/85 text-[#726d79] transition hover:bg-[#fdfbf4]"
+                  className="focus-ring grid size-9 place-items-center rounded-full bg-[#f6faf7]/85 text-[#726d79] transition hover:bg-[#f6faf7]"
                 >
                   <X size={17} />
                 </button>
@@ -96,8 +96,8 @@ export function QuickCheckin() {
                         onClick={() => setMood(val)}
                         className={`focus-ring flex-1 rounded-2xl border py-3 text-xl transition ${
                           mood === val
-                            ? "border-[#5f45e6]/40 bg-[#fdfbf4] shadow-sm"
-                            : "border-black/5 bg-[#fdfbf4]/65 hover:bg-[#fdfbf4]"
+                            ? "border-[#0e7c66]/40 bg-[#f6faf7] shadow-sm"
+                            : "border-black/5 bg-[#f6faf7]/65 hover:bg-[#f6faf7]"
                         }`}
                       >
                         {emoji}
@@ -119,7 +119,7 @@ export function QuickCheckin() {
                     name="note"
                     rows={2}
                     placeholder="Anything worth remembering today?"
-                    className="w-full resize-none rounded-2xl border border-black/7 bg-[#fdfbf4]/85 px-4 py-3 text-sm outline-none transition focus:border-[#5f45e6]/40 focus:ring-4 focus:ring-[#5f45e6]/8"
+                    className="w-full resize-none rounded-2xl border border-black/7 bg-[#f6faf7]/85 px-4 py-3 text-sm outline-none transition focus:border-[#0e7c66]/40 focus:ring-4 focus:ring-[#0e7c66]/8"
                   />
                 </label>
 
@@ -137,7 +137,7 @@ export function QuickCheckin() {
 
                 <button
                   disabled={pending}
-                  className="focus-ring flex w-full items-center justify-center gap-2 rounded-2xl bg-[#26222f] px-5 py-3.5 text-sm font-black text-white shadow-lg transition hover:bg-[#5f45e6] disabled:opacity-60"
+                  className="focus-ring flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14221b] px-5 py-3.5 text-sm font-black text-white shadow-lg transition hover:bg-[#0e7c66] disabled:opacity-60"
                 >
                   {pending ? (
                     <Loader2 size={16} className="animate-spin" />
@@ -172,7 +172,7 @@ function Field({
         type="number"
         min={0}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-black/7 bg-[#fdfbf4]/85 px-3 py-2.5 text-sm outline-none transition focus:border-[#5f45e6]/40 focus:ring-4 focus:ring-[#5f45e6]/8"
+        className="w-full rounded-2xl border border-black/7 bg-[#f6faf7]/85 px-3 py-2.5 text-sm outline-none transition focus:border-[#0e7c66]/40 focus:ring-4 focus:ring-[#0e7c66]/8"
       />
     </label>
   );

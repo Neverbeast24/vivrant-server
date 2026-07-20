@@ -205,11 +205,11 @@ export default async function AdminActivityPage() {
 
   return (
     <>
-      <p className="text-[11px] font-black tracking-[0.2em] text-[#5f45e6]">
+      <p className="text-[11px] font-black tracking-[0.2em] text-[#0e7c66]">
         SUPER ADMIN
       </p>
       <h1 className="font-display mt-2 text-4xl tracking-tight">Member activity explorer</h1>
-      <p className="mb-8 mt-3 max-w-3xl text-sm leading-6 text-[#77727f]">
+      <p className="mb-8 mt-3 max-w-3xl text-sm leading-6 text-[#5a6b62]">
         Full read-only access to every member module — nutrition, movement, gym, health history,
         goals, spending, pantry, groceries, and AI — plus module reports and AI summaries.
       </p>

@@ -30,7 +30,7 @@ const insights = [
     title: "Vitality score",
     value: "84",
     detail: "+7 this week",
-    color: "from-[#5f45e6] to-[#b947ee]",
+    color: "from-[#0a5c4c] to-[#2a9d8f]",
   },
   {
     icon: Leaf,
@@ -103,14 +103,14 @@ const modules: Module[] = [
     title: "Goal setup",
     copy: "Turn wellbeing priorities into clear targets.",
     tag: "Plan",
-    iconClass: "bg-gradient-to-br from-[#818cf8] to-[#6366f1]",
+    iconClass: "bg-gradient-to-br from-[#2a9d8f] to-[#0e7c66]",
   },
   {
     icon: Activity,
     title: "Health dashboard",
     copy: "See daily signals in one calm workspace.",
     tag: "Understand",
-    iconClass: "bg-gradient-to-br from-[#5f45e6] to-[#9b42ff]",
+    iconClass: "bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66]",
   },
   {
     icon: Bell,
@@ -131,7 +131,7 @@ const modules: Module[] = [
     title: "Profile & settings",
     copy: "Keep VIVA personal, private, and adaptable.",
     tag: "Foundation",
-    iconClass: "bg-gradient-to-br from-[#c084fc] to-[#e879f9]",
+    iconClass: "bg-gradient-to-br from-[#1a9b78] to-[#7ec8b8]",
   },
 ];
 
@@ -193,30 +193,30 @@ const heroStats: [string, string][] = [
 export function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden">
-      <nav className="sticky top-0 z-50 border-b border-[#26222f]/6 bg-[#f4efe4]/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-[#14221b]/6 bg-[#e8efe9]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
           <Brand />
           <div className="hidden items-center gap-8 text-sm font-semibold text-[#696574] md:flex">
-            <a href="#experience" className="transition-colors hover:text-[#5f45e6]">
+            <a href="#experience" className="transition-colors hover:text-[#0e7c66]">
               Experience
             </a>
-            <a href="#modules" className="transition-colors hover:text-[#5f45e6]">
+            <a href="#modules" className="transition-colors hover:text-[#0e7c66]">
               Modules
             </a>
-            <a href="#principles" className="transition-colors hover:text-[#5f45e6]">
+            <a href="#principles" className="transition-colors hover:text-[#0e7c66]">
               Why VIVA
             </a>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="focus-ring rounded-full border border-[#26222f]/12 bg-[#fdfbf4]/80 px-5 py-2.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-[#26222f] hover:shadow-md"
+              className="focus-ring rounded-full border border-[#14221b]/12 bg-[#f6faf7]/80 px-5 py-2.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-[#14221b] hover:shadow-md"
             >
               Sign in
             </Link>
             <Link
               href="/dashboard"
-              className="focus-ring hidden rounded-full bg-[#26222f] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#5f45e6] sm:inline-flex"
+              className="focus-ring hidden rounded-full bg-[#14221b] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0e7c66] sm:inline-flex"
             >
               Open VIVA
             </Link>
@@ -239,23 +239,23 @@ export function LandingPage() {
               priority
               className="rounded-2xl shadow-[0_18px_40px_rgba(88,70,190,.18)]"
             />
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#e4571f]/20 bg-[#fdfbf4]/80 px-3.5 py-2 text-xs font-bold text-[#c14a1a] shadow-sm backdrop-blur-xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#c45c2a]/20 bg-[#f6faf7]/80 px-3.5 py-2 text-xs font-bold text-[#a84b22] shadow-sm backdrop-blur-xl">
               <Sparkles size={14} />
               Long live life
             </div>
           </div>
-          <h1 className="font-display max-w-3xl text-6xl leading-[0.96] font-medium text-[#26222f] sm:text-7xl lg:text-[5.6rem]">
+          <h1 className="font-display max-w-3xl text-6xl leading-[0.96] font-medium text-[#14221b] sm:text-7xl lg:text-[5.6rem]">
             Make every choice feel{" "}
             <span className="gradient-text italic">healthier.</span>
           </h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-[#6f6b79]">
+          <p className="mt-7 max-w-xl text-lg leading-8 text-[#55665d]">
             VIVA turns everyday signals into a clear, personal rhythm for
             nutrition, movement, goals, and mindful spending.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Link
               href="/dashboard"
-              className="focus-ring group inline-flex items-center gap-2 rounded-full bg-[#26222f] px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_34px_rgba(38,34,47,.22)] transition hover:-translate-y-1 hover:bg-[#5f45e6]"
+              className="focus-ring group inline-flex items-center gap-2 rounded-full bg-[#14221b] px-6 py-3.5 text-sm font-bold text-white shadow-[0_14px_34px_rgba(20,34,27,.22)] transition hover:-translate-y-1 hover:bg-[#0e7c66]"
             >
               Explore your space
               <ArrowUpRight
@@ -277,7 +277,7 @@ export function LandingPage() {
           transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="relative"
         >
-          <div className="absolute -inset-10 -z-10 rounded-full bg-gradient-to-br from-[#5f45e6]/20 via-transparent to-[#20d8dd]/20 blur-3xl" />
+          <div className="absolute -inset-10 -z-10 rounded-full bg-gradient-to-br from-[#0e7c66]/20 via-transparent to-[#2a9d8f]/20 blur-3xl" />
           {heroChips.map((chip, index) => (
             <motion.span
               key={chip.label}
@@ -288,21 +288,21 @@ export function LandingPage() {
                 scale: { delay: 0.5 + index * 0.15, type: "spring", stiffness: 260 },
                 y: { duration: 4 + index, repeat: Infinity, ease: "easeInOut", delay: index * 0.7 },
               }}
-              className={`absolute z-10 hidden items-center gap-2 rounded-full border border-white/80 bg-[#fdfbf4]/95 px-3.5 py-2 text-xs font-black text-[#4c4856] shadow-[0_14px_34px_rgba(64,49,38,.16)] backdrop-blur-md sm:inline-flex ${chip.className}`}
+              className={`absolute z-10 hidden items-center gap-2 rounded-full border border-white/80 bg-[#f6faf7]/95 px-3.5 py-2 text-xs font-black text-[#3d4a42] shadow-[0_14px_34px_rgba(20,34,27,.16)] backdrop-blur-md sm:inline-flex ${chip.className}`}
             >
               <span className="text-base leading-none">{chip.emoji}</span>
               {chip.label}
             </motion.span>
           ))}
           <div className="glass noise overflow-hidden rounded-[2.2rem] p-3">
-            <div className="rounded-[1.7rem] border border-[#26222f]/6 bg-[#f4efe4]/90 p-4 sm:p-6">
+            <div className="rounded-[1.7rem] border border-[#14221b]/6 bg-[#e8efe9]/90 p-4 sm:p-6">
               <div className="mb-8 flex items-center justify-between">
                 <div className="flex gap-2">
                   <i className="size-2.5 rounded-full bg-[#ff6d69]" />
                   <i className="size-2.5 rounded-full bg-[#ffca4c]" />
                   <i className="size-2.5 rounded-full bg-[#34c759]" />
                 </div>
-                <span className="rounded-full bg-[#fdfbf4]/90 px-3 py-1 text-[10px] font-bold tracking-wider text-[#8a8478]">
+                <span className="rounded-full bg-[#f6faf7]/90 px-3 py-1 text-[10px] font-bold tracking-wider text-[#6f8077]">
                   FRIDAY · 17 JUL
                 </span>
               </div>
@@ -316,7 +316,7 @@ export function LandingPage() {
                     key={item.title}
                     whileHover={{ y: -6, scale: 1.01 }}
                     transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                    className="rounded-[1.4rem] border border-[#26222f]/6 bg-[#fdfbf4]/90 p-4 shadow-[0_12px_30px_rgba(64,49,38,.07)]"
+                    className="rounded-[1.4rem] border border-[#14221b]/6 bg-[#f6faf7]/90 p-4 shadow-[0_12px_30px_rgba(20,34,27,.07)]"
                   >
                     <span
                       className={`mb-7 grid size-9 place-items-center rounded-xl bg-gradient-to-br ${item.color} text-white shadow-md`}
@@ -334,7 +334,7 @@ export function LandingPage() {
                 ))}
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-[1.4fr_1fr]">
-                <div className="rounded-[1.4rem] bg-[#26222f] p-5 text-white">
+                <div className="rounded-[1.4rem] bg-[#14221b] p-5 text-white">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white/55">VIVA INSIGHT</span>
                     <BrainCircuit size={18} className="text-[#9f8aff]" />
@@ -344,9 +344,9 @@ export function LandingPage() {
                     plan now protects that rhythm.
                   </p>
                 </div>
-                <div className="rounded-[1.4rem] border border-[#26222f]/6 bg-gradient-to-br from-[#fdfbf4] to-[#eaf6ec] p-5">
+                <div className="rounded-[1.4rem] border border-[#14221b]/6 bg-gradient-to-br from-[#f6faf7] to-[#eaf6ec] p-5">
                   <WalletCards size={19} className="text-[#16a89c]" />
-                  <p className="mt-6 text-xs font-bold text-[#4c4856]">Health investment</p>
+                  <p className="mt-6 text-xs font-bold text-[#3d4a42]">Health investment</p>
                   <p className="mt-1 text-2xl font-black">₱1,420</p>
                   <p className="mt-1 text-[10px] text-[#8f8a98]">12% smarter this month</p>
                 </div>
@@ -357,7 +357,7 @@ export function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
-        <div className="grid gap-px overflow-hidden rounded-[1.8rem] border border-[#26222f]/8 bg-[#26222f]/8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-px overflow-hidden rounded-[1.8rem] border border-[#14221b]/8 bg-[#14221b]/8 sm:grid-cols-2 lg:grid-cols-4">
           {heroStats.map(([value, label], index) => (
             <motion.div
               key={label}
@@ -365,24 +365,24 @@ export function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: index * 0.07 }}
-              className="bg-[#fdfbf4]/85 p-7 text-center"
+              className="bg-[#f6faf7]/85 p-7 text-center"
             >
-              <p className="font-display text-4xl tracking-tight text-[#26222f]">{value}</p>
-              <p className="mt-2 text-xs font-bold text-[#8a8491]">{label}</p>
+              <p className="font-display text-4xl tracking-tight text-[#14221b]">{value}</p>
+              <p className="mt-2 text-xs font-bold text-[#6f8077]">{label}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      <section className="border-y border-[#26222f]/8 bg-[#fdfbf4]/60 py-5" aria-hidden>
+      <section className="border-y border-[#14221b]/8 bg-[#f6faf7]/60 py-5" aria-hidden>
         <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
           <div className="animate-marquee flex w-max items-center gap-3">
             {[...marqueeItems, ...marqueeItems].map((item, index) => (
               <span
                 key={`${item}-${index}`}
-                className="inline-flex items-center gap-3 whitespace-nowrap rounded-full border border-[#26222f]/8 bg-[#f4efe4]/80 px-5 py-2 text-xs font-black tracking-wide text-[#6b665c]"
+                className="inline-flex items-center gap-3 whitespace-nowrap rounded-full border border-[#14221b]/8 bg-[#e8efe9]/80 px-5 py-2 text-xs font-black tracking-wide text-[#5a6b62]"
               >
-                <span className="size-1.5 rounded-full bg-[#5f45e6]" />
+                <span className="size-1.5 rounded-full bg-[#0e7c66]" />
                 {item}
               </span>
             ))}
@@ -396,7 +396,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            className="rounded-[2rem] bg-[#26222f] p-8 text-white sm:p-10"
+            className="rounded-[2rem] bg-[#14221b] p-8 text-white sm:p-10"
           >
             <span className="text-xs font-black tracking-[0.2em] text-[#aa98ff]">
               OUR MISSION
@@ -414,9 +414,9 @@ export function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0.08 }}
-            className="rounded-[2rem] border border-[#26222f]/8 bg-gradient-to-br from-[#fbf3e2] to-[#efeaff] p-8 sm:p-10"
+            className="rounded-[2rem] border border-[#14221b]/8 bg-gradient-to-br from-[#e8f5f0] to-[#d7efe6] p-8 sm:p-10"
           >
-            <span className="text-xs font-black tracking-[0.2em] text-[#6f55df]">
+            <span className="text-xs font-black tracking-[0.2em] text-[#0e7c66]">
               OUR VISION
             </span>
             <h2 className="font-display mt-6 max-w-lg text-4xl leading-tight">
@@ -433,14 +433,14 @@ export function LandingPage() {
       <section id="modules" className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <span className="text-xs font-black tracking-[0.2em] text-[#5f45e6]">
+            <span className="text-xs font-black tracking-[0.2em] text-[#0e7c66]">
               THE VIVA ECOSYSTEM
             </span>
             <h2 className="font-display mt-4 max-w-2xl text-5xl leading-tight">
               Your whole health picture, finally connected.
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-7 text-[#77727f]">
+          <p className="max-w-sm text-sm leading-7 text-[#5a6b62]">
             Twelve focused modules work together so every recommendation sees
             the context behind your choices.
           </p>
@@ -452,9 +452,9 @@ export function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-30px" }}
             whileHover={{ y: -6 }}
-            className="group relative overflow-hidden rounded-[1.7rem] bg-[#26222f] p-6 text-white sm:col-span-2 sm:row-span-2 sm:p-8"
+            className="group relative overflow-hidden rounded-[1.7rem] bg-[#14221b] p-6 text-white sm:col-span-2 sm:row-span-2 sm:p-8"
           >
-            <div className="absolute -right-20 -top-24 size-64 rounded-full bg-[#5f45e6]/35 blur-[80px] transition-all duration-700 group-hover:scale-150 group-hover:bg-[#5f45e6]/45" />
+            <div className="absolute -right-20 -top-24 size-64 rounded-full bg-[#0e7c66]/35 blur-[80px] transition-all duration-700 group-hover:scale-150 group-hover:bg-[#0e7c66]/45" />
             <div className="absolute -bottom-24 -left-16 size-56 rounded-full bg-[#20d8dd]/20 blur-[80px]" />
             <div className="relative">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black tracking-[0.14em] text-[#b6a8ff]">
@@ -499,18 +499,18 @@ export function LandingPage() {
             viewport={{ once: true, margin: "-30px" }}
             transition={{ delay: 0.08 }}
             whileHover={{ y: -6 }}
-            className="group relative overflow-hidden rounded-[1.7rem] border border-[#26222f]/8 bg-gradient-to-br from-[#efeaff] via-[#fdfbf4] to-[#fbf3e2] p-6 sm:col-span-2"
+            className="group relative overflow-hidden rounded-[1.7rem] border border-[#14221b]/8 bg-gradient-to-br from-[#d7efe6] via-[#f6faf7] to-[#e8f5f0] p-6 sm:col-span-2"
           >
             <div className="flex items-start justify-between">
-              <span className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#5f45e6] to-[#b947ee] text-white shadow-lg shadow-[#5f45e6]/25 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <span className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#0a5c4c] to-[#2a9d8f] text-white shadow-lg shadow-[#0e7c66]/25 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                 <Sparkles size={19} />
               </span>
-              <span className="rounded-full bg-[#5f45e6]/10 px-3 py-1 text-[10px] font-black tracking-wider text-[#6654cc]">
+              <span className="rounded-full bg-[#0e7c66]/10 px-3 py-1 text-[10px] font-black tracking-wider text-[#6654cc]">
                 DAILY
               </span>
             </div>
             <h3 className="mt-5 text-lg font-black">AI recommendations</h3>
-            <p className="mt-2 max-w-md text-xs leading-6 text-[#77727f]">
+            <p className="mt-2 max-w-md text-xs leading-6 text-[#5a6b62]">
               Context-aware guidance written for your actual day — never a
               generic tip. It knows Tuesday you is different from Sunday you.
             </p>
@@ -524,7 +524,7 @@ export function LandingPage() {
               viewport={{ once: true, margin: "-30px" }}
               transition={{ delay: (index % 4) * 0.06 }}
               whileHover={{ y: -6 }}
-              className="group relative overflow-hidden rounded-[1.5rem] border border-[#26222f]/8 bg-[#fdfbf4]/80 p-5 shadow-[0_12px_35px_rgba(64,49,38,.05)] backdrop-blur-xl transition-shadow hover:shadow-[0_22px_50px_rgba(64,49,38,.12)]"
+              className="group relative overflow-hidden rounded-[1.5rem] border border-[#14221b]/8 bg-[#f6faf7]/80 p-5 shadow-[0_12px_35px_rgba(20,34,27,.05)] backdrop-blur-xl transition-shadow hover:shadow-[0_22px_50px_rgba(20,34,27,.12)]"
             >
               <div className="flex items-start justify-between">
                 <span
@@ -532,7 +532,7 @@ export function LandingPage() {
                 >
                   <module.icon size={18} />
                 </span>
-                <span className="rounded-full bg-black/4 px-2.5 py-1 text-[9px] font-black tracking-wider text-[#8a8492] transition-colors group-hover:bg-[#5f45e6]/10 group-hover:text-[#6654cc]">
+                <span className="rounded-full bg-black/4 px-2.5 py-1 text-[9px] font-black tracking-wider text-[#8a8492] transition-colors group-hover:bg-[#0e7c66]/10 group-hover:text-[#6654cc]">
                   {module.tag.toUpperCase()}
                 </span>
               </div>
@@ -540,7 +540,7 @@ export function LandingPage() {
               <p className="mt-2 text-xs leading-5 text-[#817c88]">{module.copy}</p>
               <ArrowUpRight
                 size={15}
-                className="absolute bottom-5 right-5 text-[#5f45e6] opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+                className="absolute bottom-5 right-5 text-[#0e7c66] opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
               />
             </motion.article>
           ))}
@@ -548,8 +548,8 @@ export function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
-        <div className="noise relative overflow-hidden rounded-[2.3rem] bg-[#26222f] px-6 py-10 text-white sm:px-10 lg:px-14 lg:py-14">
-          <div className="absolute -right-24 -top-32 size-96 rounded-full bg-[#5f45e6]/30 blur-[100px]" />
+        <div className="noise relative overflow-hidden rounded-[2.3rem] bg-[#14221b] px-6 py-10 text-white sm:px-10 lg:px-14 lg:py-14">
+          <div className="absolute -right-24 -top-32 size-96 rounded-full bg-[#0e7c66]/30 blur-[100px]" />
           <div className="absolute -bottom-40 left-1/3 size-80 rounded-full bg-[#20d8dd]/15 blur-[100px]" />
           <div className="relative grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
             <div>
@@ -602,7 +602,7 @@ export function LandingPage() {
 
       <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
         <div className="mb-10 text-center">
-          <span className="text-xs font-black tracking-[0.2em] text-[#5f45e6]">
+          <span className="text-xs font-black tracking-[0.2em] text-[#0e7c66]">
             HOW IT FLOWS
           </span>
           <h2 className="font-display mt-4 text-5xl">From signals to insight.</h2>
@@ -615,9 +615,9 @@ export function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.06 }}
-              className="relative rounded-2xl border border-[#26222f]/8 bg-[#fdfbf4]/70 p-4 text-center"
+              className="relative rounded-2xl border border-[#14221b]/8 bg-[#f6faf7]/70 p-4 text-center"
             >
-              <span className="mx-auto grid size-7 place-items-center rounded-full bg-[#26222f] text-[10px] font-black text-white">
+              <span className="mx-auto grid size-7 place-items-center rounded-full bg-[#14221b] text-[10px] font-black text-white">
                 {index + 1}
               </span>
               <p className="mt-3 text-xs font-bold leading-5">{step}</p>
@@ -630,7 +630,7 @@ export function LandingPage() {
       </section>
 
       <section id="principles" className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
-        <div className="grid overflow-hidden rounded-[2rem] border border-[#26222f]/8 bg-[#fdfbf4]/60 md:grid-cols-3">
+        <div className="grid overflow-hidden rounded-[2rem] border border-[#14221b]/8 bg-[#f6faf7]/60 md:grid-cols-3">
           {features.map(([title, copy], index) => (
             <motion.div
               key={title}
@@ -638,25 +638,25 @@ export function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: index * 0.1 }}
-              className="border-b border-[#26222f]/8 p-8 last:border-0 md:border-r md:border-b-0"
+              className="border-b border-[#14221b]/8 p-8 last:border-0 md:border-r md:border-b-0"
             >
               <span className="mb-8 block text-xs font-black text-[#856df0]">
                 0{index + 1}
               </span>
               <h3 className="font-display text-2xl">{title}</h3>
-              <p className="mt-3 text-sm leading-6 text-[#77727f]">{copy}</p>
+              <p className="mt-3 text-sm leading-6 text-[#5a6b62]">{copy}</p>
             </motion.div>
           ))}
         </div>
         <div className="mt-16 text-center">
-          <p className="text-xs font-black tracking-[0.2em] text-[#8a8491]">
+          <p className="text-xs font-black tracking-[0.2em] text-[#6f8077]">
             COMING NEXT
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             {futureFeatures.map((feature) => (
               <span
                 key={feature}
-                className="rounded-full border border-[#26222f]/10 bg-[#fdfbf4]/80 px-4 py-2 text-xs font-bold text-[#6b665c]"
+                className="rounded-full border border-[#14221b]/10 bg-[#f6faf7]/80 px-4 py-2 text-xs font-bold text-[#5a6b62]"
               >
                 {feature}
               </span>
@@ -674,9 +674,9 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
-          className="noise relative overflow-hidden rounded-[2.3rem] bg-[#26222f] px-6 py-14 text-center text-white sm:px-10 lg:py-20"
+          className="noise relative overflow-hidden rounded-[2.3rem] bg-[#14221b] px-6 py-14 text-center text-white sm:px-10 lg:py-20"
         >
-          <div className="animate-glow absolute -left-24 top-0 size-80 rounded-full bg-[#5f45e6]/35 blur-[100px]" />
+          <div className="animate-glow absolute -left-24 top-0 size-80 rounded-full bg-[#0e7c66]/35 blur-[100px]" />
           <div className="animate-glow-slow absolute -bottom-32 -right-16 size-80 rounded-full bg-[#20d8dd]/25 blur-[100px]" />
           <div className="relative">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-black tracking-[0.16em] text-[#b6a8ff]">
@@ -693,7 +693,7 @@ export function LandingPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
                 href="/dashboard"
-                className="focus-ring group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-[#26222f] shadow-[0_14px_34px_rgba(0,0,0,.3)] transition hover:-translate-y-1 hover:bg-[#efeaff]"
+                className="focus-ring group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-[#14221b] shadow-[0_14px_34px_rgba(0,0,0,.3)] transition hover:-translate-y-1 hover:bg-[#d7efe6]"
               >
                 Open your space
                 <ArrowUpRight size={17} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -709,16 +709,16 @@ export function LandingPage() {
         </motion.div>
       </section>
 
-      <footer className="border-t border-[#26222f]/8 bg-[#fdfbf4]/60">
+      <footer className="border-t border-[#14221b]/8 bg-[#f6faf7]/60">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-5 py-10 md:flex-row md:px-8">
           <Brand />
-          <div className="flex items-center gap-7 text-xs font-bold text-[#8a8491]">
-            <a href="#experience" className="transition-colors hover:text-[#5f45e6]">Experience</a>
-            <a href="#modules" className="transition-colors hover:text-[#5f45e6]">Modules</a>
-            <a href="#principles" className="transition-colors hover:text-[#5f45e6]">Why VIVA</a>
-            <Link href="/login" className="transition-colors hover:text-[#5f45e6]">Sign in</Link>
+          <div className="flex items-center gap-7 text-xs font-bold text-[#6f8077]">
+            <a href="#experience" className="transition-colors hover:text-[#0e7c66]">Experience</a>
+            <a href="#modules" className="transition-colors hover:text-[#0e7c66]">Modules</a>
+            <a href="#principles" className="transition-colors hover:text-[#0e7c66]">Why VIVA</a>
+            <Link href="/login" className="transition-colors hover:text-[#0e7c66]">Sign in</Link>
           </div>
-          <p className="text-xs font-semibold text-[#a19ca7]">
+          <p className="text-xs font-semibold text-[#84948b]">
             © {new Date().getFullYear()} VIVA · Long live life
           </p>
         </div>

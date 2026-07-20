@@ -75,7 +75,7 @@ export function Notifications({ items }: { items: NotificationItem[] }) {
         whileTap={{ scale: 0.92 }}
         aria-label="Notifications"
         onClick={() => setOpen((value) => !value)}
-        className="focus-ring relative grid size-10 place-items-center rounded-full bg-[#fdfbf4] text-[#676270] shadow-sm transition hover:-translate-y-0.5"
+        className="focus-ring relative grid size-10 place-items-center rounded-full bg-[#f6faf7] text-[#4f5f56] shadow-sm transition hover:-translate-y-0.5"
       >
         <Bell size={17} />
         {unread > 0 && (
@@ -98,12 +98,12 @@ export function Notifications({ items }: { items: NotificationItem[] }) {
                 <button
                   type="button"
                   onClick={onMarkAll}
-                  className="rounded-full bg-[#ece7fb] px-2.5 py-1 text-[10px] font-bold text-[#5f45e6] transition hover:bg-[#ded5fa]"
+                  className="rounded-full bg-[#d7efe6] px-2.5 py-1 text-[10px] font-bold text-[#0e7c66] transition hover:bg-[#c5e8db]"
                 >
                   Mark {unread} read
                 </button>
               ) : (
-                <span className="px-2 py-1 text-[10px] font-bold text-[#9d98a3]">All read</span>
+                <span className="px-2 py-1 text-[10px] font-bold text-[#7e8e85]">All read</span>
               )}
             </div>
             <div className="mt-2 max-h-80 space-y-1 overflow-y-auto">
@@ -112,27 +112,27 @@ export function Notifications({ items }: { items: NotificationItem[] }) {
                   key={item.id}
                   type="button"
                   onClick={() => onRead(item.id)}
-                  className={`relative flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition hover:bg-[#fdfbf4]/85 ${
+                  className={`relative flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition hover:bg-[#f6faf7]/85 ${
                     !item.is_read ? "bg-white/45" : "opacity-65"
                   }`}
                 >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#ece7fb] text-[#5f45e6]">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#d7efe6] text-[#0e7c66]">
                     <Sparkles size={16} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-bold">{item.title}</span>
-                    <span className="block truncate text-[11px] text-[#847f8c]">{item.body}</span>
+                    <span className="block truncate text-[11px] text-[#6a7a71]">{item.body}</span>
                   </span>
-                  <span className="shrink-0 text-[10px] text-[#a9a4b0]">
+                  <span className="shrink-0 text-[10px] text-[#8a9a91]">
                     {timeAgo(item.created_at)}
                   </span>
                   {!item.is_read && (
-                    <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[#5f45e6]" />
+                    <span className="absolute right-2 top-2 size-1.5 rounded-full bg-[#0e7c66]" />
                   )}
                 </button>
               ))}
               {!rows.length && (
-                <p className="rounded-xl border border-dashed border-[#26222f]/10 px-3 py-8 text-center text-xs text-[#9a95a0]">
+                <p className="rounded-xl border border-dashed border-[#14221b]/10 px-3 py-8 text-center text-xs text-[#7a8a81]">
                   No notifications yet. Admin broadcasts and VIVA updates will show here.
                 </p>
               )}

@@ -239,8 +239,8 @@ export function SettingsView({
               ].map(([Icon, label, value]) => {
                 const SnapshotIcon = Icon as typeof Scale;
                 return (
-                  <div key={String(label)} className="rounded-2xl bg-[#f4efe4]/60 p-4">
-                    <SnapshotIcon size={16} className="text-[#5f45e6]" />
+                  <div key={String(label)} className="rounded-2xl bg-[#e8efe9]/60 p-4">
+                    <SnapshotIcon size={16} className="text-[#0e7c66]" />
                     <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-[#948e99]">
                       {String(label)}
                     </p>
@@ -249,8 +249,8 @@ export function SettingsView({
                 );
               })}
             </div>
-            <div className="mt-4 flex items-start gap-3 rounded-2xl bg-[#ece7fb]/70 p-4 text-xs leading-5 text-[#645a78]">
-              <BadgeInfo size={16} className="mt-0.5 shrink-0 text-[#5f45e6]" />
+            <div className="mt-4 flex items-start gap-3 rounded-2xl bg-[#d7efe6]/70 p-4 text-xs leading-5 text-[#645a78]">
+              <BadgeInfo size={16} className="mt-0.5 shrink-0 text-[#0e7c66]" />
               BMI is a general screening measure, not a diagnosis. VIVA uses your profile only
               to personalize wellness guidance.
             </div>
@@ -263,12 +263,12 @@ export function SettingsView({
                 ["Hydration", `${(profile.daily_water_goal_ml / 1000).toFixed(1)} L / day`],
                 ["Budget", `₱${profile.monthly_health_budget.toLocaleString()} / month`],
               ].map(([label, value]) => (
-                <div key={label} className="flex items-center gap-3 rounded-2xl bg-[#f4efe4]/50 p-3">
-                  <span className="grid size-9 place-items-center rounded-xl bg-white text-[#5f45e6]">
+                <div key={label} className="flex items-center gap-3 rounded-2xl bg-[#e8efe9]/50 p-3">
+                  <span className="grid size-9 place-items-center rounded-xl bg-white text-[#0e7c66]">
                     <Target size={15} />
                   </span>
                   <div>
-                    <p className="text-xs font-bold text-[#8a8491]">{label}</p>
+                    <p className="text-xs font-bold text-[#6f8077]">{label}</p>
                     <p className="text-sm font-black">{value}</p>
                   </div>
                 </div>
@@ -298,10 +298,10 @@ export function SettingsView({
               <input name="timezone" defaultValue={settings.timezone} className={fieldClass} />
             </FormField>
           </div>
-          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#26222f]/7 bg-white/40 px-4 py-3 text-sm font-bold">
+          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#14221b]/7 bg-white/40 px-4 py-3 text-sm font-bold">
             <span>
               <span className="block">Push notifications</span>
-              <span className="mt-0.5 block text-xs font-normal text-[#918b96]">
+              <span className="mt-0.5 block text-xs font-normal text-[#74847b]">
                 Receive reminders and new VIVA insights
               </span>
             </span>
@@ -309,13 +309,13 @@ export function SettingsView({
               type="checkbox"
               name="notifications_enabled"
               defaultChecked={settings.notifications_enabled}
-              className="size-5 accent-[#5f45e6]"
+              className="size-5 accent-[#0e7c66]"
             />
           </label>
-          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#26222f]/7 bg-white/40 px-4 py-3 text-sm font-bold">
+          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#14221b]/7 bg-white/40 px-4 py-3 text-sm font-bold">
             <span>
               <span className="block">Weekly report</span>
-              <span className="mt-0.5 block text-xs font-normal text-[#918b96]">
+              <span className="mt-0.5 block text-xs font-normal text-[#74847b]">
                 Email a summary of your wellbeing trends
               </span>
             </span>
@@ -323,7 +323,7 @@ export function SettingsView({
               type="checkbox"
               name="weekly_report_enabled"
               defaultChecked={settings.weekly_report_enabled}
-              className="size-5 accent-[#5f45e6]"
+              className="size-5 accent-[#0e7c66]"
             />
           </label>
           <PrimaryButton disabled={preferencesAction.pending}>

@@ -211,10 +211,10 @@ export function CommandSearch({
       <button
         type="button"
         onClick={openSearch}
-        className="focus-ring group hidden min-w-0 items-center gap-3 rounded-xl border border-black/6 bg-[#fdfbf4]/90 px-3.5 py-2 text-left shadow-[0_5px_16px_rgba(55,45,37,.06)] transition hover:-translate-y-0.5 hover:border-[#5f45e6]/20 sm:flex sm:w-80"
+        className="focus-ring group hidden min-w-0 items-center gap-3 rounded-xl border border-black/6 bg-[#f6faf7]/90 px-3.5 py-2 text-left shadow-[0_5px_16px_rgba(55,45,37,.06)] transition hover:-translate-y-0.5 hover:border-[#0e7c66]/20 sm:flex sm:w-80"
         aria-label="Global search"
       >
-        <Search size={15} className="shrink-0 text-[#8c8793] group-hover:text-[#5f45e6]" />
+        <Search size={15} className="shrink-0 text-[#8c8793] group-hover:text-[#0e7c66]" />
         <span className="min-w-0 flex-1 truncate text-sm text-[#98939e]">
           Search pages and your data
         </span>
@@ -223,7 +223,7 @@ export function CommandSearch({
         </kbd>
       </button>
 
-      <button type="button" onClick={openSearch} className="focus-ring grid size-10 place-items-center rounded-full bg-[#fdfbf4] text-[#676270] shadow-sm sm:hidden" aria-label="Global search">
+      <button type="button" onClick={openSearch} className="focus-ring grid size-10 place-items-center rounded-full bg-[#f6faf7] text-[#4f5f56] shadow-sm sm:hidden" aria-label="Global search">
         <Search size={17} />
       </button>
 
@@ -235,7 +235,7 @@ export function CommandSearch({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[999] flex items-start justify-center bg-[#191621]/45 px-4 pt-[9vh] backdrop-blur-md"
+                className="fixed inset-0 z-[999] flex items-start justify-center bg-[#0f1a14]/45 px-4 pt-[9vh] backdrop-blur-md"
                 onMouseDown={(event) => {
                   if (event.target === event.currentTarget) setOpen(false);
                 }}
@@ -252,9 +252,9 @@ export function CommandSearch({
                 >
                   <div className="flex items-center gap-3 border-b border-black/6 px-5">
                     {loading ? (
-                      <LoaderCircle size={20} className="animate-spin text-[#5f45e6]" />
+                      <LoaderCircle size={20} className="animate-spin text-[#0e7c66]" />
                     ) : (
-                      <Search size={20} className="text-[#5f45e6]" />
+                      <Search size={20} className="text-[#0e7c66]" />
                     )}
                     <input
                       ref={inputRef}
@@ -281,11 +281,11 @@ export function CommandSearch({
                         onClick={() => visit(item.href)}
                         className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition ${
                           activeIndex === index
-                            ? "bg-[#5f45e6] text-white shadow-[0_8px_24px_rgba(95,69,230,.22)]"
+                            ? "bg-[#0e7c66] text-white shadow-[0_8px_24px_rgba(14,124,102,.22)]"
                             : "text-[#302b37] hover:bg-white/65"
                         }`}
                       >
-                        <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${activeIndex === index ? "bg-white/15" : "bg-[#ebe5fb] text-[#5f45e6]"}`}>
+                        <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${activeIndex === index ? "bg-white/15" : "bg-[#ebe5fb] text-[#0e7c66]"}`}>
                           <item.icon size={18} />
                         </span>
                         <span className="min-w-0 flex-1">

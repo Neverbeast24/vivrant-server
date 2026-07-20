@@ -65,15 +65,15 @@ function AdminNavigation({
             title={collapsed ? item.label : undefined}
             className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
               collapsed ? "justify-center px-2" : "gap-3 px-3"
-            } ${active ? "bg-[#26222f] text-white shadow-lg" : "text-[#4c4757] hover:bg-white/80 hover:text-[#26222f]"}`}
+            } ${active ? "bg-[#14221b] text-white shadow-lg" : "text-[#3d4a42] hover:bg-white/80 hover:text-[#14221b]"}`}
           >
-            <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-white/10" : "bg-[#eee8dc] group-hover:bg-[#e4ddcf]"}`}>
+            <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-white/10" : "bg-[#dce8e1] group-hover:bg-[#cfdcd4]"}`}>
               <item.icon size={17} />
             </span>
             {!collapsed && (
               <span className="min-w-0">
                 <span className="block text-sm font-black">{item.label}</span>
-                <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#8d8794]"}`}>{item.caption}</span>
+                <span className={`block truncate text-[10px] font-semibold ${active ? "text-white/55" : "text-[#718179]"}`}>{item.caption}</span>
               </span>
             )}
           </Link>
@@ -117,7 +117,7 @@ export function AdminShell({
           transition={{ type: "spring", stiffness: 320, damping: 30 }}
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
-          className="relative hidden shrink-0 flex-col overflow-hidden border-r border-black/5 bg-[#fdfbf4]/72 p-4 lg:flex"
+          className="relative hidden shrink-0 flex-col overflow-hidden border-r border-black/5 bg-[#f6faf7]/72 p-4 lg:flex"
         >
           <div className={`mb-3 flex h-12 items-center ${expanded ? "justify-between" : "justify-center"}`}>
             <Brand compact={!expanded} />
@@ -125,7 +125,7 @@ export function AdminShell({
               <button
                 type="button"
                 onClick={() => setCollapsed(!collapsed)}
-                className={`grid size-9 place-items-center rounded-xl transition hover:bg-white ${collapsed ? "text-[#5f45e6]" : "text-[#807a88]"}`}
+                className={`grid size-9 place-items-center rounded-xl transition hover:bg-white ${collapsed ? "text-[#0e7c66]" : "text-[#65756c]"}`}
                 title={collapsed ? "Pin sidebar open" : "Collapse sidebar (hover to peek)"}
               >
                 {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
@@ -133,7 +133,7 @@ export function AdminShell({
             )}
           </div>
           {expanded && (
-            <p className="mb-4 px-3 text-[10px] font-black tracking-[0.16em] text-[#5f45e6]">
+            <p className="mb-4 px-3 text-[10px] font-black tracking-[0.16em] text-[#0e7c66]">
               {isSuperAdmin ? "SUPER ADMIN CONSOLE" : "ADMIN CONSOLE"}
             </p>
           )}
@@ -143,10 +143,10 @@ export function AdminShell({
           </Link>
         </motion.aside>
 
-        <section className="min-w-0 flex-1 bg-[#f6f1e6]/65">
-          <header className="flex h-20 items-center justify-between gap-3 border-b border-black/5 bg-[#fdfbf4]/35 px-4 backdrop-blur-xl sm:px-6">
+        <section className="min-w-0 flex-1 bg-[#e6ede8]/65">
+          <header className="flex h-20 items-center justify-between gap-3 border-b border-black/5 bg-[#f6faf7]/35 px-4 backdrop-blur-xl sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
-              <button type="button" onClick={() => setMobileOpen(true)} className="grid size-10 place-items-center rounded-xl bg-[#fdfbf4] shadow-sm lg:hidden" aria-label="Open navigation"><Menu size={18} /></button>
+              <button type="button" onClick={() => setMobileOpen(true)} className="grid size-10 place-items-center rounded-xl bg-[#f6faf7] shadow-sm lg:hidden" aria-label="Open navigation"><Menu size={18} /></button>
               <CommandSearch isStaff isSuperAdmin={isSuperAdmin} />
               <div className="hidden xl:block">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#9a94a0]">{isSuperAdmin ? "Super admin" : "Admin"} session</p>
@@ -156,7 +156,7 @@ export function AdminShell({
             <form action={signOut}>
               <button
                 type="submit"
-                className="focus-ring inline-flex items-center gap-2 rounded-full border border-[#e4571f]/15 bg-[#fff6f0] px-4 py-2.5 text-xs font-black text-[#c24a1a] shadow-sm transition hover:-translate-y-0.5 hover:border-[#e4571f]/35 hover:bg-[#ffe9db]"
+                className="focus-ring inline-flex items-center gap-2 rounded-full border border-[#c45c2a]/15 bg-[#faf3ed] px-4 py-2.5 text-xs font-black text-[#a84b22] shadow-sm transition hover:-translate-y-0.5 hover:border-[#c45c2a]/35 hover:bg-[#f5e4d8]"
               >
                 <LogOut size={14} /> <span className="hidden sm:inline">Sign out</span>
               </button>
@@ -165,10 +165,10 @@ export function AdminShell({
 
           <AnimatePresence>
             {mobileOpen && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] bg-[#191621]/40 backdrop-blur-sm lg:hidden" onMouseDown={(event) => event.target === event.currentTarget && setMobileOpen(false)}>
-                <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="flex h-full w-[min(88vw,20rem)] flex-col bg-[#fdfbf4] p-5">
-                  <div className="mb-5 flex items-center justify-between"><Brand /><button type="button" onClick={() => setMobileOpen(false)} className="grid size-9 place-items-center rounded-xl bg-[#eee8dc]"><X size={17} /></button></div>
-                  <p className="mb-4 text-[10px] font-black tracking-wider text-[#5f45e6]">{isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}</p>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] bg-[#0f1a14]/40 backdrop-blur-sm lg:hidden" onMouseDown={(event) => event.target === event.currentTarget && setMobileOpen(false)}>
+                <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="flex h-full w-[min(88vw,20rem)] flex-col bg-[#f6faf7] p-5">
+                  <div className="mb-5 flex items-center justify-between"><Brand /><button type="button" onClick={() => setMobileOpen(false)} className="grid size-9 place-items-center rounded-xl bg-[#dce8e1]"><X size={17} /></button></div>
+                  <p className="mb-4 text-[10px] font-black tracking-wider text-[#0e7c66]">{isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}</p>
                   <AdminNavigation pathname={pathname} collapsed={false} isSuperAdmin={isSuperAdmin} close={() => setMobileOpen(false)} />
                 </motion.aside>
               </motion.div>

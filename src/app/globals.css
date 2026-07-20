@@ -4,14 +4,20 @@
   /* Opt out of browser forced/auto dark mode, which inverts backgrounds and
      breaks contrast (e.g. dark text on dark buttons). */
   color-scheme: light only;
-  --ink: #26222f;
-  --muted: #746f66;
-  --violet: #5f45e6;
-  --ember: #e4571f;
-  --cyan: #0fb3ab;
-  --paper: #f4efe4;
-  --card: #fdfbf4;
-  --line: rgba(38, 34, 47, 0.1);
+
+  /* VIVA botanical palette — jade, forest ink, sea-glass (not cream/violet). */
+  --ink: #14221b;
+  --muted: #5a6b62;
+  --violet: #0e7c66;
+  --accent: #0e7c66;
+  --accent-soft: #d7efe6;
+  --accent-deep: #0a5c4c;
+  --ember: #c45c2a;
+  --cyan: #2a9d8f;
+  --paper: #e7eee9;
+  --card: #f6faf7;
+  --line: rgba(20, 34, 27, 0.11);
+  --surface-soft: #dce8e1;
 }
 
 /* Element defaults live in the base layer so Tailwind utilities (e.g.
@@ -30,10 +36,10 @@
     margin: 0;
     color: var(--ink);
     background:
-      radial-gradient(circle at 10% 0%, rgba(95, 69, 230, 0.07), transparent 30rem),
-      radial-gradient(circle at 90% 8%, rgba(228, 87, 31, 0.06), transparent 26rem),
-      radial-gradient(circle at 50% 100%, rgba(15, 179, 171, 0.05), transparent 30rem),
-      var(--paper);
+      radial-gradient(circle at 8% 0%, rgba(14, 124, 102, 0.12), transparent 28rem),
+      radial-gradient(circle at 92% 6%, rgba(42, 157, 143, 0.1), transparent 24rem),
+      radial-gradient(circle at 48% 100%, rgba(196, 92, 42, 0.05), transparent 28rem),
+      linear-gradient(180deg, #eef4f0 0%, var(--paper) 45%, #e3ebe5 100%);
     font-family: var(--font-body), "Segoe UI", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -69,11 +75,11 @@
   }
 
   .glass {
-    background: rgba(253, 251, 244, 0.72);
-    border: 1px solid rgba(255, 254, 249, 0.9);
+    background: rgba(246, 250, 247, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.72);
     box-shadow:
-      0 24px 80px rgba(64, 49, 38, 0.09),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      0 24px 80px rgba(20, 34, 27, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
@@ -88,20 +94,20 @@
     z-index: -1;
     border-radius: inherit;
     content: "";
-    opacity: 0.2;
+    opacity: 0.18;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.08'/%3E%3C/svg%3E");
     pointer-events: none;
   }
 
   .gradient-text {
     color: transparent;
-    background: linear-gradient(115deg, #5f45e6 12%, #a83fe3 48%, #e4571f 92%);
+    background: linear-gradient(115deg, #0a5c4c 8%, #0e7c66 42%, #2a9d8f 78%, #c45c2a 100%);
     background-clip: text;
     -webkit-background-clip: text;
   }
 
   .focus-ring:focus-visible {
-    outline: 3px solid rgba(95, 69, 230, 0.24);
+    outline: 3px solid rgba(14, 124, 102, 0.28);
     outline-offset: 3px;
   }
 
@@ -125,7 +131,7 @@
 
   .hover-lift:hover {
     transform: translateY(-4px);
-    box-shadow: 0 22px 50px rgba(64, 49, 38, 0.12);
+    box-shadow: 0 22px 50px rgba(20, 34, 27, 0.12);
   }
 
   .animate-marquee {

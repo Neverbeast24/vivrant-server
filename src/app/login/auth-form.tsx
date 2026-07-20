@@ -52,7 +52,7 @@ async function postJson(url: string, payload: unknown) {
 }
 
 const inputShell =
-  "flex items-center gap-3 rounded-2xl border border-[#26222f]/10 bg-[#fdfbf4]/90 px-4 py-3.5 shadow-sm transition focus-within:border-[#5f45e6]/40 focus-within:ring-4 focus-within:ring-[#5f45e6]/8";
+  "flex items-center gap-3 rounded-2xl border border-[#14221b]/10 bg-[#f6faf7]/90 px-4 py-3.5 shadow-sm transition focus-within:border-[#0e7c66]/40 focus-within:ring-4 focus-within:ring-[#0e7c66]/8";
 
 export function AuthForm({
   next,
@@ -140,7 +140,7 @@ export function AuthForm({
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-xs font-black tracking-[0.18em] text-[#5f45e6]">{copy.eyebrow}</p>
+          <p className="text-xs font-black tracking-[0.18em] text-[#0e7c66]">{copy.eyebrow}</p>
           <h2 className="font-display mt-4 text-5xl">{copy.title}</h2>
           <p className="mt-4 text-sm leading-6 text-[#7b7682]">{copy.blurb}</p>
         </motion.div>
@@ -225,7 +225,7 @@ export function AuthForm({
                     <button
                       type="button"
                       onClick={() => switchMode("forgot")}
-                      className="focus-ring font-bold text-[#5f45e6] transition hover:text-[#5a3de0]"
+                      className="focus-ring font-bold text-[#0e7c66] transition hover:text-[#5a3de0]"
                     >
                       Forgot password?
                     </button>
@@ -253,7 +253,7 @@ export function AuthForm({
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.985 }}
           disabled={pending}
-          className="focus-ring group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#26222f] px-5 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(38,34,47,.18)] transition hover:bg-[#5f45e6] disabled:cursor-not-allowed disabled:opacity-70"
+          className="focus-ring group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14221b] px-5 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(20,34,27,.18)] transition hover:bg-[#0e7c66] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {pending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -277,7 +277,7 @@ export function AuthForm({
             <button
               type="button"
               onClick={() => switchMode("signup")}
-              className="focus-ring font-black text-[#5f45e6] transition hover:text-[#5a3de0]"
+              className="focus-ring font-black text-[#0e7c66] transition hover:text-[#5a3de0]"
             >
               Create an account
             </button>
@@ -289,7 +289,7 @@ export function AuthForm({
             <button
               type="button"
               onClick={() => switchMode("signin")}
-              className="focus-ring font-black text-[#5f45e6] transition hover:text-[#5a3de0]"
+              className="focus-ring font-black text-[#0e7c66] transition hover:text-[#5a3de0]"
             >
               Sign in
             </button>
@@ -299,7 +299,7 @@ export function AuthForm({
           <button
             type="button"
             onClick={() => switchMode("signin")}
-            className="focus-ring font-black text-[#5f45e6] transition hover:text-[#5a3de0]"
+            className="focus-ring font-black text-[#0e7c66] transition hover:text-[#5a3de0]"
           >
             Back to sign in
           </button>

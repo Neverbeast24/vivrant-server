@@ -100,7 +100,7 @@ export function NutritionView({
 
       {mode === "log" && (
         <>
-      <Panel title="AI meal estimate" className="mb-4" right={<Sparkles size={16} className="text-[#5f45e6]" />}>
+      <Panel title="AI meal estimate" className="mb-4" right={<Sparkles size={16} className="text-[#0e7c66]" />}>
         <form action={estimate} className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <FormField label="Describe your meal">
             <input
@@ -114,7 +114,7 @@ export function NutritionView({
             {estimating ? "Estimating…" : "Estimate macros"}
           </PrimaryButton>
         </form>
-        {tip && <p className="mt-3 text-sm font-semibold text-[#5f45e6]">{tip}</p>}
+        {tip && <p className="mt-3 text-sm font-semibold text-[#0e7c66]">{tip}</p>}
       </Panel>
 
       <Panel title="Log a meal" className="mb-4">
@@ -200,7 +200,7 @@ export function NutritionView({
             value={String(totalCalories)}
             detail={`${meals.length} meals · ${Math.round(totalProtein)}g protein`}
             icon={Flame}
-            className="bg-gradient-to-br from-[#5f45e6] to-[#9a57e9] text-white"
+            className="bg-gradient-to-br from-[#0a5c4c] to-[#0e7c66] text-white"
           />
           <StatCard
             label="Water"
@@ -243,7 +243,7 @@ export function NutritionView({
                           else toast.error(result.message);
                         })
                       }
-                      className="grid size-8 place-items-center rounded-lg text-[#a9a4b0] transition hover:bg-[#fff0e8] hover:text-[#e4571f]"
+                      className="grid size-8 place-items-center rounded-lg text-[#8a9a91] transition hover:bg-[#f8ece4] hover:text-[#c45c2a]"
                       aria-label={`Delete ${meal.meal_name}`}
                     >
                       <Trash2 size={14} />

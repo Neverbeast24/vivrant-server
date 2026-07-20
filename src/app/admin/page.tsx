@@ -115,9 +115,9 @@ export default async function AdminOverviewPage() {
 
   return (
     <>
-      <p className="text-[11px] font-black tracking-[0.2em] text-[#5f45e6]">ADMIN</p>
+      <p className="text-[11px] font-black tracking-[0.2em] text-[#0e7c66]">ADMIN</p>
       <h1 className="font-display mt-2 text-4xl tracking-tight">VIVA control center</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-[#77727f]">
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5a6b62]">
         {superAdmin
           ? "Full platform visibility — every module count, audit trail, and member activity."
           : "Manage users, roles, permissions, and platform activity from one place."}
@@ -128,13 +128,13 @@ export default async function AdminOverviewPage() {
           <>
             <Link
               href="/admin/activity"
-              className="rounded-full bg-[#26222f] px-4 py-2 text-xs font-black text-white transition hover:bg-[#5f45e6]"
+              className="rounded-full bg-[#14221b] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0e7c66]"
             >
               Open member activity
             </Link>
             <Link
               href="/admin/audit"
-              className="rounded-full border border-[#26222f]/12 bg-white/70 px-4 py-2 text-xs font-black text-[#4c4757] transition hover:border-[#5f45e6]/30 hover:text-[#5f45e6]"
+              className="rounded-full border border-[#14221b]/12 bg-white/70 px-4 py-2 text-xs font-black text-[#3d4a42] transition hover:border-[#0e7c66]/30 hover:text-[#0e7c66]"
             >
               View audit logs
             </Link>
@@ -143,19 +143,19 @@ export default async function AdminOverviewPage() {
           <>
             <Link
               href="/admin/users"
-              className="rounded-full bg-[#26222f] px-4 py-2 text-xs font-black text-white transition hover:bg-[#5f45e6]"
+              className="rounded-full bg-[#14221b] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0e7c66]"
             >
               Manage users
             </Link>
             <Link
               href="/admin/audit"
-              className="rounded-full border border-[#26222f]/12 bg-white/70 px-4 py-2 text-xs font-black text-[#4c4757] transition hover:border-[#5f45e6]/30 hover:text-[#5f45e6]"
+              className="rounded-full border border-[#14221b]/12 bg-white/70 px-4 py-2 text-xs font-black text-[#3d4a42] transition hover:border-[#0e7c66]/30 hover:text-[#0e7c66]"
             >
               View audit logs
             </Link>
             <Link
               href="/admin/settings"
-              className="rounded-full border border-[#26222f]/12 bg-white/70 px-4 py-2 text-xs font-black text-[#4c4757] transition hover:border-[#5f45e6]/30 hover:text-[#5f45e6]"
+              className="rounded-full border border-[#14221b]/12 bg-white/70 px-4 py-2 text-xs font-black text-[#3d4a42] transition hover:border-[#0e7c66]/30 hover:text-[#0e7c66]"
             >
               Broadcast notice
             </Link>
@@ -167,22 +167,22 @@ export default async function AdminOverviewPage() {
         {stats.map(([label, value, detail]) => (
           <article
             key={label}
-            className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4] p-5 shadow-[0_14px_32px_rgba(64,49,38,.07)]"
+            className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7] p-5 shadow-[0_14px_32px_rgba(20,34,27,.07)]"
           >
-            <p className="text-[11px] font-bold tracking-wide text-[#8a8491]">{label}</p>
+            <p className="text-[11px] font-bold tracking-wide text-[#6f8077]">{label}</p>
             <p className="font-display mt-3 text-4xl leading-none tracking-tight">{value}</p>
-            <p className="mt-2 text-xs font-semibold text-[#9a95a0]">{detail}</p>
+            <p className="mt-2 text-xs font-semibold text-[#7a8a81]">{detail}</p>
           </article>
         ))}
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        <section className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4]/85 p-5 shadow-sm">
+        <section className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7]/85 p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-xl tracking-tight">Latest audit events</h2>
             <Link
               href="/admin/audit"
-              className="text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+              className="text-xs font-black text-[#0e7c66] transition hover:opacity-70"
             >
               View all
             </Link>
@@ -191,11 +191,11 @@ export default async function AdminOverviewPage() {
             {(recentLogs.data ?? []).map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/45 px-4 py-3"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-[#14221b]/6 bg-[#e8efe9]/45 px-4 py-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold">{log.action}</p>
-                  <p className="mt-0.5 text-xs text-[#847f8c]">
+                  <p className="mt-0.5 text-xs text-[#6a7a71]">
                     {log.entity}
                     {" · "}
                     {log.actor_id
@@ -203,25 +203,25 @@ export default async function AdminOverviewPage() {
                       : "system"}
                   </p>
                 </div>
-                <span className="shrink-0 text-[10px] font-bold text-[#a19ca7]">
+                <span className="shrink-0 text-[10px] font-bold text-[#84948b]">
                   {new Date(log.created_at).toLocaleString()}
                 </span>
               </div>
             ))}
             {!recentLogs.data?.length && (
-              <p className="rounded-2xl border border-dashed border-[#26222f]/12 px-4 py-8 text-center text-sm text-[#9a95a0]">
+              <p className="rounded-2xl border border-dashed border-[#14221b]/12 px-4 py-8 text-center text-sm text-[#7a8a81]">
                 No audit events yet.
               </p>
             )}
           </div>
         </section>
 
-        <section className="rounded-[1.4rem] border border-[#26222f]/8 bg-[#fdfbf4]/85 p-5 shadow-sm">
+        <section className="rounded-[1.4rem] border border-[#14221b]/8 bg-[#f6faf7]/85 p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-xl tracking-tight">Newest members</h2>
             <Link
               href="/admin/users"
-              className="text-xs font-black text-[#5f45e6] transition hover:opacity-70"
+              className="text-xs font-black text-[#0e7c66] transition hover:opacity-70"
             >
               Manage users
             </Link>
@@ -230,21 +230,21 @@ export default async function AdminOverviewPage() {
             {(recentUsers.data ?? []).map((member) => (
               <div
                 key={member.user_id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-[#26222f]/6 bg-[#f4efe4]/45 px-4 py-3"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-[#14221b]/6 bg-[#e8efe9]/45 px-4 py-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold">{member.display_name}</p>
-                  <p className="mt-0.5 text-xs capitalize text-[#847f8c]">
+                  <p className="mt-0.5 text-xs capitalize text-[#6a7a71]">
                     {String(member.role).replace("_", " ")}
                   </p>
                 </div>
-                <span className="shrink-0 text-[10px] font-bold text-[#a19ca7]">
+                <span className="shrink-0 text-[10px] font-bold text-[#84948b]">
                   {new Date(member.created_at).toLocaleDateString()}
                 </span>
               </div>
             ))}
             {!recentUsers.data?.length && (
-              <p className="rounded-2xl border border-dashed border-[#26222f]/12 px-4 py-8 text-center text-sm text-[#9a95a0]">
+              <p className="rounded-2xl border border-dashed border-[#14221b]/12 px-4 py-8 text-center text-sm text-[#7a8a81]">
                 No members yet.
               </p>
             )}
