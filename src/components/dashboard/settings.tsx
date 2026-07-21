@@ -43,6 +43,113 @@ export type HealthProfile = {
   bio: string | null;
 };
 
+const BMI_SCALE_MIN = 15;
+const BMI_SCALE_MAX = 40;
+
+const BMI_BANDS = [
+  { key: "underweight", label: "Underweight", max: 18.5, color: "#5b8def" },
+  { key: "normal", label: "Normal", max: 25, color: "#0e7c66" },
+  { key: "overweight", label: "Overweight", max: 30, color: "#c45c2a" },
+  { key: "obese", label: "Obese", max: BMI_SCALE_MAX, color: "#b42318" },
+] as const;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function bmiCategory(bmi: number) {
+  if (bmi < 18.5) return BMI_BANDS[0];
+  if (bmi < 25) return BMI_BANDS[1];
+  if (bmi < 30) return BMI_BANDS[2];
+  return BMI_BANDS[3];
+}
+
+function weightForBmi(heightCm: number, targetBmi: number) {
+  return targetBmi * (heightCm / 100) ** 2;
+}
+
+function BmiScale({ bmi, heightCm, weightKg }: { bmi: number; heightCm: number; weightKg: number }) {
+  const category = bmiCategory(bmi);
+  const markerPct =
+    ((clamp(bmi, BMI_SCALE_MIN, BMI_SCALE_MAX) - BMI_SCALE_MIN) /
+      (BMI_SCALE_MAX - BMI_SCALE_MIN)) *
+    100;
+  const normalMinKg = weightForBmi(heightCm, 18.5);
+  const normalMaxKg = weightForBmi(heightCm, 24.9);
+  const inNormal = bmi >= 18.5 && bmi < 25;
+
+  let guidance: string;
+  if (inNormal) {
+    guidance = `You're in the normal range. Aim to stay near ${weightKg.toFixed(1)} kg for your height.`;
+  } else if (bmi < 18.5) {
+    const gain = Math.max(0, normalMinKg - weightKg);
+    guidance = `To reach a normal BMI, aim for about ${normalMinKg.toFixed(1)}–${normalMaxKg.toFixed(1)} kg (about ${gain.toFixed(1)} kg to gain).`;
+  } else {
+    const lose = Math.max(0, weightKg - normalMaxKg);
+    guidance = `To reach a normal BMI, aim for about ${normalMinKg.toFixed(1)}–${normalMaxKg.toFixed(1)} kg (about ${lose.toFixed(1)} kg to lose).`;
+  }
+
+  return (
+    <div className="mt-4 space-y-3 rounded-2xl border border-[#14221b]/6 bg-[#f6faf7] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">BMI scale</p>
+        <span
+          className="rounded-full px-2.5 py-1 text-[10px] font-black"
+          style={{ backgroundColor: `${category.color}18`, color: category.color }}
+        >
+          {category.label} · {bmi.toFixed(1)}
+        </span>
+      </div>
+
+      <div className="relative pt-5">
+        <div
+          className="absolute top-0 -translate-x-1/2"
+          style={{ left: `${markerPct}%` }}
+          aria-hidden
+        >
+          <span className="block whitespace-nowrap rounded-md bg-[#14221b] px-1.5 py-0.5 text-[9px] font-black text-white">
+            You
+          </span>
+          <span
+            className="mx-auto mt-0.5 block size-0 border-x-[5px] border-t-[6px] border-x-transparent border-t-[#14221b]"
+          />
+        </div>
+
+        <div className="flex h-3 overflow-hidden rounded-full">
+          {BMI_BANDS.map((band, index) => {
+            const start = index === 0 ? BMI_SCALE_MIN : BMI_BANDS[index - 1].max;
+            const widthPct = ((band.max - start) / (BMI_SCALE_MAX - BMI_SCALE_MIN)) * 100;
+            return (
+              <div
+                key={band.key}
+                className="h-full"
+                style={{ width: `${widthPct}%`, backgroundColor: band.color }}
+                title={`${band.label}`}
+              />
+            );
+          })}
+        </div>
+
+        <div
+          className="absolute top-[1.65rem] size-3 -translate-x-1/2 rounded-full border-2 border-white shadow-sm"
+          style={{ left: `${markerPct}%`, backgroundColor: category.color }}
+          aria-hidden
+        />
+      </div>
+
+      <div className="grid grid-cols-4 gap-1 text-center text-[9px] font-bold text-[#6a7a71]">
+        {BMI_BANDS.map((band) => (
+          <span key={band.key} className={band.key === category.key ? "text-[#14221b]" : undefined}>
+            {band.label}
+          </span>
+        ))}
+      </div>
+
+      <p className="text-xs leading-5 text-[#55665d]">{guidance}</p>
+    </div>
+  );
+}
+
 export function SettingsView({
   settings,
   profile,
@@ -249,6 +356,14 @@ export function SettingsView({
                 );
               })}
             </div>
+            {bmi != null && profile.height_cm != null && profile.weight_kg != null ? (
+              <BmiScale bmi={bmi} heightCm={profile.height_cm} weightKg={profile.weight_kg} />
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-[#14221b]/12 bg-[#e8efe9]/40 p-4 text-xs leading-5 text-[#6a7a71]">
+                Add height and weight to see where you sit on the BMI scale and the normal weight
+                range for your height.
+              </div>
+            )}
             <div className="mt-4 flex items-start gap-3 rounded-2xl bg-[#d7efe6]/70 p-4 text-xs leading-5 text-[#645a78]">
               <BadgeInfo size={16} className="mt-0.5 shrink-0 text-[#0e7c66]" />
               BMI is a general screening measure, not a diagnosis. VIVRΛNT uses your profile only
