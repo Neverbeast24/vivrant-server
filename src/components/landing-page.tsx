@@ -356,7 +356,7 @@ export function LandingPage() {
               width={72}
               height={72}
               priority
-              className="size-[72px] rounded-2xl object-cover shadow-[0_18px_40px_rgba(14,124,102,.22)]"
+              className="size-[72px] rounded-2xl bg-black object-cover shadow-[0_18px_40px_rgba(14,124,102,.22)]"
             />
             <div className="inline-flex items-center gap-2 rounded-full border border-[#c45c2a]/20 bg-[#f6faf7]/80 px-3.5 py-2 text-xs font-bold text-[#a84b22] shadow-sm backdrop-blur-xl">
               <Sparkles size={14} />

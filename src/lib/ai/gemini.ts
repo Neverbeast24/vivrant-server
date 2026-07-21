@@ -8,11 +8,17 @@ export type InsightPayload = {
 
 export type MealEstimate = {
   meal_name: string;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
   calories: number;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
   tip: string;
+};
+
+export type MealImageInput = {
+  mimeType: string;
+  base64: string;
 };
 
 export type GroceryPlanItem = {
@@ -132,15 +138,25 @@ export function getGeminiModel(json = true) {
   return createGeminiModel(process.env.GEMINI_MODEL?.trim() ?? FALLBACK_MODELS[0], json);
 }
 
-async function generateContentWithFallback(prompt: string, json: boolean): Promise<string> {
+async function generateContentWithFallback(
+  prompt: string,
+  json: boolean,
+  image?: MealImageInput,
+): Promise<string> {
   const models = getModelChain();
   let lastError: unknown;
+  const textPrompt = `${WELLNESS_GUIDE}\n\n${prompt}`;
 
   for (const modelName of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const model = createGeminiModel(modelName, json);
-        const result = await model.generateContent(`${WELLNESS_GUIDE}\n\n${prompt}`);
+        const result = image
+          ? await model.generateContent([
+              { text: textPrompt },
+              { inlineData: { data: image.base64, mimeType: image.mimeType } },
+            ])
+          : await model.generateContent(textPrompt);
         return result.response.text();
       } catch (error) {
         lastError = error;
@@ -162,9 +178,44 @@ async function generateContentWithFallback(prompt: string, json: boolean): Promi
   );
 }
 
-async function generateJson<T>(prompt: string): Promise<T> {
-  const text = await generateContentWithFallback(prompt, true);
-  return JSON.parse(text) as T;
+function extractJsonText(raw: string): string {
+  let text = raw.trim();
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) text = fenced[1].trim();
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) text = text.slice(start, end + 1);
+
+  // Strip trailing commas before } or ] — a common Gemini slip.
+  return text.replace(/,\s*([}\]])/g, "$1");
+}
+
+function parseJsonLoose<T>(raw: string): T {
+  const cleaned = extractJsonText(raw);
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch (firstError) {
+    // Escape bare newlines inside strings that break JSON.parse.
+    const escapedNewlines = cleaned.replace(
+      /"(?:[^"\\]|\\.)*"/g,
+      (segment) => segment.replace(/\n/g, "\\n").replace(/\r/g, "\\r"),
+    );
+    try {
+      return JSON.parse(escapedNewlines) as T;
+    } catch {
+      const detail =
+        firstError instanceof Error ? firstError.message : "Unexpected JSON shape.";
+      throw new Error(
+        `Could not read AI nutrition response (${detail}). Try a shorter description or another photo.`,
+      );
+    }
+  }
+}
+
+async function generateJson<T>(prompt: string, image?: MealImageInput): Promise<T> {
+  const text = await generateContentWithFallback(prompt, true, image);
+  return parseJsonLoose<T>(text);
 }
 
 export async function generateHealthInsight(context: string): Promise<InsightPayload> {
@@ -208,28 +259,50 @@ ${context}`);
   };
 }
 
-export async function estimateMealMacros(description: string, context: string): Promise<MealEstimate> {
-  const parsed = await generateJson<Partial<MealEstimate>>(`Estimate nutrition for this meal description.
-Return JSON:
-- "meal_name": cleaned short name
+export async function estimateMealMacros(
+  description: string,
+  context: string,
+  image?: MealImageInput,
+): Promise<MealEstimate> {
+  const parsed = await generateJson<Partial<MealEstimate>>(
+    `Estimate nutrition for this meal${image ? " from the attached photo and any description" : ""}.
+Return ONLY one valid JSON object (no markdown, no comments, no trailing commas).
+Keys:
+- "meal_name": short cleaned name (max 8 words)
+- "meal_type": one of "breakfast" | "lunch" | "dinner" | "snack"
 - "calories": integer kcal estimate
-- "protein_g": number
-- "carbs_g": number
-- "fat_g": number
-- "tip": one short coaching tip tied to the user's goals if possible
+- "protein_g": number (grams)
+- "carbs_g": number (grams)
+- "fat_g": number (grams)
+- "tip": one short coaching tip (plain text, escape quotes if needed)
+
+Use realistic portion sizes. If the photo is unclear, estimate conservatively and say so in tip.
+Do not invent medical advice.
 
 MEAL DESCRIPTION:
-${description}
+${description || "(use the photo)"}
 
 USER CONTEXT:
-${context}`);
+${context}`,
+    image,
+  );
+
+  const mealTypeRaw = String(parsed.meal_type ?? "lunch").toLowerCase();
+  const meal_type =
+    mealTypeRaw === "breakfast" ||
+    mealTypeRaw === "lunch" ||
+    mealTypeRaw === "dinner" ||
+    mealTypeRaw === "snack"
+      ? mealTypeRaw
+      : "lunch";
 
   return {
-    meal_name: String(parsed.meal_name ?? description).slice(0, 120),
+    meal_name: String(parsed.meal_name ?? (description || "Meal")).slice(0, 120),
+    meal_type,
     calories: Math.max(0, Math.round(Number(parsed.calories ?? 0))),
-    protein_g: Math.max(0, Number(parsed.protein_g ?? 0)),
-    carbs_g: Math.max(0, Number(parsed.carbs_g ?? 0)),
-    fat_g: Math.max(0, Number(parsed.fat_g ?? 0)),
+    protein_g: Math.max(0, Math.round(Number(parsed.protein_g ?? 0) * 10) / 10),
+    carbs_g: Math.max(0, Math.round(Number(parsed.carbs_g ?? 0) * 10) / 10),
+    fat_g: Math.max(0, Math.round(Number(parsed.fat_g ?? 0) * 10) / 10),
     tip: String(parsed.tip ?? "Add a protein side if you're still hungry.").slice(0, 300),
   };
 }

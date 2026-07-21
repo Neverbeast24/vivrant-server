@@ -19,16 +19,16 @@ export function Brand({
     return (
       <Link
         href="/"
-        className={`focus-ring inline-flex size-10 items-center justify-center rounded-xl ${className}`}
+        className={`focus-ring inline-flex size-10 items-center justify-center overflow-hidden rounded-xl bg-black ${className}`}
         aria-label="VIVRΛNT home"
       >
         <Image
           src="/vivrant-mark.png"
           alt=""
-          width={36}
-          height={36}
+          width={40}
+          height={40}
           priority
-          className="block size-9 object-contain object-center"
+          className="block size-10 object-cover object-center"
         />
       </Link>
     );
@@ -40,14 +40,14 @@ export function Brand({
       className={`focus-ring inline-grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-2.5 rounded-xl ${className}`}
       aria-label="VIVRΛNT home"
     >
-      <span className="flex size-10 items-center justify-center">
+      <span className="flex size-10 overflow-hidden rounded-xl bg-black">
         <Image
           src="/vivrant-mark.png"
           alt=""
-          width={36}
-          height={36}
+          width={40}
+          height={40}
           priority
-          className="block size-9 translate-y-px object-contain object-center"
+          className="block size-10 object-cover object-center"
         />
       </span>
       <span className="flex min-w-0 flex-col justify-center gap-[0.3rem] leading-none">
