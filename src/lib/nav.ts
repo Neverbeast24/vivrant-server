@@ -73,14 +73,14 @@ export const dashboardNav: NavItem[] = [
   {
     icon: Weight,
     label: "Gym",
-    caption: "Demos, machines, plans",
+    caption: "Demos & machines",
     href: "/dashboard/gym",
     children: [
       { label: "Overview", href: "/dashboard/gym", caption: "Gym home" },
       { label: "Exercise demos", href: "/dashboard/gym/demos", caption: "Free weights & bodyweight" },
       { label: "Machines", href: "/dashboard/gym/machines", caption: "Machine demos & AI picks" },
       { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Log & history" },
-      { label: "AI plans", href: "/dashboard/gym/plans", caption: "Saved programs" },
+      { label: "Training plans", href: "/dashboard/gym/plans", caption: "Saved programs" },
     ],
   },
   {
@@ -156,8 +156,8 @@ export const dashboardNav: NavItem[] = [
   },
   {
     icon: BrainCircuit,
-    label: "AI Engine",
-    caption: "Personal insights",
+    label: "Ask VIVRΛNT",
+    caption: "Chat coach & reminders",
     href: "/dashboard/ai",
     children: [
       { label: "Ask VIVRΛNT", href: "/dashboard/ai", caption: "Chat coach" },
@@ -179,8 +179,8 @@ export const dashboardNav: NavItem[] = [
   },
   {
     icon: LifeBuoy,
-    label: "Support",
-    caption: "Bugs & tickets",
+    label: "Help",
+    caption: "Questions & bug reports",
     href: "/dashboard/support",
   },
 ];
@@ -190,7 +190,7 @@ export const gymSubNav = [
   { href: "/dashboard/gym/demos", label: "Demos", icon: Play },
   { href: "/dashboard/gym/machines", label: "Machines", icon: Cog },
   { href: "/dashboard/gym/sessions", label: "Sessions", icon: ClipboardList },
-  { href: "/dashboard/gym/plans", label: "AI plans", icon: Sparkles },
+  { href: "/dashboard/gym/plans", label: "Training plans", icon: Sparkles },
 ] as const;
 
 export const settingsSubNav = [

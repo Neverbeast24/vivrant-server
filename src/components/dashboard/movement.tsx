@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Flame, Footprints, Heart, Sparkles, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteWorkout, logWorkout } from "@/app/dashboard/movement/actions";
@@ -223,7 +224,15 @@ export function MovementView({
                 }
               />
             ))}
-            {!workouts.length && <EmptyState>No workouts logged yet.</EmptyState>}
+            {!workouts.length && (
+              <EmptyState>
+                No workouts yet.{" "}
+                <Link href="/dashboard/movement/log" className="font-black text-accent underline-offset-2 hover:underline">
+                  Log a walk or session
+                </Link>
+                , or tap <span className="font-black">Suggest workout</span> above for a 20-minute idea.
+              </EmptyState>
+            )}
           </div>
         </Panel>
       </Stagger>

@@ -65,7 +65,7 @@ const dashboardDestinations = [
   { label: "Goals", detail: "Health targets", href: "/dashboard/settings/goals", icon: Settings2, keywords: "goals targets" },
   { label: "Health history", detail: "Body measurements over time", href: "/dashboard/settings/history", icon: Settings2, keywords: "history measurements weight" },
   { label: "Preferences", detail: "Theme and notifications", href: "/dashboard/settings/preferences", icon: Settings2, keywords: "settings theme timezone" },
-  { label: "Support", detail: "Submit a bug or support ticket", href: "/dashboard/support", icon: LifeBuoy, keywords: "bug ticket help feedback report issue" },
+  { label: "Support / Help", detail: "Questions and bug reports", href: "/dashboard/support", icon: LifeBuoy, keywords: "bug ticket help feedback report issue support" },
 ] as const;
 
 const adminDestinations = [

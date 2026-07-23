@@ -116,7 +116,9 @@ export function HydrationView({
                 </span>
               </li>
             ))}
-            {!weekRows.length && <EmptyState>No hydration logged yet.</EmptyState>}
+            {!weekRows.length && (
+              <EmptyState>No hydration logged yet. Tap +250 ml above — that’s about one glass.</EmptyState>
+            )}
           </ul>
         </Panel>
       </div>

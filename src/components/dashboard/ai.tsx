@@ -205,12 +205,36 @@ export function AiView({
                 minLength={3}
                 placeholder="e.g. What should I focus on this afternoon?"
                 className={fieldClass}
+                id="ask-question-input"
               />
             </FormField>
             <PrimaryButton disabled={chatPending} className="sm:self-end">
               {chatPending ? "Thinking…" : "Ask"}
             </PrimaryButton>
           </form>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              "What should I do first today?",
+              "Suggest a simple meal",
+              "How do I use gym demos?",
+            ].map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                className="rounded-full border border-ink/10 bg-surface/70 px-3 py-1.5 text-[11px] font-bold text-muted transition hover:border-accent/30 hover:text-accent"
+                onClick={() => {
+                  const input = document.getElementById(
+                    "ask-question-input",
+                  ) as HTMLInputElement | null;
+                  if (!input) return;
+                  input.value = prompt;
+                  input.focus();
+                }}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         </Panel>
       )}
 
@@ -333,18 +357,27 @@ export function AiView({
                 </div>
                 {item.score != null && (
                   <p className="mt-4 text-xs font-bold text-muted">
-                    Decision score: {item.score}/100
+                    Helpfulness: {item.score}/100
                   </p>
                 )}
               </Panel>
             ))}
-            {!insights.length && (
-              <EmptyState>
+{!insights.length && (
+            <EmptyState>
+              <span className="inline-flex flex-col items-center gap-3">
                 <span className="inline-flex items-center gap-2">
-                  <Sparkles size={16} /> No insights yet. Generate your first recommendation.
+                  <Sparkles size={16} /> No insights yet — generate your first recommendation.
                 </span>
-              </EmptyState>
-            )}
+                <PrimaryButton
+                  disabled={pending}
+                  onClick={() => submit(new FormData())}
+                  className="rounded-full"
+                >
+                  {pending ? "Generating…" : "Generate insight"}
+                </PrimaryButton>
+              </span>
+            </EmptyState>
+          )}
           </div>
         </Stagger>
       )}

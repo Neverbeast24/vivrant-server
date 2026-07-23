@@ -180,7 +180,12 @@ export function HabitsView({
                     </button>
                   </li>
                 ))}
-                {!habits.length && <EmptyState>Add your first habit.</EmptyState>}
+                {!habits.length && (
+                  <EmptyState>
+                    Add your first habit — try “Drink water” or “Stretch 5 minutes”, or tap{" "}
+                    <span className="font-black">AI habit ideas</span> above.
+                  </EmptyState>
+                )}
               </ul>
             </Panel>
 
@@ -288,7 +293,12 @@ export function HabitsView({
                   </li>
                 );
               })}
-              {!challenges.length && <EmptyState>No challenges yet this week.</EmptyState>}
+              {!challenges.length && (
+                <EmptyState>
+                  No challenges yet. Example: metric <span className="font-black">gym</span>, target{" "}
+                  <span className="font-black">3</span> this week — then Sync progress as you log.
+                </EmptyState>
+              )}
             </ul>
           </Panel>
         </div>

@@ -17,6 +17,14 @@ import {
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 
+const moods = [
+  ["1", "😔"],
+  ["2", "🙁"],
+  ["3", "😐"],
+  ["4", "🙂"],
+  ["5", "😄"],
+] as const;
+
 export function MindfulnessView({
   todayMood,
   weekMoods,
@@ -27,6 +35,7 @@ export function MindfulnessView({
   const { pending, submit } = useModuleAction(logMood);
   const [tipPending, startTip] = useTransition();
   const [tip, setTip] = useState<{ title: string; body: string } | null>(null);
+  const [mood, setMood] = useState(String(todayMood ?? "4"));
   const scored = weekMoods.filter((m) => m.mood != null);
   const avg =
     scored.length > 0
@@ -76,29 +85,51 @@ export function MindfulnessView({
             detail={`${scored.length} mood logs`}
             icon={Heart}
           />
-          <StatCard
-            label="Journal"
-            value="Open"
-            detail="Write what you notice"
-            icon={Sparkles}
-          />
+          <StatCard label="Journal" value="Open" detail="Write what you notice" icon={Sparkles} />
         </div>
       </Stagger>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="Mood check-in">
-          <form action={submit} className="grid gap-3">
-            <FormField label="Mood (1 low – 5 high)">
-              <input name="mood" type="number" min={1} max={5} required className={fieldClass} />
+          <form
+            action={(fd) => {
+              fd.set("mood", mood);
+              submit(fd);
+            }}
+            className="grid gap-3"
+          >
+            <FormField label="How do you feel?">
+              <input type="hidden" name="mood" value={mood} />
+              <div className="flex flex-wrap gap-2 px-1 py-2">
+                {moods.map(([value, emoji]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setMood(value)}
+                    className={`grid size-11 place-items-center rounded-xl text-xl transition ${
+                      mood === value
+                        ? "bg-accent-soft ring-2 ring-accent"
+                        : "bg-surface hover:bg-panel"
+                    }`}
+                    aria-label={`Mood ${value}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <p className="px-1 text-[11px] font-bold text-muted">1 low · 5 high · selected {mood}/5</p>
             </FormField>
             <FormField label="Note" hint="optional">
-              <textarea name="note" rows={3} className={fieldClass} />
+              <textarea name="note" rows={3} placeholder="What are you noticing?" className={fieldClass} />
             </FormField>
             <PrimaryButton disabled={pending}>{pending ? "Saving…" : "Save mood"}</PrimaryButton>
           </form>
           <p className="mt-4 text-sm text-muted">
             Prefer longer notes?{" "}
-            <Link href="/dashboard/journal" className="font-bold text-accent underline-offset-2 hover:underline">
+            <Link
+              href="/dashboard/journal"
+              className="font-bold text-accent underline-offset-2 hover:underline"
+            >
               Open journal
             </Link>
           </p>
@@ -114,7 +145,11 @@ export function MindfulnessView({
                 <span className="font-bold">{row.mood != null ? `${row.mood}/5` : "—"}</span>
               </li>
             ))}
-            {!weekMoods.length && <EmptyState>No mood data yet.</EmptyState>}
+            {!weekMoods.length && (
+              <EmptyState>
+                No mood data yet. Pick an emoji on the left, or use Today’s quick check-in.
+              </EmptyState>
+            )}
           </ul>
           {tip && (
             <div className="mt-4 rounded-2xl border border-ink/8 bg-surface/60 p-4">

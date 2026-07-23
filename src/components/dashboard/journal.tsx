@@ -138,7 +138,11 @@ export function JournalView({ entries }: { entries: Entry[] }) {
                   </div>
                 </li>
               ))}
-              {!filtered.length && <EmptyState>No journal entries yet.</EmptyState>}
+              {!filtered.length && (
+                <EmptyState>
+                  No journal entries yet. Try a starter: “3 things I’m grateful for today…”
+                </EmptyState>
+              )}
             </ul>
           </Stagger>
         </Panel>

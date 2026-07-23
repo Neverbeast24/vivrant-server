@@ -39,6 +39,8 @@ export default async function DashboardPage() {
     habitsRes,
     habitLogsRes,
     reminderRes,
+    allCheckinsRes,
+    allMealsRes,
   ] = await Promise.all([
     supabase
       .from("daily_checkins")
@@ -74,7 +76,7 @@ export default async function DashboardPage() {
       .gte("logged_at", dayStart),
     supabase
       .from("profiles")
-      .select("daily_step_goal, daily_water_goal_ml, health_focus")
+      .select("daily_step_goal, daily_water_goal_ml, health_focus, height_cm, weight_kg")
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase
@@ -103,6 +105,14 @@ export default async function DashboardPage() {
       .order("next_fire_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("daily_checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
+    supabase
+      .from("nutrition_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
   ]);
 
   const energyByDate = new Map(
@@ -146,6 +156,11 @@ export default async function DashboardPage() {
 
   const checkin = checkinRes.data;
   const next = reminderRes.data;
+  const profileComplete = Boolean(
+    profileRes.data?.height_cm && profileRes.data?.weight_kg && profileRes.data?.health_focus,
+  );
+  const isNewMember =
+    (allCheckinsRes.count ?? 0) < 3 && (allMealsRes.count ?? 0) < 2;
 
   return (
     <TodayView
@@ -167,6 +182,8 @@ export default async function DashboardPage() {
         habitStreak,
         habitsDoneToday,
         habitsTotal: habits.length,
+        profileComplete,
+        isNewMember,
         nextReminder: next
           ? {
               title: next.title,

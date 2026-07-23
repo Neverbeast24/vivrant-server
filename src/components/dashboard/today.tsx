@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -11,10 +12,11 @@ import {
   Moon,
   Sparkles,
   Target,
+  UserRound,
   Utensils,
   WalletCards,
   Waves,
-  Weight,
+  X,
 } from "lucide-react";
 import { QuickCheckin } from "@/components/dashboard/quick-checkin";
 import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
@@ -37,6 +39,8 @@ export type TodayData = {
   habitStreak: number;
   habitsDoneToday: number;
   habitsTotal: number;
+  profileComplete: boolean;
+  isNewMember: boolean;
   nextReminder: { title: string; when: string } | null;
   latestInsight: {
     title: string;
@@ -44,6 +48,8 @@ export type TodayData = {
     score: number | null;
   } | null;
 };
+
+const DISMISS_KEY = "vivrant_getting_started_dismissed";
 
 function formatSleep(minutes: number | null) {
   if (minutes == null || minutes <= 0) return "—";
@@ -72,6 +78,45 @@ export function TodayView({ data }: { data: TodayData }) {
   const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
   const sleep = sleepQuality(data.sleepMinutes);
   const activeIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const [showGuide, setShowGuide] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const dismissed = window.localStorage.getItem(DISMISS_KEY) === "1";
+    setShowGuide(data.isNewMember && !dismissed);
+  }, [data.isNewMember]);
+
+  const gettingStarted = [
+    {
+      done: data.profileComplete,
+      label: "Complete your health profile",
+      detail: "Height, weight, and focus help personalize tips",
+      href: "/dashboard/settings",
+      icon: UserRound,
+    },
+    {
+      done: data.hasCheckin,
+      label: "Do a 30-second check-in",
+      detail: "Energy, mood, water, and sleep in one pass",
+      href: "/dashboard",
+      icon: Leaf,
+    },
+    {
+      done: data.mealsToday > 0,
+      label: "Log your first meal",
+      detail: "Type food or use a photo — no scale needed",
+      href: "/dashboard/nutrition/log",
+      icon: Utensils,
+    },
+    {
+      done: data.habitsTotal > 0 || (data.waterMl ?? 0) > 0,
+      label: "Add a habit or drink water",
+      detail: "Tiny daily wins build streaks fast",
+      href: data.habitsTotal > 0 ? "/dashboard/hydration" : "/dashboard/habits",
+      icon: Target,
+    },
+  ];
+  const guideDone = gettingStarted.filter((s) => s.done).length;
 
   const rhythm = [
     {
@@ -83,10 +128,13 @@ export function TodayView({ data }: { data: TodayData }) {
     },
     {
       icon: Utensils,
-      label: data.mealsToday > 0 ? `${data.mealsToday} meal${data.mealsToday === 1 ? "" : "s"} logged` : "Log a meal",
+      label:
+        data.mealsToday > 0
+          ? `${data.mealsToday} meal${data.mealsToday === 1 ? "" : "s"} logged`
+          : "Log a meal",
       time: "Nutrition",
       done: data.mealsToday > 0,
-      href: "/dashboard/nutrition",
+      href: "/dashboard/nutrition/log",
     },
     {
       icon: Target,
@@ -100,14 +148,7 @@ export function TodayView({ data }: { data: TodayData }) {
       label: data.workoutsToday > 0 ? "Movement logged" : "Move for 20 minutes",
       time: "Movement",
       done: data.workoutsToday > 0,
-      href: "/dashboard/movement",
-    },
-    {
-      icon: Weight,
-      label: data.gymToday > 0 ? "Gym session done" : "Train at the gym",
-      time: "Gym",
-      done: data.gymToday > 0,
-      href: "/dashboard/gym",
+      href: "/dashboard/movement/log",
     },
   ] as const;
 
@@ -133,6 +174,84 @@ export function TodayView({ data }: { data: TodayData }) {
         highlight="alive."
         action={<QuickCheckin />}
       />
+      <p className="-mt-5 mb-6 max-w-xl text-sm text-muted">
+        {data.isNewMember
+          ? "New here? Start with a 30-second check-in — then log one meal."
+          : "Your daily hub for check-ins, meals, movement, and gentle nudges."}
+      </p>
+
+      {!data.profileComplete && (
+        <Link
+          href="/dashboard/settings"
+          className="mb-4 flex items-start gap-3 rounded-2xl border border-accent/20 bg-accent-soft/60 px-4 py-3 transition hover:border-accent/40"
+        >
+          <UserRound size={16} className="mt-0.5 shrink-0 text-accent" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-ink">Finish your health profile</p>
+            <p className="mt-0.5 text-xs text-muted">
+              Add height & weight so AI tips, gym plans, and goals fit you better.
+            </p>
+          </div>
+          <ChevronRight size={16} className="mt-0.5 shrink-0 text-accent" />
+        </Link>
+      )}
+
+      {showGuide && (
+        <Panel
+          title="Getting started"
+          className="mb-4"
+          right={
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black text-accent">
+                {guideDone}/{gettingStarted.length}
+              </span>
+              <button
+                type="button"
+                aria-label="Dismiss getting started"
+                className="rounded-lg p-1 text-muted hover:bg-ink/5 hover:text-ink"
+                onClick={() => {
+                  window.localStorage.setItem(DISMISS_KEY, "1");
+                  setShowGuide(false);
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          }
+        >
+          <p className="mb-4 text-sm text-muted">
+            Four small steps to unlock personalized coaching. You can skip anytime.
+          </p>
+          <div className="space-y-3">
+            {gettingStarted.map((step) => (
+              <Link
+                key={step.label}
+                href={step.href}
+                className="flex items-center gap-3 rounded-2xl border border-ink/6 bg-surface/50 px-3 py-3 transition hover:border-accent/25"
+              >
+                <span
+                  className={`grid size-9 place-items-center rounded-xl ${
+                    step.done ? "bg-accent-soft text-accent" : "bg-surface-soft text-muted"
+                  }`}
+                >
+                  <step.icon size={16} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm font-bold ${step.done ? "text-muted line-through" : ""}`}>
+                    {step.label}
+                  </p>
+                  <p className="text-[11px] text-muted">{step.detail}</p>
+                </div>
+                <span
+                  className={`size-4 rounded-full border-2 ${
+                    step.done ? "border-accent bg-accent" : "border-[#cfdcd4]"
+                  }`}
+                />
+              </Link>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link
@@ -157,8 +276,14 @@ export function TodayView({ data }: { data: TodayData }) {
         >
           <p className="text-[10px] font-black tracking-wider text-muted">HABITS</p>
           <p className="mt-1 text-lg font-black">
-            {data.habitsDoneToday}/{data.habitsTotal}
-            <span className="ml-2 text-xs font-bold text-muted">{data.habitStreak}d streak</span>
+            {data.habitsTotal === 0 ? (
+              <span className="text-base">Add a habit</span>
+            ) : (
+              <>
+                {data.habitsDoneToday}/{data.habitsTotal}
+                <span className="ml-2 text-xs font-bold text-muted">{data.habitStreak}d streak</span>
+              </>
+            )}
           </p>
         </Link>
         <Link
@@ -195,7 +320,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 className="bg-accent-soft text-accent-deep"
               />
               <StatCard
-                label="Mindful spend"
+                label="Spent today"
                 value={`₱${data.spendToday.toLocaleString()}`}
                 detail={data.spendToday === 0 ? "No spend logged today" : "Logged today"}
                 icon={WalletCards}
@@ -208,7 +333,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 title="Energy this week"
                 right={
                   <span className="rounded-full bg-accent-soft px-3 py-1.5 text-xs font-bold text-accent">
-                    {data.hasCheckin ? "Live" : "Sample-ready"}
+                    {data.hasCheckin ? "Live" : "Waiting on check-in"}
                   </span>
                 }
               >
@@ -239,10 +364,7 @@ export function TodayView({ data }: { data: TodayData }) {
 
         <div className="space-y-4">
           <Stagger>
-            <Panel
-              title="Today’s rhythm"
-              right={<ListChecks size={18} className="text-muted" />}
-            >
+            <Panel title="Today’s rhythm" right={<ListChecks size={18} className="text-muted" />}>
               <div className="space-y-5">
                 {rhythm.map((item) => (
                   <Link key={item.label} href={item.href} className="flex items-center gap-3">
@@ -254,7 +376,9 @@ export function TodayView({ data }: { data: TodayData }) {
                       <item.icon size={16} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-sm font-bold ${item.done ? "text-muted line-through" : ""}`}>
+                      <p
+                        className={`truncate text-sm font-bold ${item.done ? "text-muted line-through" : ""}`}
+                      >
                         {item.label}
                       </p>
                       <p className="mt-0.5 text-[10px] text-muted">{item.time}</p>
@@ -286,7 +410,7 @@ export function TodayView({ data }: { data: TodayData }) {
               <p className="mt-2 text-sm font-bold leading-6 text-muted">{suggestion}</p>
               {data.latestInsight?.score != null && (
                 <p className="mt-3 text-[11px] font-bold text-muted">
-                  Decision score {data.latestInsight.score}/100
+                  Helpfulness {data.latestInsight.score}/100
                 </p>
               )}
               <Link

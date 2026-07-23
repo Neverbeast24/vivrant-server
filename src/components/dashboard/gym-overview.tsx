@@ -31,6 +31,9 @@ export function GymOverview({
   return (
     <>
       <PageHeader eyebrow="GYM" title="Train with" highlight="intention." />
+      <p className="-mt-5 mb-4 max-w-xl text-sm text-muted">
+        New to the gym? Start with bodyweight demos, then try machines when you feel ready.
+      </p>
       <ModuleSubNav items={gymSubNav} />
       <GymOverviewStats
         sessionCount={sessionCount}
@@ -61,7 +64,7 @@ export function GymOverview({
             },
             {
               href: "/dashboard/gym/plans",
-              title: "AI plans",
+              title: "Training plans",
               detail: `${planCount} saved program${planCount === 1 ? "" : "s"}`,
               icon: Sparkles,
             },
@@ -80,20 +83,26 @@ export function GymOverview({
           ))}
         </div>
       </Stagger>
-      <Panel title="Quick start" className="mt-4" right={<Weight size={16} className="text-accent" />}>
+      <Panel title="Quick start for beginners" className="mt-4" right={<Weight size={16} className="text-accent" />}>
         <p className="text-sm leading-6 text-muted">
-          Pick a machine circuit, watch a short demo, then log the session. Use AI picks when you want a
-          guided machine list matched to your profile.
+          1) Watch a short beginner demo · 2) Log a light session · 3) Ask AI for machine picks when you
+          want a guided circuit.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/dashboard/gym/machines" className="inline-flex">
-            <PrimaryButton className="rounded-full px-5">Browse machines</PrimaryButton>
+          <Link href="/dashboard/gym/demos" className="inline-flex">
+            <PrimaryButton className="rounded-full px-5">Watch beginner demos</PrimaryButton>
           </Link>
           <Link
             href="/dashboard/gym/sessions"
             className="inline-flex items-center rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
           >
-            Log a session
+            Log a short session
+          </Link>
+          <Link
+            href="/dashboard/gym/machines"
+            className="inline-flex items-center rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
+          >
+            Browse machines later
           </Link>
         </div>
       </Panel>

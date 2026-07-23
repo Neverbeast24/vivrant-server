@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import {
   Apple,
   Camera,
@@ -599,7 +600,15 @@ export function NutritionView({
                   }
                 />
               ))}
-              {!meals.length && <EmptyState>No meals logged yet.</EmptyState>}
+              {!meals.length && (
+                <EmptyState>
+                  No meals yet.{" "}
+                  <Link href="/dashboard/nutrition/log" className="font-black text-accent underline-offset-2 hover:underline">
+                    Log your first meal
+                  </Link>{" "}
+                  — type food or use a photo. No scale needed.
+                </EmptyState>
+              )}
             </div>
           </Panel>
         </Stagger>

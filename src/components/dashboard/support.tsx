@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import { Bug, LifeBuoy, MessageSquarePlus } from "lucide-react";
 import { submitSupportTicket } from "@/app/dashboard/support/actions";
 import {
@@ -48,10 +49,32 @@ export function SupportView({ tickets }: { tickets: SupportTicket[] }) {
   return (
     <>
       <PageHeader
-        eyebrow="SUPPORT"
-        title="Report a"
-        highlight="bug or ask for help."
+        eyebrow="HELP"
+        title="Questions,"
+        highlight="bugs, and feedback."
       />
+
+      <Panel title="New here?" className="mb-4" right={<LifeBuoy size={16} className="text-accent" />}>
+        <p className="mb-3 text-sm text-muted">
+          Start with these — you do not need a ticket for ordinary setup questions.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { href: "/dashboard", label: "Today checklist" },
+            { href: "/dashboard/settings", label: "Health profile" },
+            { href: "/dashboard/nutrition/log", label: "Log a meal" },
+            { href: "/dashboard/ai", label: "Ask VIVRΛNT" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-full border border-ink/10 bg-surface/70 px-3 py-1.5 text-[11px] font-black text-muted transition hover:border-accent/30 hover:text-accent"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </Panel>
 
       <Panel
         title="Submit a ticket"

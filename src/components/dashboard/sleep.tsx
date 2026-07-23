@@ -133,7 +133,11 @@ export function SleepView({
         </Panel>
 
         <Panel title="Recent nights">
-          {chart.length ? <Bars data={chart} /> : <EmptyState>No sleep logged yet.</EmptyState>}
+          {chart.length ? <Bars data={chart} /> : (
+            <EmptyState>
+              No sleep logged yet. Enter last night’s hours on the left — aim for 7–9 hours when you can.
+            </EmptyState>
+          )}
           {tip && (
             <div className="mt-4 rounded-2xl border border-ink/8 bg-surface/60 p-4">
               <p className="text-sm font-black">{tip.title}</p>
