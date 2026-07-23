@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const isSuperAdmin = ownProfile?.role === "super_admin";
   const isStaff = ownProfile?.role === "admin" || isSuperAdmin;
 
-  const [meals, workouts, gym, goals, history, groceries, pantry, expenses, insights, profiles] =
+  const [meals, workouts, gym, goals, history, groceries, pantry, expenses, insights, journal, habits, reminders, profiles] =
     await Promise.all([
       supabase
         .from("nutrition_logs")
@@ -76,6 +76,21 @@ export async function GET(request: NextRequest) {
         .from("ai_recommendations")
         .select("id, title, body, user_id")
         .or(`title.ilike.${pattern},body.ilike.${pattern}`)
+        .limit(5),
+      supabase
+        .from("journal_entries")
+        .select("id, title, entry_date, user_id")
+        .or(`title.ilike.${pattern},body.ilike.${pattern}`)
+        .limit(5),
+      supabase
+        .from("habits")
+        .select("id, title, category, user_id")
+        .ilike("title", pattern)
+        .limit(5),
+      supabase
+        .from("user_reminders")
+        .select("id, title, kind, user_id")
+        .ilike("title", pattern)
         .limit(5),
       isStaff
         ? supabase
@@ -157,6 +172,27 @@ export async function GET(request: NextRequest) {
       detail: row.body,
       href: row.user_id === user.id ? "/dashboard/ai" : memberHref,
       category: "AI insights",
+    })),
+    ...(journal.data ?? []).map((row) => ({
+      id: `journal-${row.id}`,
+      label: row.title,
+      detail: `Journal · ${row.entry_date}`,
+      href: row.user_id === user.id ? "/dashboard/journal" : memberHref,
+      category: "Journal",
+    })),
+    ...(habits.data ?? []).map((row) => ({
+      id: `habit-${row.id}`,
+      label: row.title,
+      detail: `${row.category} habit`,
+      href: row.user_id === user.id ? "/dashboard/habits" : memberHref,
+      category: "Habits",
+    })),
+    ...(reminders.data ?? []).map((row) => ({
+      id: `reminder-${row.id}`,
+      label: row.title,
+      detail: `${row.kind} reminder`,
+      href: row.user_id === user.id ? "/dashboard/ai/reminders" : memberHref,
+      category: "Reminders",
     })),
   ];
 

@@ -43,7 +43,11 @@ export async function logMeal(formData: FormData) {
     metadata: { meal_name: parsed.data.meal_name, meal_type: parsed.data.meal_type },
   });
 
+  const { syncGoalProgress } = await import("@/lib/goals/progress");
+  await syncGoalProgress(supabase, user.id);
+
   revalidatePath("/dashboard/nutrition");
+  revalidatePath("/dashboard/settings/goals");
   return { ok: true, message: "Meal logged." };
 }
 
@@ -110,9 +114,13 @@ export async function addWaterIntake(formData: FormData) {
     metadata: { amount_ml: parsed.data.amount_ml, water_ml: nextWater },
   });
 
+  const { syncGoalProgress } = await import("@/lib/goals/progress");
+  await syncGoalProgress(supabase, user.id);
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/nutrition");
   revalidatePath("/dashboard/nutrition/log");
+  revalidatePath("/dashboard/hydration");
   return {
     ok: true,
     message:

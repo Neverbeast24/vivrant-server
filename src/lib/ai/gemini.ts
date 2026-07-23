@@ -2,6 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   catalogHintForPrompt,
   estimateGroceryPrice,
+  estimateGroceryPriceDetailed,
+  suggestGroceryCategory,
 } from "@/lib/groceries/ph-price-catalog";
 
 export type InsightPayload = {
@@ -39,6 +41,17 @@ export type GroceryPlan = {
   items: GroceryPlanItem[];
   estimated_total: number;
   budget_note: string;
+};
+
+export type GroceryCostEstimate = {
+  name: string;
+  category: string;
+  quantity: string;
+  estimated_price: number;
+  low: number;
+  high: number;
+  store_tip: string;
+  confidence: "high" | "medium" | "low";
 };
 
 export type WorkoutSuggestion = {
@@ -324,6 +337,107 @@ ${context}`,
   };
 }
 
+export async function estimateGroceryCostWithAi(input: {
+  name: string;
+  quantity?: string;
+  category?: string;
+  context?: string;
+}): Promise<GroceryCostEstimate> {
+  const fallback = estimateGroceryPriceDetailed(
+    input.name,
+    input.quantity,
+    input.category,
+  );
+  const name = input.name.slice(0, 120);
+  const quantity = (input.quantity ?? "1").slice(0, 40);
+  const suggested = input.category && input.category !== "other"
+    ? input.category
+    : suggestGroceryCategory(name);
+
+  try {
+    const parsed = await generateJson<Partial<GroceryCostEstimate>>(
+      `You are a Philippine grocery pricing assistant (wet market + SM/Robinsons/Puregold mid-market).
+Estimate a REALISTIC peso cost for ONE shopping-list line item for ${new Date().toLocaleString("en-PH", { month: "long", year: "numeric", timeZone: "Asia/Manila" })}.
+
+Item: ${name}
+Quantity: ${quantity}
+Hint category: ${suggested}
+
+Rules:
+- estimated_price = typical mid supermarket total for that quantity (integer PHP)
+- low = wet-market / promo floor; high = premium chain ceiling
+- category MUST be one of: produce, protein, dairy, grains, pantry, snacks, drinks, household, other
+  (hotdog/longganisa/tocino/bacon = protein; oatside/milk = dairy; never put meat in produce)
+- store_tip: 1 short sentence (where to buy cheaper, unit size tip)
+- confidence: high if common PH SKU, medium if brand-ambiguous, low if vague
+
+Return JSON only:
+{ "name", "category", "quantity", "estimated_price", "low", "high", "store_tip", "confidence" }
+
+${catalogHintForPrompt()}
+${input.context ? `\nUSER CONTEXT:\n${input.context}` : ""}`,
+    );
+
+    const categoryRaw = String(parsed.category ?? suggested);
+    const allowed = new Set([
+      "produce",
+      "protein",
+      "dairy",
+      "grains",
+      "pantry",
+      "snacks",
+      "drinks",
+      "household",
+      "other",
+    ]);
+    const category = allowed.has(categoryRaw) ? categoryRaw : suggested;
+    const aiMid = Number(parsed.estimated_price);
+    const aiLow = Number(parsed.low);
+    const aiHigh = Number(parsed.high);
+    const catalogMid = estimateGroceryPrice(name, quantity, category);
+    // Blend AI with catalog so wild hallucinations get pulled toward PH market.
+    const estimated_price =
+      Number.isFinite(aiMid) && aiMid > 0
+        ? Math.round(aiMid * 0.65 + catalogMid * 0.35)
+        : catalogMid;
+    const low =
+      Number.isFinite(aiLow) && aiLow > 0
+        ? Math.min(estimated_price, Math.round(aiLow))
+        : Math.round(estimated_price * 0.88);
+    const high =
+      Number.isFinite(aiHigh) && aiHigh > 0
+        ? Math.max(estimated_price, Math.round(aiHigh))
+        : Math.round(estimated_price * 1.18);
+    const confRaw = String(parsed.confidence ?? "medium").toLowerCase();
+    const confidence =
+      confRaw === "high" || confRaw === "low" ? confRaw : "medium";
+
+    return {
+      name: String(parsed.name ?? name).slice(0, 120),
+      category,
+      quantity: String(parsed.quantity ?? quantity).slice(0, 40),
+      estimated_price: Math.max(5, estimated_price),
+      low: Math.max(5, low),
+      high: Math.max(low + 5, high),
+      store_tip: String(
+        parsed.store_tip ?? fallback.market_note,
+      ).slice(0, 200),
+      confidence,
+    };
+  } catch {
+    return {
+      name,
+      category: fallback.category,
+      quantity,
+      estimated_price: fallback.estimated_price,
+      low: fallback.low,
+      high: fallback.high,
+      store_tip: fallback.market_note,
+      confidence: "medium",
+    };
+  }
+}
+
 export async function planGroceriesFromPantry(context: string): Promise<GroceryPlan> {
   const parsed = await generateJson<
     Partial<GroceryPlan> & { items?: Partial<GroceryPlanItem>[] }
@@ -351,13 +465,19 @@ ${context}`);
   const items = Array.isArray(parsed.items) ? parsed.items : [];
   const normalized = items.slice(0, 12).map((item) => {
     const name = String(item?.name ?? "Item").slice(0, 80);
-    const category = String(item?.category ?? "other");
     const quantity = String(item?.quantity ?? "1").slice(0, 40);
+    const rawCat = String(item?.category ?? "other");
+    const guessed = suggestGroceryCategory(name);
+    const category =
+      rawCat === "other" || (rawCat === "produce" && guessed !== "produce")
+        ? guessed
+        : rawCat;
     const aiPrice = Number(item?.estimated_price);
+    const catalog = estimateGroceryPrice(name, quantity, category);
     const estimated_price =
       Number.isFinite(aiPrice) && aiPrice > 0
-        ? Math.round(aiPrice)
-        : estimateGroceryPrice(name, quantity, category);
+        ? Math.round(aiPrice * 0.65 + catalog * 0.35)
+        : catalog;
     return { name, category, quantity, estimated_price };
   });
 
@@ -643,6 +763,73 @@ ${context}`);
   return {
     title: String(parsed.title ?? "A gentle nudge").slice(0, 60),
     body: String(parsed.body ?? "Take one small step toward your vitality goal today.").slice(0, 180),
+    score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 70)))),
+  };
+}
+
+export async function generateSleepCoach(context: string): Promise<InsightPayload> {
+  const parsed = await generateJson<Partial<InsightPayload>>(`You are VIVRΛNT sleep coach. Give ONE calm bedtime recommendation.
+Return JSON: "title" (max 6 words), "body" (2 short sentences), "score" (0-100 rest readiness).
+USER CONTEXT:
+${context}`);
+  return {
+    title: String(parsed.title ?? "Protect your wind-down").slice(0, 60),
+    body: String(
+      parsed.body ?? "Dim screens 30 minutes before bed and keep a consistent wake time.",
+    ).slice(0, 320),
+    score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 70)))),
+  };
+}
+
+export async function generateMindfulnessTip(context: string): Promise<InsightPayload> {
+  const parsed = await generateJson<Partial<InsightPayload>>(`You are VIVRΛNT mindfulness coach. Suggest ONE short calm practice for today.
+Return JSON: "title" (max 6 words), "body" (2 calm sentences), "score" (0-100).
+USER CONTEXT:
+${context}`);
+  return {
+    title: String(parsed.title ?? "A quiet reset").slice(0, 60),
+    body: String(
+      parsed.body ?? "Take three slow breaths and notice one thing you can hear right now.",
+    ).slice(0, 320),
+    score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 72)))),
+  };
+}
+
+export async function generateHabitSuggestions(
+  context: string,
+): Promise<{ habits: { title: string; category: string; reason: string }[] }> {
+  const parsed = await generateJson<{
+    habits?: { title?: string; category?: string; reason?: string }[];
+  }>(`Suggest 3 small daily habits for this member.
+Return JSON: "habits": array of { "title", "category" (nutrition|movement|sleep|mindfulness|hydration|other), "reason" }.
+USER CONTEXT:
+${context}`);
+  const rows = Array.isArray(parsed.habits) ? parsed.habits : [];
+  return {
+    habits: rows.slice(0, 3).map((h) => ({
+      title: String(h?.title ?? "One small habit").slice(0, 80),
+      category: String(h?.category ?? "other").slice(0, 40),
+      reason: String(h?.reason ?? "Supports your current goals.").slice(0, 180),
+    })),
+  };
+}
+
+export async function generateJournalReflection(
+  context: string,
+  entries: string,
+): Promise<InsightPayload> {
+  const parsed = await generateJson<Partial<InsightPayload>>(`Reflect on these journal entries with warmth. No diagnosis.
+Return JSON: "title", "body" (3 short sentences), "score" (0-100 emotional clarity).
+USER CONTEXT:
+${context}
+
+RECENT ENTRIES:
+${entries}`);
+  return {
+    title: String(parsed.title ?? "What your notes whisper").slice(0, 80),
+    body: String(
+      parsed.body ?? "Your entries show care for yourself. Keep noticing small wins.",
+    ).slice(0, 500),
     score: Math.min(100, Math.max(0, Math.round(Number(parsed.score ?? 70)))),
   };
 }

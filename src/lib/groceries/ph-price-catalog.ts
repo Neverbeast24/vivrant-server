@@ -41,135 +41,191 @@ export function getPhCalendarDate(now: Date = new Date()): PhCalendarDate {
 
 /** Typical Philippine supermarket / wet-market unit prices in PHP (base year). */
 export const PH_GROCERY_PRICE_CATALOG: Record<string, number> = {
-  // produce
-  apple: 25,
-  apples: 150,
-  banana: 15,
-  bananas: 80,
-  mango: 40,
-  tomato: 20,
-  tomatoes: 80,
-  onion: 25,
-  onions: 70,
-  garlic: 20,
-  potato: 30,
-  potatoes: 90,
-  carrot: 25,
-  carrots: 70,
+  // produce — per piece / small pack unless noted
+  apple: 35,
+  apples: 180,
+  "green apple": 40,
+  "green apples": 200,
+  banana: 8,
+  bananas: 70,
+  "saba banana": 60,
+  mango: 45,
+  "carabao mango": 55,
+  tomato: 15,
+  tomatoes: 70,
+  onion: 20,
+  onions: 65,
+  "red onion": 70,
+  garlic: 25,
+  potato: 25,
+  potatoes: 85,
+  carrot: 20,
+  carrots: 65,
   cabbage: 45,
-  lettuce: 50,
-  cucumber: 25,
-  eggplant: 30,
-  kangkong: 20,
-  pechay: 25,
-  calamansi: 30,
-  lemon: 35,
-  orange: 30,
-  papaya: 50,
-  ginger: 25,
-  "green beans": 60,
-  "bell pepper": 40,
-  spinach: 40,
-  broccoli: 90,
-  avocado: 60,
+  lettuce: 55,
+  cucumber: 20,
+  eggplant: 25,
+  kangkong: 15,
+  pechay: 20,
+  calamansi: 25,
+  lemon: 40,
+  orange: 35,
+  papaya: 55,
+  ginger: 30,
+  "green beans": 55,
+  "bell pepper": 45,
+  spinach: 45,
+  broccoli: 95,
+  avocado: 70,
+  corn: 25,
+  squash: 40,
+  "sayote": 30,
+  "ampalaya": 35,
+  "sitaw": 40,
+  "okoy": 50,
 
-  // protein
-  chicken: 180,
-  "chicken breast": 220,
-  "chicken thighs": 190,
-  egg: 10,
-  eggs: 90,
-  "egg tray": 280,
-  tuna: 45,
-  "canned tuna": 45,
-  bangus: 160,
-  tilapia: 140,
-  galunggong: 120,
-  pork: 280,
-  "ground pork": 260,
-  beef: 380,
-  "ground beef": 350,
+  // protein — per pack / kg-ish retail unit
+  chicken: 185,
+  "whole chicken": 220,
+  "chicken breast": 230,
+  "chicken thighs": 195,
+  "chicken wings": 210,
+  egg: 9,
+  eggs: 85,
+  "egg tray": 270,
+  tuna: 48,
+  "canned tuna": 48,
+  bangus: 165,
+  tilapia: 145,
+  galunggong: 125,
+  pork: 290,
+  "ground pork": 270,
+  "pork belly": 340,
+  beef: 390,
+  "ground beef": 360,
+  "beef chuck": 380,
   tofu: 35,
   tokwa: 30,
-  "fish fillet": 200,
-  shrimp: 320,
+  "fish fillet": 210,
+  shrimp: 330,
   "sardines can": 28,
+  hotdog: 85,
+  hotdogs: 85,
+  "hot dog": 85,
+  "purefoods hotdog": 95,
+  "tender juicy": 110,
+  longganisa: 120,
+  tocino: 130,
+  bacon: 160,
+  "canned meat": 60,
+  spam: 180,
+  corned: 55,
+  "corned beef": 55,
 
   // dairy
-  milk: 95,
-  "fresh milk": 95,
-  "oat milk": 120,
-  oatside: 110,
-  yogurt: 55,
-  cheese: 90,
-  butter: 85,
-  "evaporated milk": 45,
-  "condensed milk": 50,
+  milk: 98,
+  "fresh milk": 98,
+  "oat milk": 125,
+  oatside: 115,
+  "oatside barista": 130,
+  yogurt: 58,
+  cheese: 95,
+  "cheese singles": 90,
+  butter: 88,
+  "evaporated milk": 48,
+  "condensed milk": 52,
+  "nestle milk": 100,
 
   // grains
-  rice: 60,
-  "rice 1kg": 60,
-  "brown rice": 85,
-  quinoa: 180,
-  oats: 95,
-  bread: 65,
-  "whole wheat bread": 85,
-  pasta: 55,
-  noodles: 20,
+  rice: 58,
+  "rice 1kg": 58,
+  "rice 5kg": 280,
+  "brown rice": 88,
+  quinoa: 185,
+  oats: 98,
+  "quaker oats": 110,
+  bread: 68,
+  pandesal: 35,
+  "whole wheat bread": 88,
+  pasta: 58,
+  noodles: 22,
   "pancit canton": 18,
   "instant noodles": 18,
+  "lucky me": 16,
   flour: 55,
-  "corn flakes": 120,
+  "corn flakes": 125,
 
   // pantry
-  oil: 90,
-  "cooking oil": 90,
-  "olive oil": 220,
-  soy: 35,
-  "soy sauce": 35,
-  vinegar: 30,
-  salt: 20,
-  sugar: 65,
-  "brown sugar": 70,
-  pepper: 35,
-  "tomato sauce": 35,
-  "coconut milk": 45,
-  peanut: 80,
-  "peanut butter": 120,
-  honey: 150,
-  "canned beans": 45,
+  oil: 95,
+  "cooking oil": 95,
+  "olive oil": 230,
+  soy: 38,
+  "soy sauce": 38,
+  vinegar: 32,
+  salt: 22,
+  sugar: 68,
+  "brown sugar": 72,
+  pepper: 38,
+  "tomato sauce": 38,
+  "coconut milk": 48,
+  "gata": 48,
+  peanut: 85,
+  "peanut butter": 125,
+  honey: 155,
+  "canned beans": 48,
   sardines: 28,
-  "luncheon meat": 55,
+  "luncheon meat": 58,
+  mayonnaise: 95,
+  ketchup: 55,
+  "magic sarap": 15,
 
   // snacks
-  crackers: 45,
-  biscuits: 40,
-  nuts: 90,
-  "trail mix": 110,
-  chips: 50,
-  popcorn: 40,
-  "granola bar": 35,
+  crackers: 48,
+  biscuits: 42,
+  nuts: 95,
+  "trail mix": 115,
+  chips: 55,
+  "piattos": 45,
+  popcorn: 42,
+  "granola bar": 38,
+  "skyflakes": 35,
 
   // drinks
-  water: 25,
-  "bottled water": 25,
-  juice: 55,
-  coffee: 180,
-  "instant coffee": 120,
-  tea: 80,
-  "green tea": 90,
-  "coconut water": 45,
-  gatorade: 40,
+  water: 20,
+  "bottled water": 20,
+  juice: 58,
+  "orange juice": 65,
+  coffee: 185,
+  "instant coffee": 125,
+  "nescafe": 130,
+  tea: 85,
+  "green tea": 95,
+  "coconut water": 48,
+  gatorade: 42,
+  coke: 45,
+  "soft drink": 45,
 
   // household
-  soap: 45,
-  "dish soap": 55,
-  shampoo: 120,
-  toothpaste: 85,
-  "laundry detergent": 95,
-  "tissue paper": 55,
-  "paper towel": 60,
+  soap: 48,
+  "dish soap": 58,
+  shampoo: 125,
+  toothpaste: 88,
+  "laundry detergent": 98,
+  "tide": 110,
+  "tissue paper": 58,
+  "paper towel": 65,
+  "bathroom tissue": 75,
 };
+
+/** Staples shown on the market-trend chart (keys in catalog). */
+export const PH_TREND_STAPLES = [
+  "rice",
+  "chicken",
+  "eggs",
+  "milk",
+  "onion",
+  "tomato",
+] as const;
 
 const CATEGORY_DEFAULTS: Record<string, number> = {
   produce: 60,
@@ -269,12 +325,62 @@ function quantityMultiplier(quantity?: string | null) {
   if (!Number.isFinite(numeric) || numeric <= 0) return 1;
   if (/\bkg\b/.test(qtyText) || /\bkilo/.test(qtyText)) return numeric;
   if (/\bg\b/.test(qtyText) && numeric >= 100) return numeric / 1000;
-  if (/dozen|tray/.test(qtyText)) return numeric;
-  if (/pcs?|pieces?|pack|packs|cans?|bottles?/.test(qtyText)) {
-    return numeric <= 3 ? 1 : Math.min(8, 1 + (numeric - 1) * 0.35);
+  if (/dozen/.test(qtyText)) return Math.max(1, numeric) * 12 * 0.08; // ~dozen eggs vs unit egg
+  if (/tray/.test(qtyText)) return Math.max(1, numeric) * 2.8;
+  if (/packs?|cans?|bottles?|sachets?/.test(qtyText)) {
+    return Math.min(12, Math.max(1, numeric));
   }
-  if (numeric > 1 && numeric <= 20) return Math.min(6, 1 + (numeric - 1) * 0.4);
+  if (/pcs?|pieces?|pc\b/.test(qtyText)) {
+    // Catalog unit prices are usually "1 pack / typical buy" — scale gently past 1.
+    if (numeric <= 1) return 1;
+    return Math.min(10, 1 + (numeric - 1) * 0.85);
+  }
+  if (numeric > 1 && numeric <= 24) return Math.min(10, 1 + (numeric - 1) * 0.75);
   return 1;
+}
+
+export type GroceryPriceBreakdown = {
+  estimated_price: number;
+  unit_price: number;
+  low: number;
+  high: number;
+  category: string;
+  market_note: string;
+  store_tier: "wet_market" | "supermarket" | "premium";
+};
+
+/** Guess category from item name (PH grocery heuristics). */
+export function suggestGroceryCategory(name: string): string {
+  const key = normalizeName(name);
+  if (
+    /(hot\s*dog|hotdog|longganisa|tocino|bacon|spam|corned|tender juicy|luncheon|chicken|egg|tuna|bangus|tilapia|galunggong|pork|beef|tofu|tokwa|fish|shrimp|sardine)/.test(
+      key,
+    )
+  ) {
+    return "protein";
+  }
+  if (/(milk|oatside|yogurt|cheese|butter|dairy)/.test(key)) return "dairy";
+  if (/(rice|quinoa|oats|bread|pandesal|pasta|noodle|flour|corn flake)/.test(key)) return "grains";
+  if (
+    /(oil|soy|vinegar|salt|sugar|sauce|coconut|gata|peanut|honey|mayonnaise|ketchup|magic sarap)/.test(
+      key,
+    )
+  ) {
+    return "pantry";
+  }
+  if (/(cracker|biscuit|nut|chip|piattos|popcorn|granola|skyflakes)/.test(key)) return "snacks";
+  if (/(water|juice|coffee|tea|gatorade|coke|softdrink|soft drink|nescafe)/.test(key)) {
+    return "drinks";
+  }
+  if (/(soap|shampoo|toothpaste|detergent|tissue|towel|tide)/.test(key)) return "household";
+  if (
+    /(apple|banana|mango|tomato|onion|garlic|potato|carrot|cabbage|lettuce|cucumber|eggplant|kangkong|pechay|calamansi|lemon|orange|papaya|ginger|spinach|broccoli|avocado|pepper|beans|sayote|ampalaya|sitaw|squash|corn)/.test(
+      key,
+    )
+  ) {
+    return "produce";
+  }
+  return "other";
 }
 
 /** Estimate a line price in PHP using today's Asia/Manila year + month. */
@@ -284,14 +390,70 @@ export function estimateGroceryPrice(
   category?: string | null,
   now: Date = new Date(),
 ): number {
+  return estimateGroceryPriceDetailed(name, quantity, category, now).estimated_price;
+}
+
+/** Full breakdown: mid estimate + wet-market→premium band for charts/UI. */
+export function estimateGroceryPriceDetailed(
+  name: string,
+  quantity?: string | null,
+  category?: string | null,
+  now: Date = new Date(),
+): GroceryPriceBreakdown {
   const ph = getPhCalendarDate(now);
-  const unit = baseUnitPrice(name, category);
-  const adjusted =
-    unit *
+  const resolvedCategory = category && category !== "other" ? category : suggestGroceryCategory(name);
+  const unit = baseUnitPrice(name, resolvedCategory);
+  const market =
     yearInflationFactor(ph.year) *
-    seasonalFactor(name, category, ph.month) *
+    seasonalFactor(name, resolvedCategory, ph.month) *
     quantityMultiplier(quantity);
-  return Math.max(5, Math.round(adjusted));
+  const mid = Math.max(5, Math.round(unit * market));
+  // Wet market ~12% under mid; premium supermarket ~18% over.
+  const low = Math.max(5, Math.round(mid * 0.88));
+  const high = Math.max(low + 5, Math.round(mid * 1.18));
+  return {
+    estimated_price: mid,
+    unit_price: Math.max(5, Math.round(unit * yearInflationFactor(ph.year))),
+    low,
+    high,
+    category: resolvedCategory,
+    market_note: `${ph.monthLabel} PH mid-market (wet→SM/Robinsons band ₱${low}–₱${high})`,
+    store_tier: "supermarket",
+  };
+}
+
+/** Last N months of mid-market unit prices for staple chart. */
+export function buildStaplePriceTrends(
+  months = 6,
+  now: Date = new Date(),
+): { label: string; items: { name: string; price: number }[] }[] {
+  const ph = getPhCalendarDate(now);
+  const series: { label: string; items: { name: string; price: number }[] }[] = [];
+
+  for (let i = months - 1; i >= 0; i--) {
+    let month = ph.month - i;
+    let year = ph.year;
+    while (month <= 0) {
+      month += 12;
+      year -= 1;
+    }
+    const label = new Intl.DateTimeFormat("en-PH", {
+      month: "short",
+      year: "2-digit",
+    }).format(new Date(Date.UTC(year, month - 1, 15)));
+
+    const inflation = yearInflationFactor(year);
+    const items = PH_TREND_STAPLES.map((name) => {
+      const cat = suggestGroceryCategory(name);
+      const price = Math.max(
+        5,
+        Math.round(baseUnitPrice(name, cat) * inflation * seasonalFactor(name, cat, month)),
+      );
+      return { name, price };
+    });
+    series.push({ label, items });
+  }
+  return series;
 }
 
 export function formatPhp(amount: number) {
@@ -302,36 +464,13 @@ export function catalogHintForPrompt(now: Date = new Date()) {
   const ph = getPhCalendarDate(now);
   const inflation = yearInflationFactor(ph.year);
   const samples = Object.entries(PH_GROCERY_PRICE_CATALOG)
-    .slice(0, 40)
+    .slice(0, 55)
     .map(([name, price]) => {
       const live = Math.round(
-        price * inflation * seasonalFactor(name, guessCategory(name), ph.month),
+        price * inflation * seasonalFactor(name, suggestGroceryCategory(name), ph.month),
       );
       return `${name}: ₱${live}`;
     })
     .join(", ");
-  return `PH market prices for ${ph.monthLabel} (Asia/Manila). Adjust for quantity; stay inside remaining monthly budget. Live samples: ${samples}`;
-}
-
-function guessCategory(name: string) {
-  const key = normalizeName(name);
-  if (
-    /(apple|banana|mango|tomato|onion|garlic|potato|carrot|cabbage|lettuce|cucumber|eggplant|kangkong|pechay|calamansi|lemon|orange|papaya|ginger|spinach|broccoli|avocado|pepper|beans)/.test(
-      key,
-    )
-  ) {
-    return "produce";
-  }
-  if (/(chicken|egg|tuna|bangus|tilapia|pork|beef|tofu|tokwa|fish|shrimp|sardine)/.test(key)) {
-    return "protein";
-  }
-  if (/(milk|oatside|yogurt|cheese|butter)/.test(key)) return "dairy";
-  if (/(rice|quinoa|oats|bread|pasta|noodle|flour|corn)/.test(key)) return "grains";
-  if (/(oil|soy|vinegar|salt|sugar|pepper|sauce|coconut|peanut|honey|bean|luncheon)/.test(key)) {
-    return "pantry";
-  }
-  if (/(cracker|biscuit|nut|chip|popcorn|granola)/.test(key)) return "snacks";
-  if (/(water|juice|coffee|tea|gatorade)/.test(key)) return "drinks";
-  if (/(soap|shampoo|toothpaste|detergent|tissue|towel)/.test(key)) return "household";
-  return "other";
+  return `PH market prices for ${ph.monthLabel} (Asia/Manila). Give mid-supermarket estimates; wet market is ~10–15% lower, premium chains ~15–20% higher. Adjust for quantity (kg, pack, pcs). Prefer correct categories (hotdog/longganisa = protein, not produce). Live samples: ${samples}`;
 }

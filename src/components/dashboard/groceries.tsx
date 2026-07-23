@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Package, ShoppingBasket, Sparkles, Trash2, Wallet } from "lucide-react";
+import {
+  Check,
+  Package,
+  ShoppingBasket,
+  Sparkles,
+  Trash2,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import {
   addGroceryItem,
   clearCompletedGroceries,
@@ -11,20 +19,26 @@ import {
 } from "@/app/dashboard/groceries/actions";
 import {
   addPlanItemsToList,
+  estimateItemCostWithAi,
   generateSmartGroceryPlan,
 } from "@/app/dashboard/groceries/ai-actions";
 import {
+  Bars,
   EmptyState,
   FormField,
   PageHeader,
   Panel,
   PrimaryButton,
+  Progress,
   Stagger,
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
-import { formatPhp } from "@/lib/groceries/ph-price-catalog";
+import {
+  formatPhp,
+  suggestGroceryCategory,
+} from "@/lib/groceries/ph-price-catalog";
 import { toast } from "sonner";
 
 type GroceryItem = {
@@ -34,6 +48,8 @@ type GroceryItem = {
   category: string | null;
   is_checked: boolean;
   estimated_price: number | null;
+  price_low?: number | null;
+  price_high?: number | null;
 };
 
 type Plan = {
@@ -45,35 +61,58 @@ type Plan = {
   budget_note: string;
 };
 
-const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
-  produce: { label: "Fruits & vegetables", emoji: "🥬" },
-  protein: { label: "Meat & protein", emoji: "🍗" },
-  dairy: { label: "Dairy & eggs", emoji: "🥛" },
-  grains: { label: "Grains & bread", emoji: "🍞" },
-  pantry: { label: "Pantry staples", emoji: "🫙" },
-  snacks: { label: "Snacks", emoji: "🍿" },
-  drinks: { label: "Drinks", emoji: "🧃" },
-  household: { label: "Household", emoji: "🧼" },
-  other: { label: "Other", emoji: "🛒" },
+type StapleTrend = {
+  label: string;
+  items: { name: string; price: number }[];
+};
+
+const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
+  produce: { label: "Fruits & vegetables", emoji: "🥬", color: "from-accent to-accent-deep" },
+  protein: { label: "Meat & protein", emoji: "🍗", color: "from-ember to-[#c45c3a]" },
+  dairy: { label: "Dairy & eggs", emoji: "🥛", color: "from-[#6ba3c9] to-[#3d6f94]" },
+  grains: { label: "Grains & bread", emoji: "🍞", color: "from-[#c9a06b] to-[#8a6a3d]" },
+  pantry: { label: "Pantry staples", emoji: "🫙", color: "from-[#8a8a6b] to-[#5c5c3d]" },
+  snacks: { label: "Snacks", emoji: "🍿", color: "from-[#d4a05c] to-[#a66b2e]" },
+  drinks: { label: "Drinks", emoji: "🧃", color: "from-[#5cb8d4] to-[#2e7a94]" },
+  household: { label: "Household", emoji: "🧼", color: "from-[#8a9ab0] to-[#4d5c70]" },
+  other: { label: "Other", emoji: "🛒", color: "from-ink/40 to-ink/60" },
 };
 
 const CATEGORY_ORDER = Object.keys(CATEGORY_META);
+const STAPLE_COLORS: Record<string, string> = {
+  rice: "#0e7c66",
+  chicken: "#c45c3a",
+  eggs: "#c9a06b",
+  milk: "#6ba3c9",
+  onion: "#8a6a3d",
+  tomato: "#c45c5c",
+};
 
 export function GroceriesView({
   items,
   monthlyBudget = 2000,
   spentThisMonth = 0,
   priceMonthLabel,
+  stapleTrends = [],
 }: {
   items: GroceryItem[];
   monthlyBudget?: number;
   spentThisMonth?: number;
   priceMonthLabel?: string;
+  stapleTrends?: StapleTrend[];
 }) {
   const { pending, submit } = useModuleAction(addGroceryItem);
   const [togglePending, startToggle] = useTransition();
   const [planning, startPlan] = useTransition();
+  const [estimating, startEstimate] = useTransition();
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [category, setCategory] = useState("produce");
+  const [price, setPrice] = useState("");
+  const [aiTip, setAiTip] = useState<string | null>(null);
+  const [trendStaple, setTrendStaple] = useState("rice");
+
   const done = items.filter((item) => item.is_checked).length;
   const openItems = items.filter((item) => !item.is_checked);
   const listTotal = items.reduce((sum, item) => sum + Number(item.estimated_price ?? 0), 0);
@@ -87,6 +126,54 @@ export function GroceriesView({
     ...CATEGORY_META[key],
     items: items.filter((item) => (item.category ?? "other") === key),
   })).filter((group) => group.items.length > 0);
+
+  const categorySpend = useMemo(() => {
+    return CATEGORY_ORDER.map((key) => {
+      const total = items
+        .filter((item) => (item.category ?? "other") === key)
+        .reduce((sum, item) => sum + Number(item.estimated_price ?? 0), 0);
+      return { key, total, ...CATEGORY_META[key] };
+    })
+      .filter((row) => row.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [items]);
+
+  const maxCategorySpend = Math.max(1, ...categorySpend.map((row) => row.total));
+
+  const categoryBars: [string, number][] = useMemo(() => {
+    if (!categorySpend.length) return [];
+    return categorySpend.slice(0, 6).map((row) => [
+      row.emoji,
+      Math.max(8, Math.round((row.total / maxCategorySpend) * 100)),
+    ]);
+  }, [categorySpend, maxCategorySpend]);
+
+  const trendBars: [string, number][] = useMemo(() => {
+    if (!stapleTrends.length) return [];
+    const prices = stapleTrends.map(
+      (month) => month.items.find((i) => i.name === trendStaple)?.price ?? 0,
+    );
+    const max = Math.max(1, ...prices);
+    return stapleTrends.map((month, index) => [
+      month.label,
+      Math.max(8, Math.round((prices[index] / max) * 100)),
+    ]);
+  }, [stapleTrends, trendStaple]);
+
+  const trendPrices = stapleTrends.map(
+    (month) => month.items.find((i) => i.name === trendStaple)?.price ?? 0,
+  );
+  const latestTrend = trendPrices[trendPrices.length - 1] ?? 0;
+  const firstTrend = trendPrices[0] ?? 0;
+  const trendDelta = firstTrend > 0 ? Math.round(((latestTrend - firstTrend) / firstTrend) * 100) : 0;
+
+  function onNameChange(value: string) {
+    setName(value);
+    const guessed = suggestGroceryCategory(value);
+    if (value.trim().length >= 3) {
+      setCategory(guessed);
+    }
+  }
 
   function toggle(id: number, checked: boolean) {
     startToggle(async () => {
@@ -116,6 +203,31 @@ export function GroceriesView({
     });
   }
 
+  function runAiCost() {
+    if (!name.trim()) {
+      toast.error("Enter an item name first.");
+      return;
+    }
+    startEstimate(async () => {
+      const result = await estimateItemCostWithAi({
+        name: name.trim(),
+        quantity: quantity || undefined,
+        category,
+      });
+      if (!result.ok || !("estimate" in result) || !result.estimate) {
+        toast.error(result.message);
+        return;
+      }
+      const { estimate } = result;
+      setCategory(estimate.category);
+      setPrice(String(estimate.estimated_price));
+      setAiTip(
+        `${estimate.store_tip} · band ${formatPhp(estimate.low)}–${formatPhp(estimate.high)} · ${estimate.confidence} confidence`,
+      );
+      toast.success(result.message);
+    });
+  }
+
   return (
     <>
       <PageHeader
@@ -123,10 +235,23 @@ export function GroceriesView({
         title="Shop"
         highlight="smarter."
         action={
-          <PrimaryButton disabled={planning} onClick={buildPlan} className="rounded-full px-5">
-            <Sparkles size={14} className="shrink-0" />
-            {planning ? "Planning…" : "AI meal + list"}
-          </PrimaryButton>
+          <div className="flex flex-wrap gap-2">
+            <PrimaryButton
+              disabled={togglePending}
+              onClick={() => runAction(async () => {
+                const { restockPantryFromChecked } = await import("@/app/dashboard/groceries/actions");
+                return restockPantryFromChecked();
+              })}
+              className="rounded-full px-5"
+            >
+              <Package size={14} className="shrink-0" />
+              Restock pantry
+            </PrimaryButton>
+            <PrimaryButton disabled={planning} onClick={buildPlan} className="rounded-full px-5">
+              <Sparkles size={14} className="shrink-0" />
+              {planning ? "Planning…" : "AI meal + list"}
+            </PrimaryButton>
+          </div>
         }
       />
 
@@ -170,10 +295,22 @@ export function GroceriesView({
       <Panel title="Add grocery item" className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <FormField label="Grocery item" hint="Required" className="sm:col-span-2 lg:col-span-2">
-            <input name="name" required placeholder="e.g. Green apples" className={fieldClass} />
+            <input
+              name="name"
+              required
+              value={name}
+              onChange={(e) => onNameChange(e.target.value)}
+              placeholder="e.g. Purefoods hotdog"
+              className={fieldClass}
+            />
           </FormField>
-          <FormField label="Category">
-            <select name="category" defaultValue="produce" className={fieldClass}>
+          <FormField label="Category" hint="Auto from name">
+            <select
+              name="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className={fieldClass}
+            >
               {CATEGORY_ORDER.map((key) => (
                 <option key={key} value={key}>
                   {CATEGORY_META[key].emoji} {CATEGORY_META[key].label}
@@ -182,22 +319,46 @@ export function GroceriesView({
             </select>
           </FormField>
           <FormField label="Quantity">
-            <input name="quantity" placeholder="e.g. 6 pcs" className={fieldClass} />
+            <input
+              name="quantity"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="e.g. 1 pack / 500g"
+              className={fieldClass}
+            />
           </FormField>
-          <FormField label="Est. price (₱)" hint="Optional — PH market auto">
+          <FormField label="Est. price (₱)" hint="AI or catalog">
             <input
               name="estimated_price"
               type="number"
               min={0}
               step={1}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
               placeholder="Auto"
               className={fieldClass}
             />
           </FormField>
-          <PrimaryButton disabled={pending} className="sm:col-span-2 lg:col-span-5">
-            {pending ? "Saving…" : "Add item"}
-          </PrimaryButton>
+          <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-5 sm:flex-row">
+            <PrimaryButton
+              type="button"
+              disabled={estimating || !name.trim()}
+              onClick={runAiCost}
+              className="sm:flex-1 bg-accent text-white hover:bg-accent-deep"
+            >
+              <Sparkles size={14} className="shrink-0" />
+              {estimating ? "Pricing…" : "AI cost estimate"}
+            </PrimaryButton>
+            <PrimaryButton disabled={pending} className="sm:flex-1">
+              {pending ? "Saving…" : "Add item"}
+            </PrimaryButton>
+          </div>
         </form>
+        {aiTip && (
+          <p className="mt-3 rounded-xl border border-accent/20 bg-accent-soft/60 px-3 py-2 text-xs font-semibold leading-5 text-accent-deep">
+            {aiTip}
+          </p>
+        )}
       </Panel>
 
       <Stagger>
@@ -236,12 +397,86 @@ export function GroceriesView({
             value={formatPhp(Math.abs(roomForList))}
             detail={overBudget ? "Trim items or raise budget" : "After open list estimate"}
             icon={Wallet}
-            className={
-              overBudget
-                ? "bg-ember/15 text-ember"
-                : "bg-surface text-ink"
-            }
+            className={overBudget ? "bg-ember/15 text-ember" : "bg-surface text-ink"}
           />
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <Panel
+            title="Spend by category"
+            right={
+              <span className="text-[10px] font-bold text-muted">
+                List total {formatPhp(listTotal)}
+              </span>
+            }
+          >
+            {categoryBars.length ? (
+              <>
+                <Bars data={categoryBars} />
+                <div className="mt-5 space-y-3">
+                  {categorySpend.map((row) => (
+                    <div key={row.key}>
+                      <div className="mb-1.5 flex justify-between text-xs font-bold">
+                        <span>
+                          {row.emoji} {row.label}
+                        </span>
+                        <span className="text-muted">{formatPhp(row.total)}</span>
+                      </div>
+                      <Progress value={(row.total / maxCategorySpend) * 100} className={row.color} />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <EmptyState>Add items to see category spend.</EmptyState>
+            )}
+          </Panel>
+
+          <Panel
+            title="PH staple price trend"
+            right={<TrendingUp size={16} className="text-accent" />}
+          >
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {Object.keys(STAPLE_COLORS).map((staple) => (
+                <button
+                  key={staple}
+                  type="button"
+                  onClick={() => setTrendStaple(staple)}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-black capitalize transition ${
+                    trendStaple === staple
+                      ? "bg-inverse text-inverse-fg"
+                      : "bg-surface text-muted hover:bg-ink/8"
+                  }`}
+                >
+                  {staple}
+                </button>
+              ))}
+            </div>
+            {trendBars.length ? (
+              <>
+                <Bars
+                  data={trendBars}
+                  activeIndex={trendBars.length - 1}
+                />
+                <p className="mt-4 text-xs font-semibold leading-5 text-muted">
+                  Mid-market {trendStaple} now ~{formatPhp(latestTrend)}
+                  {trendDelta !== 0 && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <span className={trendDelta > 0 ? "text-ember" : "text-accent"}>
+                        {trendDelta > 0 ? "+" : ""}
+                        {trendDelta}% vs 6 mo ago
+                      </span>
+                    </>
+                  )}{" "}
+                  · seasonality + ~4%/yr PH food inflation
+                </p>
+              </>
+            ) : (
+              <EmptyState>Trend data unavailable.</EmptyState>
+            )}
+          </Panel>
         </div>
 
         <Panel
@@ -306,8 +541,15 @@ export function GroceriesView({
                           <span className="shrink-0 text-xs font-semibold text-muted">
                             {item.quantity ?? "—"}
                           </span>
-                          <span className="w-16 shrink-0 text-right text-xs font-black text-ink">
-                            {formatPhp(Number(item.estimated_price ?? 0))}
+                          <span className="w-20 shrink-0 text-right">
+                            <span className="block text-xs font-black text-ink">
+                              {formatPhp(Number(item.estimated_price ?? 0))}
+                            </span>
+                            {item.price_low != null && item.price_high != null && (
+                              <span className="block text-[9px] font-semibold text-muted">
+                                {formatPhp(item.price_low)}–{formatPhp(item.price_high)}
+                              </span>
+                            )}
                           </span>
                           <button
                             type="button"
@@ -337,7 +579,7 @@ export function GroceriesView({
           <p className="mt-4 text-sm font-bold leading-6">
             {overBudget
               ? `Your open list is about ${formatPhp(Math.abs(roomForList))} over remaining budget — swap premium picks or trim quantities before you shop.`
-              : `Estimates update for ${priceMonthLabel ?? "this PH month"} (Asia/Manila) with seasonal market shifts and yearly inflation, then stay inside your ${formatPhp(monthlyBudget)} monthly health budget.`}
+              : `Prices use ${priceMonthLabel ?? "this PH month"} mid-market bands (wet market → supermarket), auto-categorize items, and AI costing when you tap estimate — all inside your ${formatPhp(monthlyBudget)} monthly health budget.`}
           </p>
         </motion.article>
       </Stagger>

@@ -39,7 +39,13 @@ export async function logWorkout(formData: FormData) {
     metadata: { title: parsed.data.title, activity_type: parsed.data.activity_type },
   });
 
+  const { syncGoalProgress } = await import("@/lib/goals/progress");
+  const { syncChallengeProgress } = await import("@/lib/challenges/progress");
+  await syncGoalProgress(supabase, user.id);
+  await syncChallengeProgress(supabase, user.id);
+
   revalidatePath("/dashboard/movement");
+  revalidatePath("/dashboard/habits/challenges");
   return { ok: true, message: "Workout logged." };
 }
 

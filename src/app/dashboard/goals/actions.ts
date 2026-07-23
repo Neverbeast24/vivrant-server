@@ -73,6 +73,47 @@ export async function updateGoalStatus(id: number, status: "active" | "completed
   return { ok: true, message: `Goal marked ${status}.` };
 }
 
+export async function updateGoalProgress(id: number, currentValue: number) {
+  const parsed = z.number().min(0).max(1_000_000).safeParse(currentValue);
+  if (!parsed.success) return { ok: false, message: "Enter a valid progress value." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { error } = await supabase
+    .from("health_goals")
+    .update({ current_value: parsed.data })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings/goals");
+  return { ok: true, message: "Progress updated." };
+}
+
+export async function refreshGoalProgress() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { syncGoalProgress } = await import("@/lib/goals/progress");
+  const result = await syncGoalProgress(supabase, user.id);
+  revalidatePath("/dashboard/settings/goals");
+  revalidatePath("/dashboard");
+  return {
+    ok: true,
+    message: result.updated
+      ? `Synced ${result.updated} goal${result.updated === 1 ? "" : "s"} from your logs.`
+      : "Goals already match your latest logs.",
+  };
+}
+
 export async function deleteHealthGoal(id: number) {
   const supabase = await createClient();
   const {

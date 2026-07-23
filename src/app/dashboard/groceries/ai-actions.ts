@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { buildUserContext } from "@/lib/ai/context";
-import { planGroceriesFromPantry } from "@/lib/ai/gemini";
-import { estimateGroceryPrice } from "@/lib/groceries/ph-price-catalog";
+import {
+  estimateGroceryCostWithAi,
+  planGroceriesFromPantry,
+} from "@/lib/ai/gemini";
+import {
+  estimateGroceryPrice,
+  suggestGroceryCategory,
+} from "@/lib/groceries/ph-price-catalog";
 import { createClient } from "@/lib/supabase/server";
 
 const categories = new Set([
@@ -36,6 +42,40 @@ export async function generateSmartGroceryPlan() {
   }
 }
 
+export async function estimateItemCostWithAi(input: {
+  name: string;
+  quantity?: string;
+  category?: string;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not signed in." };
+
+  const name = input.name?.trim();
+  if (!name) return { ok: false as const, message: "Enter an item name first." };
+
+  try {
+    const context = await buildUserContext(user.id);
+    const estimate = await estimateGroceryCostWithAi({
+      name,
+      quantity: input.quantity,
+      category: input.category,
+      context,
+    });
+    return {
+      ok: true as const,
+      message: `AI cost ~₱${estimate.estimated_price} (${estimate.low}–${estimate.high}).`,
+      estimate,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not estimate cost right now.";
+    return { ok: false as const, message };
+  }
+}
+
 export async function addPlanItemsToList(
   items: { name: string; category: string; quantity: string; estimated_price?: number }[],
 ) {
@@ -47,9 +87,15 @@ export async function addPlanItemsToList(
   if (!items.length) return { ok: false, message: "No items to add." };
 
   const rows = items.slice(0, 12).map((item) => {
-    const category = categories.has(item.category) ? item.category : "other";
-    const quantity = item.quantity.slice(0, 40);
     const name = item.name.slice(0, 120);
+    const quantity = item.quantity.slice(0, 40);
+    const guessed = suggestGroceryCategory(name);
+    const category = !categories.has(item.category)
+      ? guessed
+      : item.category === "other" ||
+          (item.category === "produce" && guessed !== "produce" && guessed !== "other")
+        ? guessed
+        : item.category;
     const price =
       item.estimated_price != null && item.estimated_price > 0
         ? Math.round(item.estimated_price)

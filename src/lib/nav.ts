@@ -2,15 +2,19 @@ import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   Apple,
+  BookOpen,
   BrainCircuit,
   ClipboardList,
   Cog,
+  Droplets,
   Dumbbell,
   FileBarChart,
+  Flame,
   HeartPulse,
   History,
   LayoutDashboard,
   LifeBuoy,
+  Moon,
   PackagePlus,
   Play,
   Refrigerator,
@@ -22,6 +26,7 @@ import {
   UserRound,
   WalletCards,
   Weight,
+  Wind,
 } from "lucide-react";
 
 export type NavChild = {
@@ -79,6 +84,40 @@ export const dashboardNav: NavItem[] = [
     ],
   },
   {
+    icon: Moon,
+    label: "Sleep",
+    caption: "Rest and recovery",
+    href: "/dashboard/sleep",
+  },
+  {
+    icon: Droplets,
+    label: "Hydration",
+    caption: "Water goals",
+    href: "/dashboard/hydration",
+  },
+  {
+    icon: Wind,
+    label: "Mindfulness",
+    caption: "Mood and calm",
+    href: "/dashboard/mindfulness",
+  },
+  {
+    icon: BookOpen,
+    label: "Journal",
+    caption: "Notes and reflection",
+    href: "/dashboard/journal",
+  },
+  {
+    icon: Flame,
+    label: "Habits",
+    caption: "Streaks and challenges",
+    href: "/dashboard/habits",
+    children: [
+      { label: "Overview", href: "/dashboard/habits", caption: "Daily habits" },
+      { label: "Challenges", href: "/dashboard/habits/challenges", caption: "Weekly targets" },
+    ],
+  },
+  {
     icon: ShoppingBasket,
     label: "Groceries",
     caption: "Smart shopping list",
@@ -123,7 +162,7 @@ export const dashboardNav: NavItem[] = [
     children: [
       { label: "Ask VIVRΛNT", href: "/dashboard/ai", caption: "Chat coach" },
       { label: "Insights", href: "/dashboard/ai/insights", caption: "Saved recommendations" },
-      { label: "Reminders", href: "/dashboard/ai/reminders", caption: "Nudge drafts" },
+      { label: "Reminders", href: "/dashboard/ai/reminders", caption: "Scheduled nudges" },
     ],
   },
   {
@@ -185,6 +224,7 @@ export function pathMatches(pathname: string, href: string) {
   if (href === "/dashboard/spending") return pathname === "/dashboard/spending";
   if (href === "/dashboard/ai") return pathname === "/dashboard/ai";
   if (href === "/dashboard/settings") return pathname === "/dashboard/settings";
+  if (href === "/dashboard/habits") return pathname === "/dashboard/habits";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

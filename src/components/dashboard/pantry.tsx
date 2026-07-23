@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import {
   addPantryItem,
+  addLowStockToGroceryList,
   deletePantryItem,
   updatePantryStock,
 } from "@/app/dashboard/pantry/actions";
@@ -412,13 +413,23 @@ function PantryLowStock({ items }: { items: PantryItem[] }) {
         title="Running"
         highlight="low."
         action={
-          <Link
-            href="/dashboard/groceries"
-            className="inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-panel/70 px-4 py-2.5 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
-          >
-            <ShoppingBasket size={13} />
-            Groceries
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <PrimaryButton
+              disabled={updating}
+              className="rounded-full"
+              onClick={() => runAction(addLowStockToGroceryList)}
+            >
+              <ShoppingBasket size={13} />
+              Add to groceries
+            </PrimaryButton>
+            <Link
+              href="/dashboard/groceries"
+              className="inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-panel/70 px-4 py-2.5 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
+            >
+              <ShoppingBasket size={13} />
+              Groceries
+            </Link>
+          </div>
         }
       />
       <ModuleSubNav items={pantrySubNav} />

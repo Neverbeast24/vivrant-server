@@ -20,7 +20,7 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
   const since = dayStartIso();
   const weekStart = weekStartDate();
 
-  const [profile, checkins, meals, workouts, expenses, pantry, groceries, goals, history, gymSessions] =
+  const [profile, checkins, meals, workouts, expenses, pantry, groceries, goals, history, gymSessions, habits, journal, reminders, challenges] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -31,7 +31,7 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
         .maybeSingle(),
       supabase
         .from("daily_checkins")
-        .select("checkin_date, energy, mood, steps, water_ml, sleep_minutes, note")
+        .select("checkin_date, energy, mood, steps, water_ml, sleep_minutes, sleep_quality, note")
         .eq("user_id", targetId)
         .gte("checkin_date", weekStart)
         .order("checkin_date", { ascending: false }),
@@ -84,6 +84,30 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
         .select("title, focus, duration_minutes, calories_burned, logged_at")
         .eq("user_id", targetId)
         .order("logged_at", { ascending: false })
+        .limit(8),
+      supabase
+        .from("habits")
+        .select("id, title, category, frequency, active")
+        .eq("user_id", targetId)
+        .eq("active", true)
+        .limit(20),
+      supabase
+        .from("journal_entries")
+        .select("entry_date, title, mood")
+        .eq("user_id", targetId)
+        .order("entry_date", { ascending: false })
+        .limit(8),
+      supabase
+        .from("user_reminders")
+        .select("title, kind, schedule_time, enabled, next_fire_at")
+        .eq("user_id", targetId)
+        .eq("enabled", true)
+        .limit(12),
+      supabase
+        .from("challenges")
+        .select("title, metric, target_value, starts_on, ends_on")
+        .eq("user_id", targetId)
+        .gte("ends_on", new Date().toISOString().slice(0, 10))
         .limit(8),
     ]);
 
@@ -140,6 +164,10 @@ export async function buildUserContext(userId: string, options?: { memberId?: st
       active_goals: goalsData,
       health_history: history.data ?? [],
       recent_gym_sessions: gymSessions.data ?? [],
+      active_habits: habits.data ?? [],
+      recent_journal: journal.data ?? [],
+      scheduled_reminders: reminders.data ?? [],
+      active_challenges: challenges.data ?? [],
     },
     null,
     2,

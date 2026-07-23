@@ -34,6 +34,10 @@ export type TodayData = {
   stepGoal: number;
   waterGoalMl: number;
   healthFocus: string | null;
+  habitStreak: number;
+  habitsDoneToday: number;
+  habitsTotal: number;
+  nextReminder: { title: string; when: string } | null;
   latestInsight: {
     title: string;
     body: string;
@@ -89,7 +93,7 @@ export function TodayView({ data }: { data: TodayData }) {
       label: (data.waterMl ?? 0) >= 1500 ? "Hydration on track" : "Drink more water",
       time: `${(((data.waterMl ?? 0) / 1000) || 0).toFixed(1)}L`,
       done: (data.waterMl ?? 0) >= data.waterGoalMl,
-      href: "/dashboard",
+      href: "/dashboard/hydration",
     },
     {
       icon: Dumbbell,
@@ -129,6 +133,47 @@ export function TodayView({ data }: { data: TodayData }) {
         highlight="alive."
         action={<QuickCheckin />}
       />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Link
+          href="/dashboard/sleep"
+          className="rounded-2xl border border-ink/8 bg-card/90 px-4 py-3 transition hover:border-accent/30"
+        >
+          <p className="text-[10px] font-black tracking-wider text-muted">SLEEP</p>
+          <p className="mt-1 text-lg font-black">{formatSleep(data.sleepMinutes)}</p>
+        </Link>
+        <Link
+          href="/dashboard/hydration"
+          className="rounded-2xl border border-ink/8 bg-card/90 px-4 py-3 transition hover:border-accent/30"
+        >
+          <p className="text-[10px] font-black tracking-wider text-muted">WATER</p>
+          <p className="mt-1 text-lg font-black">
+            {Math.min(100, Math.round(((data.waterMl ?? 0) / Math.max(data.waterGoalMl, 1)) * 100))}%
+          </p>
+        </Link>
+        <Link
+          href="/dashboard/habits"
+          className="rounded-2xl border border-ink/8 bg-card/90 px-4 py-3 transition hover:border-accent/30"
+        >
+          <p className="text-[10px] font-black tracking-wider text-muted">HABITS</p>
+          <p className="mt-1 text-lg font-black">
+            {data.habitsDoneToday}/{data.habitsTotal}
+            <span className="ml-2 text-xs font-bold text-muted">{data.habitStreak}d streak</span>
+          </p>
+        </Link>
+        <Link
+          href="/dashboard/ai/reminders"
+          className="rounded-2xl border border-ink/8 bg-card/90 px-4 py-3 transition hover:border-accent/30"
+        >
+          <p className="text-[10px] font-black tracking-wider text-muted">NEXT NUDGE</p>
+          <p className="mt-1 truncate text-sm font-black">
+            {data.nextReminder?.title ?? "None scheduled"}
+          </p>
+          {data.nextReminder?.when && (
+            <p className="mt-0.5 text-[11px] text-muted">{data.nextReminder.when}</p>
+          )}
+        </Link>
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.55fr_.85fr]">
         <div className="space-y-4">
@@ -174,6 +219,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
                 className="relative overflow-hidden rounded-[1.6rem] bg-[#16352c] p-6 text-white"
               >
+                <Link href="/dashboard/sleep" className="absolute inset-0 z-10" aria-label="Open sleep" />
                 <div className="absolute -right-10 -top-10 size-36 rounded-full bg-accent/40 blur-3xl" />
                 <div className="relative">
                   <span className="grid size-10 place-items-center rounded-xl bg-panel/10">

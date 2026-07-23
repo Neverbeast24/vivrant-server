@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { SettingsView } from "@/components/dashboard/settings";
 import { requireUser } from "@/lib/auth/roles";
+import { syncGoalProgress } from "@/lib/goals/progress";
 
 export const metadata: Metadata = { title: "Goals" };
 
 export default async function GoalsSettingsPage() {
   const { supabase, user } = await requireUser();
+  await syncGoalProgress(supabase, user.id);
 
   const [settingsRes, profileRes, goalsRes] = await Promise.all([
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),

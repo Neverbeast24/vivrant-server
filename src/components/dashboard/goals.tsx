@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import {
   addHealthGoal,
   deleteHealthGoal,
+  refreshGoalProgress,
+  updateGoalProgress,
   updateGoalStatus,
 } from "@/app/dashboard/goals/actions";
 import { acceptSuggestedGoal, suggestGoalsWithAi } from "@/app/dashboard/goals/ai-actions";
@@ -69,15 +71,25 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
       title="Health goals"
       className="mt-4"
       right={
-        <button
-          type="button"
-          disabled={suggesting}
-          onClick={suggest}
-          className="inline-flex items-center gap-1 text-xs font-black text-accent transition hover:opacity-70"
-        >
-          <Sparkles size={13} />
-          {suggesting ? "Suggesting…" : "AI suggest"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(refreshGoalProgress)}
+            className="inline-flex items-center gap-1 text-xs font-black text-muted transition hover:text-ink"
+          >
+            Sync from logs
+          </button>
+          <button
+            type="button"
+            disabled={suggesting}
+            onClick={suggest}
+            className="inline-flex items-center gap-1 text-xs font-black text-accent transition hover:opacity-70"
+          >
+            <Sparkles size={13} />
+            {suggesting ? "Suggesting…" : "AI suggest"}
+          </button>
+        </div>
       }
     >
       {ideas.length > 0 && (
@@ -183,6 +195,31 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
                   <div className="mt-3">
                     <Progress value={progress} />
                   </div>
+                  <form
+                    className="mt-3 flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.currentTarget);
+                      const value = Number(fd.get("current_value"));
+                      run(() => updateGoalProgress(goal.id, value));
+                    }}
+                  >
+                    <input
+                      name="current_value"
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      defaultValue={goal.current_value}
+                      className={`${fieldClass} max-w-[7rem] py-2`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={busy}
+                      className="rounded-full bg-panel px-3 py-1.5 text-[11px] font-black text-muted hover:text-ink"
+                    >
+                      Set progress
+                    </button>
+                  </form>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   {goal.status !== "completed" && (

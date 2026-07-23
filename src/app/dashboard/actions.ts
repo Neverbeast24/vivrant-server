@@ -66,6 +66,15 @@ export async function saveCheckin(
     metadata: { energy, mood, steps, water_ml: water },
   });
 
+  const { syncGoalProgress } = await import("@/lib/goals/progress");
+  const { syncChallengeProgress } = await import("@/lib/challenges/progress");
+  await syncGoalProgress(supabase, user.id);
+  await syncChallengeProgress(supabase, user.id);
+
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/sleep");
+  revalidatePath("/dashboard/hydration");
+  revalidatePath("/dashboard/mindfulness");
+  revalidatePath("/dashboard/habits/challenges");
   return { ok: true, message: "Check-in saved. Nice work today." };
 }

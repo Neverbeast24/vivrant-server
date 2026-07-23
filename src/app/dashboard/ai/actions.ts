@@ -34,6 +34,7 @@ export async function generateInsight(_formData?: FormData) {
       title: insight.title,
       body: insight.body,
       score: insight.score,
+      source: "insight",
     });
     if (error) return { ok: false, message: error.message };
 
@@ -73,12 +74,28 @@ export async function askVivaQuestion(formData: FormData) {
     return { ok: false, message: "Ask a short question (at least a few words)." };
   }
 
-  const { user } = await requireSignedIn();
+  const { supabase, user } = await requireSignedIn();
   if (!user) return { ok: false, message: "Not signed in." };
 
   try {
     const context = await buildUserContext(user.id);
     const reply = await askViva(context, parsed.data.question);
+
+    await supabase.from("ai_chat_messages").insert([
+      {
+        user_id: user.id,
+        role: "user",
+        content: parsed.data.question,
+      },
+      {
+        user_id: user.id,
+        role: "viva",
+        content: reply.answer,
+        follow_up: reply.follow_up ?? null,
+      },
+    ]);
+
+    revalidatePath("/dashboard/ai");
     return {
       ok: true,
       message: "VIVRΛNT answered.",
@@ -92,6 +109,7 @@ export async function askVivaQuestion(formData: FormData) {
   }
 }
 
+/** @deprecated Prefer draftAndSaveReminder — kept for compatibility. */
 export async function generateReminderDraft(_formData?: FormData) {
   void _formData;
   const { user } = await requireSignedIn();
@@ -102,7 +120,7 @@ export async function generateReminderDraft(_formData?: FormData) {
     const reminder = await draftReminder(context);
     return {
       ok: true,
-      message: "Reminder draft ready. Connect Firebase VAPID to send it as a push.",
+      message: "Reminder draft ready — save it from the Reminders page.",
       reminder,
     };
   } catch (error) {
