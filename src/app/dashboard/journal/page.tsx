@@ -16,7 +16,8 @@ export default async function JournalPage() {
     .select("id, entry_date, title, body, mood, tags")
     .eq("user_id", user.id)
     .order("entry_date", { ascending: false })
-    .limit(40);
+    .order("updated_at", { ascending: false })
+    .limit(80);
 
   return <JournalView entries={data ?? []} />;
 }

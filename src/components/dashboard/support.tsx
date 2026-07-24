@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { Bug, LifeBuoy, MessageSquarePlus } from "lucide-react";
+import { Bug, LifeBuoy, Mail, MessageSquarePlus, Phone } from "lucide-react";
 import { submitSupportTicket } from "@/app/dashboard/support/actions";
 import {
   EmptyState,
@@ -13,6 +13,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { SITE_CONTACT, contactMailto, contactTelHref } from "@/lib/contact";
 
 export type SupportTicket = {
   id: number;
@@ -73,6 +74,29 @@ export function SupportView({ tickets }: { tickets: SupportTicket[] }) {
               {item.label}
             </Link>
           ))}
+        </div>
+      </Panel>
+
+      <Panel title="Plus, Campus, or partnerships" className="mb-4">
+        <p className="text-sm leading-6 text-muted">
+          For paid plans or team access, reach{" "}
+          <span className="font-bold text-ink">{SITE_CONTACT.name}</span> directly.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href={contactMailto("plus")}
+            className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-surface/70 px-3 py-1.5 text-[11px] font-black text-ink transition hover:border-accent/30 hover:text-accent"
+          >
+            <Mail size={12} />
+            {SITE_CONTACT.email}
+          </a>
+          <a
+            href={contactTelHref()}
+            className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-surface/70 px-3 py-1.5 text-[11px] font-black text-ink transition hover:border-accent/30 hover:text-accent"
+          >
+            <Phone size={12} />
+            {SITE_CONTACT.phoneDisplay}
+          </a>
         </div>
       </Panel>
 

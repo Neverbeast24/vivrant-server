@@ -38,14 +38,18 @@ export async function saveJournalEntry(formData: FormData) {
     .filter(Boolean)
     .slice(0, 8);
 
-  const { error } = await supabase.from("journal_entries").insert({
-    user_id: user.id,
-    entry_date: parsed.data.entry_date,
-    title: parsed.data.title,
-    body: parsed.data.body,
-    mood: parsed.data.mood,
-    tags,
-  });
+  const { data: row, error } = await supabase
+    .from("journal_entries")
+    .insert({
+      user_id: user.id,
+      entry_date: parsed.data.entry_date,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      mood: parsed.data.mood,
+      tags,
+    })
+    .select("id")
+    .single();
   if (error) return { ok: false, message: error.message };
 
   if (parsed.data.mood != null) {
@@ -69,7 +73,61 @@ export async function saveJournalEntry(formData: FormData) {
   revalidatePath("/dashboard/journal");
   revalidatePath("/dashboard/mindfulness");
   revalidatePath("/dashboard");
-  return { ok: true, message: "Journal entry saved." };
+  return { ok: true, message: "Note saved.", id: row?.id as number | undefined };
+}
+
+export async function updateJournalEntry(formData: FormData) {
+  const id = Number(formData.get("id"));
+  if (!Number.isFinite(id)) return { ok: false, message: "Invalid note." };
+
+  const parsed = journalSchema.safeParse({
+    entry_date: formData.get("entry_date") || new Date().toISOString().slice(0, 10),
+    title: formData.get("title"),
+    body: formData.get("body"),
+    mood: formData.get("mood") || null,
+    tags: formData.get("tags") || null,
+  });
+  if (!parsed.success) return { ok: false, message: "Add a title and note." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const tags = (parsed.data.tags ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const { error } = await supabase
+    .from("journal_entries")
+    .update({
+      entry_date: parsed.data.entry_date,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      mood: parsed.data.mood,
+      tags,
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  if (parsed.data.mood != null) {
+    await supabase.from("daily_checkins").upsert(
+      {
+        user_id: user.id,
+        checkin_date: parsed.data.entry_date,
+        mood: parsed.data.mood,
+      },
+      { onConflict: "user_id,checkin_date" },
+    );
+  }
+
+  revalidatePath("/dashboard/journal");
+  revalidatePath("/dashboard/mindfulness");
+  return { ok: true, message: "Note updated.", id };
 }
 
 export async function deleteJournalEntry(id: number) {
@@ -85,7 +143,7 @@ export async function deleteJournalEntry(id: number) {
     .eq("user_id", user.id);
   if (error) return { ok: false, message: error.message };
   revalidatePath("/dashboard/journal");
-  return { ok: true, message: "Entry removed." };
+  return { ok: true, message: "Note removed." };
 }
 
 export async function reflectOnJournal() {
