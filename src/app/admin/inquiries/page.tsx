@@ -5,6 +5,7 @@ import { isEmailConfigured } from "@/lib/email/send";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Inquiries" };
+export const dynamic = "force-dynamic";
 
 export default async function AdminInquiriesPage() {
   await requireSuperAdmin();

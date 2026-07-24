@@ -90,6 +90,7 @@ export async function updateSupportTicket(formData: FormData) {
   }
 
   revalidatePath("/admin/tickets");
+  revalidatePath("/admin", "layout");
   revalidatePath("/dashboard/support");
   revalidatePath("/dashboard");
   await writeAuditLog({

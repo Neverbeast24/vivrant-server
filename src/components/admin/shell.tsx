@@ -43,15 +43,21 @@ function activePath(pathname: string, href: string) {
   return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 }
 
+function formatBadge(count: number) {
+  return count > 99 ? "99+" : String(count);
+}
+
 function AdminNavigation({
   pathname,
   collapsed,
   isSuperAdmin,
+  badges = {},
   close,
 }: {
   pathname: string;
   collapsed: boolean;
   isSuperAdmin: boolean;
+  badges?: Record<string, number>;
   close?: () => void;
 }) {
   const nav = isSuperAdmin
@@ -67,24 +73,49 @@ function AdminNavigation({
     <nav className="space-y-1.5">
       {nav.map((item) => {
         const active = activePath(pathname, item.href);
+        const badge = badges[item.href] ?? 0;
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={close}
-            title={collapsed ? item.label : undefined}
+            title={
+              collapsed
+                ? badge > 0
+                  ? `${item.label} (${badge} need attention)`
+                  : item.label
+                : undefined
+            }
             className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
               collapsed ? "justify-center px-2" : "gap-3 px-3"
             } ${active ? "bg-inverse text-inverse-fg shadow-lg" : "text-muted hover:bg-panel/80 hover:text-ink"}`}
           >
-            <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-inverse-fg/10" : "bg-surface-soft group-hover:bg-surface-soft"}`}>
+            <span className={`relative grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-inverse-fg/10" : "bg-surface-soft group-hover:bg-surface-soft"}`}>
               <item.icon size={17} />
+              {collapsed && badge > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff647c] px-1 text-[9px] font-bold leading-none text-white">
+                  {formatBadge(badge)}
+                </span>
+              )}
             </span>
             {!collapsed && (
-              <span className="min-w-0">
-                <span className="block text-sm font-black">{item.label}</span>
-                <span className={`block truncate text-[10px] font-semibold ${active ? "text-inverse-fg/55" : "text-muted"}`}>{item.caption}</span>
-              </span>
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black">{item.label}</span>
+                  <span className={`block truncate text-[10px] font-semibold ${active ? "text-inverse-fg/55" : "text-muted"}`}>{item.caption}</span>
+                </span>
+                {badge > 0 && (
+                  <span
+                    className={`ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
+                      active
+                        ? "bg-[#ff647c] text-white"
+                        : "bg-[#ff647c]/15 text-[#ff647c]"
+                    }`}
+                  >
+                    {formatBadge(badge)}
+                  </span>
+                )}
+              </>
             )}
           </Link>
         );
@@ -99,6 +130,7 @@ export function AdminShell({
   notifications = [],
   pushEnabled = true,
   theme = null,
+  navBadges = {},
   children,
 }: {
   displayName: string;
@@ -106,6 +138,7 @@ export function AdminShell({
   notifications?: NotificationItem[];
   pushEnabled?: boolean;
   theme?: string | null;
+  navBadges?: Record<string, number>;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -156,7 +189,12 @@ export function AdminShell({
             </p>
           )}
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <AdminNavigation pathname={pathname} collapsed={!expanded} isSuperAdmin={isSuperAdmin} />
+            <AdminNavigation
+              pathname={pathname}
+              collapsed={!expanded}
+              isSuperAdmin={isSuperAdmin}
+              badges={navBadges}
+            />
           </div>
           <Link
             href="/dashboard"
@@ -197,7 +235,13 @@ export function AdminShell({
                   <div className="mb-5 flex shrink-0 items-center justify-between"><Brand /><button type="button" onClick={() => setMobileOpen(false)} className="grid size-9 place-items-center rounded-xl bg-surface-soft"><X size={17} /></button></div>
                   <p className="mb-4 shrink-0 text-[10px] font-black tracking-wider text-accent">{isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}</p>
                   <div className="min-h-0 flex-1 overflow-y-auto">
-                    <AdminNavigation pathname={pathname} collapsed={false} isSuperAdmin={isSuperAdmin} close={() => setMobileOpen(false)} />
+                    <AdminNavigation
+                      pathname={pathname}
+                      collapsed={false}
+                      isSuperAdmin={isSuperAdmin}
+                      badges={navBadges}
+                      close={() => setMobileOpen(false)}
+                    />
                   </div>
                   <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="mt-4 shrink-0 rounded-xl border border-ink/8 bg-panel px-3 py-2.5 text-sm font-bold text-muted">
                     ← Back to dashboard

@@ -111,7 +111,7 @@ export async function updateContactInquiry(formData: FormData) {
   });
 
   revalidatePath("/admin/inquiries");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return {
     ok: true,
     message: emailMessage
