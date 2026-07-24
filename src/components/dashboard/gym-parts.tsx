@@ -227,6 +227,18 @@ const muscleFilters = [
   "mobility",
 ] as const;
 
+/** Legs filter also surfaces posterior-chain free-weight demos (RDL, etc.). */
+const legsMuscleGroups = new Set(["legs", "hamstrings", "calves", "inner_thighs"]);
+
+function matchesMuscleFilter(
+  muscleGroup: string,
+  filter: (typeof muscleFilters)[number],
+) {
+  if (filter === "all") return true;
+  if (filter === "legs") return legsMuscleGroups.has(muscleGroup);
+  return muscleGroup === filter;
+}
+
 function muscleFilterLabel(item: (typeof muscleFilters)[number]) {
   if (item === "all") return "All muscles";
   if (item === "lower_back") return "Lower back";
@@ -278,8 +290,7 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
   const freeWeight = exercises.filter((item) => !isMachineGear(item.equipment));
   const filtered = useMemo(
-    () =>
-      muscle === "all" ? freeWeight : freeWeight.filter((item) => item.muscle_group === muscle),
+    () => freeWeight.filter((item) => matchesMuscleFilter(item.muscle_group, muscle)),
     [freeWeight, muscle],
   );
 
@@ -316,7 +327,7 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
   const filtered = useMemo(
     () =>
       machines.filter((item) => {
-        const muscleOk = muscle === "all" || item.muscle_group === muscle;
+        const muscleOk = matchesMuscleFilter(item.muscle_group, muscle);
         const gearOk = gear === "all" || item.equipment === gear;
         return muscleOk && gearOk;
       }),
