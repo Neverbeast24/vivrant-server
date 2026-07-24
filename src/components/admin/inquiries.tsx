@@ -15,6 +15,8 @@ export type AdminInquiry = {
   message: string;
   status: string;
   admin_note: string | null;
+  quoted_price: number | null;
+  price_emailed_at: string | null;
   user_id: string | null;
   created_at: string;
 };
@@ -25,6 +27,12 @@ const STATUS_STYLE: Record<string, string> = {
   resolved: "bg-accent-soft text-accent",
   closed: "bg-surface text-muted",
 };
+
+function defaultPrice(plan: string, existing: number | null) {
+  if (existing != null) return String(existing);
+  if (plan === "plus") return "299";
+  return "";
+}
 
 function InquiryRow({ inquiry }: { inquiry: AdminInquiry }) {
   const [pending, start] = useTransition();
@@ -51,6 +59,12 @@ function InquiryRow({ inquiry }: { inquiry: AdminInquiry }) {
             {new Date(inquiry.created_at).toLocaleString()}
           </p>
           <p className="mt-1 text-xs font-semibold capitalize text-accent">{planLabel}</p>
+          {inquiry.price_emailed_at && (
+            <p className="mt-1 text-[11px] font-semibold text-accent">
+              Price emailed {new Date(inquiry.price_emailed_at).toLocaleString()}
+              {inquiry.quoted_price != null ? ` · ₱${inquiry.quoted_price}` : ""}
+            </p>
+          )}
         </div>
         <span
           className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
@@ -65,7 +79,7 @@ function InquiryRow({ inquiry }: { inquiry: AdminInquiry }) {
         {inquiry.message}
       </p>
 
-      <form action={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+      <form action={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_8rem_auto]">
         <input type="hidden" name="id" value={inquiry.id} />
         <label className="block text-xs font-bold text-muted">
           Status
@@ -86,13 +100,34 @@ function InquiryRow({ inquiry }: { inquiry: AdminInquiry }) {
             name="admin_note"
             maxLength={1000}
             defaultValue={inquiry.admin_note ?? ""}
-            placeholder="Internal note"
+            placeholder="Optional note included in the email"
             className="mt-1.5 w-full rounded-xl border border-ink/10 bg-panel px-3 py-2.5 text-sm font-semibold text-ink"
           />
         </label>
-        <div className="flex items-end">
-          <PrimaryButton type="submit" disabled={pending} className="w-full rounded-full px-5 sm:w-auto">
-            {pending ? "Saving…" : "Update"}
+        <label className="block text-xs font-bold text-muted">
+          Price (₱)
+          <input
+            name="quoted_price"
+            type="number"
+            min={0}
+            step="0.01"
+            defaultValue={defaultPrice(inquiry.plan, inquiry.quoted_price)}
+            placeholder={inquiry.plan === "plus" ? "299" : "Custom"}
+            className="mt-1.5 w-full rounded-xl border border-ink/10 bg-panel px-3 py-2.5 text-sm font-semibold text-ink"
+          />
+        </label>
+        <div className="flex flex-col justify-end gap-2">
+          <label className="flex items-center gap-2 text-xs font-bold text-ink">
+            <input
+              type="checkbox"
+              name="send_price_email"
+              defaultChecked
+              className="size-4 rounded border-ink/20 accent-[var(--accent)]"
+            />
+            Email price
+          </label>
+          <PrimaryButton type="submit" disabled={pending} className="w-full rounded-full px-5">
+            {pending ? "Sending…" : "Update"}
           </PrimaryButton>
         </div>
       </form>
@@ -110,14 +145,15 @@ export function AdminInquiriesView({ inquiries }: { inquiries: AdminInquiry[] })
       <p className="text-[11px] font-black tracking-[0.2em] text-accent">SUPER ADMIN</p>
       <h1 className="font-display mt-2 text-4xl tracking-tight">Contact inquiries</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-        Plus, Campus, and general requests from the public contact form.{" "}
+        Enter a price and keep <span className="font-bold text-ink">Email price</span> checked to
+        automatically email the quote to the requester.{" "}
         <span className="font-bold text-accent">{openCount} active</span> right now.
       </p>
 
       <div className="mt-8 overflow-hidden rounded-[1.6rem] border border-ink/8 bg-card/85 shadow-sm">
         {inquiries.map((inquiry) => (
           <InquiryRow
-            key={`${inquiry.id}-${inquiry.status}-${inquiry.admin_note ?? ""}`}
+            key={`${inquiry.id}-${inquiry.status}-${inquiry.admin_note ?? ""}-${inquiry.quoted_price ?? ""}-${inquiry.price_emailed_at ?? ""}`}
             inquiry={inquiry}
           />
         ))}
