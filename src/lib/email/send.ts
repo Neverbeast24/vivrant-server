@@ -11,9 +11,19 @@ export type PriceQuoteEmailInput = {
   note?: string | null;
 };
 
-/** Read at runtime so Vercel Sensitive env vars are not inlined as empty at build. */
+/** Read at runtime so env is not inlined empty during `next build`. */
 function runtimeEnv(name: string) {
-  return process.env[name]?.trim() || "";
+  // Concatenate so bundlers cannot replace this with a build-time constant.
+  const value = process.env[name.slice(0)] ?? process.env[`${name}`];
+  return value?.trim() || "";
+}
+
+function resendApiKey() {
+  return runtimeEnv(["RESEND", "API_KEY"].join("_"));
+}
+
+function emailFrom() {
+  return runtimeEnv(["EMAIL", "FROM"].join("_"));
 }
 
 function formatPhp(amount: number) {
@@ -25,11 +35,11 @@ function formatPhp(amount: number) {
 }
 
 export function isEmailConfigured() {
-  return Boolean(runtimeEnv("RESEND_API_KEY"));
+  return Boolean(resendApiKey());
 }
 
 export async function sendInquiryPriceEmail(input: PriceQuoteEmailInput) {
-  const apiKey = runtimeEnv("RESEND_API_KEY");
+  const apiKey = resendApiKey();
   if (!apiKey) {
     return {
       ok: false as const,
@@ -38,8 +48,7 @@ export async function sendInquiryPriceEmail(input: PriceQuoteEmailInput) {
     };
   }
 
-  const from =
-    runtimeEnv("EMAIL_FROM") || "VIVRΛNT <onboarding@resend.dev>";
+  const from = emailFrom() || "VIVRΛNT <onboarding@resend.dev>";
   const priceLabel = formatPhp(input.pricePhp);
   const planLabel =
     input.plan === "plus"

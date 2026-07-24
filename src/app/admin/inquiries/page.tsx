@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { AdminInquiriesView, type AdminInquiry } from "@/components/admin/inquiries";
 import { requireSuperAdmin } from "@/lib/auth/roles";
 import { isEmailConfigured } from "@/lib/email/send";
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Inquiries" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminInquiriesPage() {
+  await connection();
   await requireSuperAdmin();
   const supabase = await createClient();
 

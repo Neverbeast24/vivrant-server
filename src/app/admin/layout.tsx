@@ -5,9 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 function countSystemIssues() {
   let issues = 0;
-  if (!process.env.GEMINI_API_KEY?.trim()) issues += 1;
-  if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim()) issues += 1;
-  if (!process.env.RESEND_API_KEY?.trim()) issues += 1;
+  // Dynamic keys avoid build-time empty inlining for server env.
+  if (!(process.env[["GEMINI", "API_KEY"].join("_")] ?? "").trim()) issues += 1;
+  if (!(process.env[["NEXT_PUBLIC", "FIREBASE", "API_KEY"].join("_")] ?? "").trim()) {
+    issues += 1;
+  }
+  if (!(process.env[["RESEND", "API_KEY"].join("_")] ?? "").trim()) issues += 1;
   return issues;
 }
 
