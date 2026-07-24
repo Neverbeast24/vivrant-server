@@ -92,16 +92,16 @@ export default function PricingPage() {
           <h1 className="font-display mt-4 text-5xl leading-tight text-ink sm:text-6xl">
             Start free. Grow when you&apos;re ready.
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-muted">
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-ink/80">
             Plus and Campus are activated through{" "}
             <span className="font-bold text-ink">{SITE_CONTACT.name}</span>.
           </p>
           <p className="mx-auto mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm font-semibold">
-            <a href={contactMailto("general")} className="text-accent hover:underline">
+            <a href={contactMailto("general")} className="font-bold text-accent hover:underline">
               {SITE_CONTACT.email}
             </a>
-            <span className="text-muted">·</span>
-            <a href={contactTelHref()} className="text-accent hover:underline">
+            <span className="text-ink/50">·</span>
+            <a href={contactTelHref()} className="font-bold text-accent hover:underline">
               {SITE_CONTACT.phoneDisplay}
             </a>
           </p>
@@ -113,8 +113,8 @@ export default function PricingPage() {
               key={plan.name}
               className={`relative flex flex-col rounded-[2rem] p-7 sm:p-8 ${
                 plan.highlight
-                  ? "border-2 border-accent bg-accent-soft text-ink shadow-[0_24px_60px_rgba(14,124,102,.28)]"
-                  : "border border-ink/8 bg-card text-ink shadow-[0_16px_40px_rgba(var(--shadow-color),.06)]"
+                  ? "border-2 border-accent bg-[#d7efe6] text-[#14221b] shadow-[0_24px_60px_rgba(14,124,102,.28)] dark:bg-[#0f2f28] dark:text-[#f2faf6]"
+                  : "border border-ink/15 bg-card text-ink shadow-[0_16px_40px_rgba(var(--shadow-color),.06)]"
               }`}
             >
               {plan.highlight && (
@@ -122,24 +122,56 @@ export default function PricingPage() {
                   MOST POPULAR
                 </span>
               )}
-              <p className="text-xs font-black tracking-[0.18em] text-accent">
+              <p
+                className={`text-xs font-black tracking-[0.18em] ${
+                  plan.highlight ? "text-[#0e7c66] dark:text-[#5ee0c8]" : "text-accent"
+                }`}
+              >
                 {plan.name.toUpperCase()}
               </p>
               <div className="mt-4 flex items-end gap-1">
-                <span className="font-display text-5xl tracking-tight text-ink">{plan.price}</span>
-                <span className="mb-2 text-sm font-semibold text-ink/65">{plan.period}</span>
+                <span
+                  className={`font-display text-5xl tracking-tight ${
+                    plan.highlight ? "text-[#14221b] dark:text-[#f2faf6]" : "text-ink"
+                  }`}
+                >
+                  {plan.price}
+                </span>
+                <span
+                  className={`mb-2 text-sm font-semibold ${
+                    plan.highlight ? "text-[#2f453c] dark:text-[#c5ddd3]" : "text-ink/70"
+                  }`}
+                >
+                  {plan.period}
+                </span>
               </div>
-              <p className="mt-3 text-sm leading-6 text-ink/75">{plan.blurb}</p>
+              <p
+                className={`mt-3 text-sm leading-6 ${
+                  plan.highlight ? "text-[#24382f] dark:text-[#d5ebe2]" : "text-ink/80"
+                }`}
+              >
+                {plan.blurb}
+              </p>
               <ul className="mt-8 flex-1 space-y-3">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2.5 text-sm text-ink/85">
-                    <Check size={16} className="mt-0.5 shrink-0 text-accent" />
+                  <li
+                    key={feature}
+                    className={`flex items-start gap-2.5 text-sm ${
+                      plan.highlight ? "text-[#1a2c24] dark:text-[#e8f6f0]" : "text-ink"
+                    }`}
+                  >
+                    <Check
+                      size={16}
+                      className={`mt-0.5 shrink-0 ${
+                        plan.highlight ? "text-[#0e7c66] dark:text-[#5ee0c8]" : "text-accent"
+                      }`}
+                    />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
               {plan.name === "Campus" && (
-                <p className="mt-5 text-xs leading-5 text-ink/70">
+                <p className="mt-5 text-xs leading-5 text-ink/80">
                   {SITE_CONTACT.name}:{" "}
                   <a href={contactMailto("campus")} className="font-bold text-accent hover:underline">
                     {SITE_CONTACT.email}
@@ -154,7 +186,7 @@ export default function PricingPage() {
                 href={plan.href}
                 className={`focus-ring mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-black transition hover:-translate-y-0.5 ${
                   plan.highlight
-                    ? "bg-accent text-white hover:bg-accent-deep"
+                    ? "bg-[#0e7c66] text-white hover:bg-[#0a5c4c] dark:bg-[#3db896] dark:text-[#0f1612] dark:hover:bg-[#5ee0c8]"
                     : "bg-ink text-panel hover:bg-accent hover:text-white"
                 }`}
               >
