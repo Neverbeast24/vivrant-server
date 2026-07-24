@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, HeartPulse, Leaf, ShieldCheck, Sparkles } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { SITE_CONTACT, contactMailto, contactTelHref } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "About",
@@ -125,28 +124,22 @@ export default function AboutPage() {
           <p className="text-xs font-black tracking-[0.2em] text-accent">CONTACT</p>
           <h2 className="font-display mt-3 text-3xl text-ink">Talk to the team</h2>
           <p className="mt-3 max-w-xl text-sm leading-7 text-muted">
-            For Plus activation, Campus / research access, or partnership questions, reach{" "}
-            <span className="font-bold text-ink">{SITE_CONTACT.name}</span> directly.
+            For Plus activation, Campus / research access, or partnership questions, send an
+            inquiry — our team reviews requests in the admin inbox and follows up by email.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href={contactMailto("general")}
-              className="focus-ring inline-flex items-center gap-2 rounded-full bg-inverse px-5 py-3 text-sm font-black text-inverse-fg transition hover:bg-accent"
-            >
-              Email {SITE_CONTACT.email}
-              <ArrowUpRight size={15} />
-            </a>
-            <a
-              href={contactTelHref()}
-              className="focus-ring inline-flex items-center gap-2 rounded-full border border-ink/12 bg-surface px-5 py-3 text-sm font-black text-ink transition hover:border-accent/40 hover:text-accent"
-            >
-              Call {SITE_CONTACT.phoneDisplay}
-            </a>
             <Link
               href="/contact"
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-black text-white transition hover:bg-accent-deep"
+            >
+              Send an inquiry
+              <ArrowUpRight size={15} />
+            </Link>
+            <Link
+              href="/pricing"
               className="focus-ring inline-flex items-center gap-2 rounded-full border border-ink/12 bg-surface px-5 py-3 text-sm font-black text-ink transition hover:border-accent/40"
             >
-              Contact page
+              View pricing
             </Link>
           </div>
         </div>

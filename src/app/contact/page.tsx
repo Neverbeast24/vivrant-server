@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, Mail, MessageCircle, Phone } from "lucide-react";
+import { ArrowUpRight, MessageSquareText, Sparkles } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { InquiryForm } from "@/components/inquiry-form";
-import {
-  SITE_CONTACT,
-  contactMailto,
-  contactSmsHref,
-  contactTelHref,
-  type ContactPlan,
-} from "@/lib/contact";
+import type { ContactPlan } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Request VIVRΛNT Plus or Campus access, or reach Daniella D. Sayson.",
+  description: "Send a VIVRΛNT inquiry for Plus, Campus, or general questions.",
 };
 
 type ContactPageProps = {
@@ -33,19 +27,19 @@ const planCopy: Record<
     eyebrow: "PLUS · ₱299 / MONTH",
     title: "Request Plus access",
     blurb:
-      "Full AI coaching, gym plans, weekly stories, and reminders. Message Daniella to activate Plus — she’ll confirm billing and turn on your account.",
+      "Full AI coaching, gym plans, weekly stories, and reminders. Send an inquiry and our team will follow up to activate Plus.",
   },
   campus: {
     eyebrow: "CAMPUS · TEAMS & RESEARCH",
     title: "Request Campus access",
     blurb:
-      "Admin roles, member activity, and setup help for programs. Email or call with your organization details and we’ll get you onboarded.",
+      "Admin roles, member activity, and setup help for programs. Share your organization details and we’ll get back to you.",
   },
   general: {
     eyebrow: "CONTACT",
     title: "We’re here to help",
     blurb:
-      "Questions about Starter, Plus, Campus, or partnerships? Reach Daniella by email or phone — replies usually come the same day.",
+      "Questions about Starter, Plus, Campus, or partnerships? Send an inquiry and the VIVRΛNT team will reply by email.",
   },
 };
 
@@ -87,75 +81,36 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
         <h1 className="font-display mt-4 max-w-3xl text-5xl leading-[1.05] text-ink sm:text-6xl">
           {copy.title}
         </h1>
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-muted">{copy.blurb}</p>
-        <p className="mt-4 text-sm font-semibold text-ink">
-          {SITE_CONTACT.name} ·{" "}
-          <a href={contactMailto(plan)} className="text-accent hover:underline">
-            {SITE_CONTACT.email}
-          </a>{" "}
-          ·{" "}
-          <a href={contactTelHref()} className="text-accent hover:underline">
-            {SITE_CONTACT.phoneDisplay}
-          </a>
-        </p>
+        <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">{copy.blurb}</p>
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-6 px-5 pb-24 md:px-8 lg:grid-cols-[1.15fr_.85fr]">
         <InquiryForm defaultPlan={plan} />
 
         <div className="space-y-3">
-          <a
-            href={contactMailto(plan)}
-            className="focus-ring flex items-center gap-4 rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)] transition hover:-translate-y-0.5 hover:border-accent/30"
-          >
+          <div className="rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)]">
             <span className="grid size-11 place-items-center rounded-xl bg-accent text-white">
-              <Mail size={18} />
+              <MessageSquareText size={18} />
             </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-ink">Email directly</p>
-              <p className="truncate text-sm text-muted">{SITE_CONTACT.email}</p>
-            </div>
-            <ArrowUpRight size={16} className="shrink-0 text-accent" />
-          </a>
-
-          <a
-            href={contactTelHref()}
-            className="focus-ring flex items-center gap-4 rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)] transition hover:-translate-y-0.5 hover:border-accent/30"
-          >
-            <span className="grid size-11 place-items-center rounded-xl bg-ink text-panel">
-              <Phone size={18} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-ink">Call or save the number</p>
-              <p className="text-sm text-muted">{SITE_CONTACT.phoneDisplay}</p>
-            </div>
-            <ArrowUpRight size={16} className="shrink-0 text-accent" />
-          </a>
-
-          <a
-            href={contactSmsHref()}
-            className="focus-ring flex items-center gap-4 rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)] transition hover:-translate-y-0.5 hover:border-accent/30"
-          >
-            <span className="grid size-11 place-items-center rounded-xl bg-accent-soft text-accent">
-              <MessageCircle size={18} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-ink">Text message</p>
-              <p className="text-sm text-muted">SMS to {SITE_CONTACT.phoneDisplay}</p>
-            </div>
-            <ArrowUpRight size={16} className="shrink-0 text-accent" />
-          </a>
+            <p className="mt-4 text-sm font-black text-ink">How it works</p>
+            <p className="mt-2 text-sm leading-6 text-ink/75">
+              Submit the form, get a confirmation page, and we review your request in the admin
+              inquiry inbox.
+            </p>
+          </div>
 
           <div className="rounded-[1.6rem] border border-ink/8 bg-accent-soft/80 p-6">
-            <p className="text-xs font-black tracking-[0.16em] text-accent">QUICK PATHS</p>
+            <p className="inline-flex items-center gap-2 text-xs font-black tracking-[0.16em] text-accent">
+              <Sparkles size={14} /> QUICK PATHS
+            </p>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/80">
               <li>
-                <span className="font-black text-ink">Starter</span> — free account anytime via
-                Get started.
+                <span className="font-black text-ink">Starter</span> — free account anytime via Get
+                started.
               </li>
               <li>
-                <span className="font-black text-ink">Plus</span> — ₱299/mo, activated after you
-                message Daniella.
+                <span className="font-black text-ink">Plus</span> — ₱299/mo after we confirm your
+                inquiry.
               </li>
               <li>
                 <span className="font-black text-ink">Campus</span> — custom setup for research and

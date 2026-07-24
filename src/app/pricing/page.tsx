@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Check } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { SITE_CONTACT, contactMailto, contactTelHref } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -44,7 +43,7 @@ const plans = [
     name: "Campus",
     price: "Custom",
     period: "research & teams",
-    blurb: `Contact ${SITE_CONTACT.name} for admin roles and program setup.`,
+    blurb: "Send an inquiry for admin roles and program setup.",
     features: [
       "Everything in Plus",
       "Admin & super-admin roles",
@@ -93,17 +92,16 @@ export default function PricingPage() {
             Start free. Grow when you&apos;re ready.
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-ink/80">
-            Plus and Campus are activated through{" "}
-            <span className="font-bold text-ink">{SITE_CONTACT.name}</span>.
+            Plus and Campus are activated after you send an inquiry. The team reviews requests in
+            the admin inbox.
           </p>
-          <p className="mx-auto mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm font-semibold">
-            <a href={contactMailto("general")} className="font-bold text-accent hover:underline">
-              {SITE_CONTACT.email}
-            </a>
-            <span className="text-ink/50">·</span>
-            <a href={contactTelHref()} className="font-bold text-accent hover:underline">
-              {SITE_CONTACT.phoneDisplay}
-            </a>
+          <p className="mx-auto mt-3">
+            <Link
+              href="/contact"
+              className="text-sm font-bold text-accent underline-offset-2 hover:underline"
+            >
+              Open the inquiry form →
+            </Link>
           </p>
         </div>
 
@@ -170,18 +168,6 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              {plan.name === "Campus" && (
-                <p className="mt-5 text-xs leading-5 text-ink/80">
-                  {SITE_CONTACT.name}:{" "}
-                  <a href={contactMailto("campus")} className="font-bold text-accent hover:underline">
-                    {SITE_CONTACT.email}
-                  </a>{" "}
-                  ·{" "}
-                  <a href={contactTelHref()} className="font-bold text-accent hover:underline">
-                    {SITE_CONTACT.phoneDisplay}
-                  </a>
-                </p>
-              )}
               <Link
                 href={plan.href}
                 className={`focus-ring mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-black transition hover:-translate-y-0.5 ${

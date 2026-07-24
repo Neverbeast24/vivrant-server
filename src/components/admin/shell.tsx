@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   Activity,
   ClipboardList,
+  Inbox,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -57,6 +58,7 @@ function AdminNavigation({
     ? [
         ...baseNav.slice(0, 2),
         { href: "/admin/activity", label: "Member activity", caption: "All user logs", icon: Activity },
+        { href: "/admin/inquiries", label: "Inquiries", caption: "Contact requests", icon: Inbox },
         ...baseNav.slice(2),
       ]
     : baseNav;

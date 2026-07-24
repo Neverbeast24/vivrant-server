@@ -35,7 +35,6 @@ import {
   Zap,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { SITE_CONTACT, contactMailto, contactTelHref } from "@/lib/contact";
 
 const insights = [
   {
@@ -845,18 +844,16 @@ export function LandingPage() {
             Start free. Grow when you&apos;re ready.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-ink/80">
-            No credit card for Starter. Plus is ₱299/month — request access and we activate it
-            for you. Campus is arranged directly with{" "}
-            <span className="font-bold text-ink">{SITE_CONTACT.name}</span>.
+            No credit card for Starter. Plus is ₱299/month — request access through Contact and we
+            activate it for you. Campus is arranged for research programs and teams.
           </p>
-          <p className="mx-auto mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm font-semibold text-ink">
-            <a href={contactMailto("campus")} className="font-bold text-accent underline-offset-2 hover:underline">
-              {SITE_CONTACT.email}
-            </a>
-            <span className="text-ink/50">·</span>
-            <a href={contactTelHref()} className="font-bold text-accent underline-offset-2 hover:underline">
-              {SITE_CONTACT.phoneDisplay}
-            </a>
+          <p className="mx-auto mt-3">
+            <Link
+              href="/contact"
+              className="text-sm font-bold text-accent underline-offset-2 hover:underline"
+            >
+              Open the inquiry form →
+            </Link>
           </p>
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
@@ -927,18 +924,6 @@ export function LandingPage() {
                   </li>
                 ))}
               </ul>
-              {plan.name === "Campus" && (
-                <p className="mt-5 text-xs leading-5 text-ink/80">
-                  Contact {SITE_CONTACT.name}:{" "}
-                  <a href={contactMailto("campus")} className="font-bold text-accent hover:underline">
-                    {SITE_CONTACT.email}
-                  </a>{" "}
-                  ·{" "}
-                  <a href={contactTelHref()} className="font-bold text-accent hover:underline">
-                    {SITE_CONTACT.phoneDisplay}
-                  </a>
-                </p>
-              )}
               <Link
                 href={plan.href}
                 className={`focus-ring mt-8 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-black transition hover:-translate-y-0.5 ${

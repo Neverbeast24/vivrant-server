@@ -17,9 +17,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const safeNext = next && next.startsWith("/") ? next : "/dashboard";
   const planNotice =
     plan === "plus"
-      ? "After you create your account, open Contact → Get Plus access (or email saysondaniella.ds24@gmail.com) to activate ₱299/mo Plus."
+      ? "After you create your account, open Contact → Get Plus access to request activation."
       : plan === "campus"
-        ? "Campus access is arranged manually. Email or call Daniella D. Sayson after you sign in."
+        ? "Campus access is arranged through Contact → Campus inquiry after you sign in."
         : null;
 
   return (

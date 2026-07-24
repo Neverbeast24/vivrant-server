@@ -14,6 +14,7 @@ import {
   Dumbbell,
   FileBarChart,
   Flame,
+  Inbox,
   LayoutDashboard,
   LifeBuoy,
   LoaderCircle,
@@ -72,6 +73,7 @@ const adminDestinations = [
   { label: "Admin overview", detail: "Platform health and latest activity", href: "/admin", icon: Shield, keywords: "admin platform overview" },
   { label: "User management", detail: "Roles, access, and account status", href: "/admin/users", icon: Users, keywords: "members accounts role status" },
   { label: "Support tickets", detail: "Review member bugs and requests", href: "/admin/tickets", icon: LifeBuoy, keywords: "tickets bugs support inbox" },
+  { label: "Contact inquiries", detail: "Plus, Campus, and public requests", href: "/admin/inquiries", icon: Inbox, keywords: "inquiry contact plus campus sales" },
   { label: "Member activity", detail: "Search all member module logs", href: "/admin/activity", icon: Activity, keywords: "logs records super admin all users" },
   { label: "Permissions", detail: "Role matrix and access model", href: "/admin/roles", icon: Shield, keywords: "permissions roles matrix" },
   { label: "Audit logs", detail: "Administrative change history", href: "/admin/audit", icon: FileBarChart, keywords: "audit events admin actions" },
@@ -119,7 +121,11 @@ export function CommandSearch({
     const source = [
       ...dashboardDestinations,
       ...(isStaff
-        ? adminDestinations.filter((item) => item.href !== "/admin/activity" || isSuperAdmin)
+        ? adminDestinations.filter(
+            (item) =>
+              (item.href !== "/admin/activity" && item.href !== "/admin/inquiries") ||
+              isSuperAdmin,
+          )
         : []),
     ];
     const normalized = query.trim().toLowerCase();
