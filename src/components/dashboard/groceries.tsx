@@ -68,24 +68,24 @@ type StapleTrend = {
 
 const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
   produce: { label: "Fruits & vegetables", emoji: "🥬", color: "from-accent to-accent-deep" },
-  protein: { label: "Meat & protein", emoji: "🍗", color: "from-ember to-[#c45c3a]" },
-  dairy: { label: "Dairy & eggs", emoji: "🥛", color: "from-[#6ba3c9] to-[#3d6f94]" },
-  grains: { label: "Grains & bread", emoji: "🍞", color: "from-[#c9a06b] to-[#8a6a3d]" },
-  pantry: { label: "Pantry staples", emoji: "🫙", color: "from-[#8a8a6b] to-[#5c5c3d]" },
-  snacks: { label: "Snacks", emoji: "🍿", color: "from-[#d4a05c] to-[#a66b2e]" },
-  drinks: { label: "Drinks", emoji: "🧃", color: "from-[#5cb8d4] to-[#2e7a94]" },
-  household: { label: "Household", emoji: "🧼", color: "from-[#8a9ab0] to-[#4d5c70]" },
+  protein: { label: "Meat & protein", emoji: "🍗", color: "from-accent to-accent-deep" },
+  dairy: { label: "Dairy & eggs", emoji: "🥛", color: "from-cyan to-accent-deep" },
+  grains: { label: "Grains & bread", emoji: "🍞", color: "from-[#6b8f7a] to-accent-deep" },
+  pantry: { label: "Pantry staples", emoji: "🫙", color: "from-[#5c7a6b] to-accent-deep" },
+  snacks: { label: "Snacks", emoji: "🍿", color: "from-cyan to-[#2a7a6e]" },
+  drinks: { label: "Drinks", emoji: "🧃", color: "from-[#4ec4b6] to-accent" },
+  household: { label: "Household", emoji: "🧼", color: "from-[#6b8a9a] to-[#3d5c70]" },
   other: { label: "Other", emoji: "🛒", color: "from-ink/40 to-ink/60" },
 };
 
 const CATEGORY_ORDER = Object.keys(CATEGORY_META);
 const STAPLE_COLORS: Record<string, string> = {
   rice: "#0e7c66",
-  chicken: "#c45c3a",
-  eggs: "#c9a06b",
-  milk: "#6ba3c9",
-  onion: "#8a6a3d",
-  tomato: "#c45c5c",
+  chicken: "#2a9d8f",
+  eggs: "#3db896",
+  milk: "#4ec4b6",
+  onion: "#5a8a6b",
+  tomato: "#0a5c4c",
 };
 
 export function GroceriesView({

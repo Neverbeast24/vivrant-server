@@ -12,7 +12,8 @@
   --accent: #0e7c66;
   --accent-soft: #d7efe6;
   --accent-deep: #0a5c4c;
-  --ember: #c45c2a;
+  /* Kept as an alias of accent — no orange in the botanical palette. */
+  --ember: #0e7c66;
   --cyan: #2a9d8f;
   --paper: #e7eee9;
   --card: #f6faf7;
@@ -30,7 +31,7 @@
   --body-1: #e3ebe5;
   --glow-accent: rgba(14, 124, 102, 0.12);
   --glow-cyan: rgba(42, 157, 143, 0.1);
-  --glow-ember: rgba(196, 92, 42, 0.05);
+  --glow-ember: rgba(14, 124, 102, 0.08);
   --glass-bg: rgba(246, 250, 247, 0.78);
   --glass-border: rgba(255, 255, 255, 0.72);
   --glass-shadow: rgba(20, 34, 27, 0.1);
@@ -47,7 +48,8 @@
   --accent: #3db896;
   --accent-soft: #1a3d34;
   --accent-deep: #2a9d8f;
-  --ember: #e07a4a;
+  /* Alias of accent — keep dark mode on teal, not orange. */
+  --ember: #3db896;
   --cyan: #4ec4b6;
   --paper: #0f1612;
   --card: #17201a;
@@ -64,7 +66,7 @@
   --body-1: #121a16;
   --glow-accent: rgba(61, 184, 150, 0.14);
   --glow-cyan: rgba(78, 196, 182, 0.1);
-  --glow-ember: rgba(224, 122, 74, 0.08);
+  --glow-ember: rgba(61, 184, 150, 0.1);
   --glass-bg: rgba(23, 32, 26, 0.82);
   --glass-border: rgba(232, 240, 235, 0.1);
   --glass-shadow: rgba(0, 0, 0, 0.45);
@@ -183,7 +185,7 @@
 
   .gradient-text {
     color: transparent;
-    background: linear-gradient(115deg, var(--accent-deep) 8%, var(--accent) 42%, var(--cyan) 78%, var(--ember) 100%);
+    background: linear-gradient(115deg, var(--accent-deep) 8%, var(--accent) 48%, var(--cyan) 100%);
     background-clip: text;
     -webkit-background-clip: text;
   }

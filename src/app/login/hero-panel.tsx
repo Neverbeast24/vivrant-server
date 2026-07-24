@@ -370,7 +370,7 @@ export function HeroPanel() {
             className={`absolute bottom-[7%] right-[6%] z-20 max-w-64 rounded-2xl border px-4 py-2.5 text-xs font-bold shadow-[0_18px_45px_rgba(0,0,0,.35)] backdrop-blur-xl ${
               toast.tone === "good"
                 ? "border-emerald-400/30 bg-emerald-950/70 text-emerald-100"
-                : "border-ember/30 bg-[#3a1d12]/80 text-[#ffd2b8]"
+                : "border-accent/30 bg-accent-soft/80 text-accent"
             }`}
           >
             {toast.text}

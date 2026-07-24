@@ -51,7 +51,7 @@ const BMI_SCALE_MAX = 40;
 const BMI_BANDS = [
   { key: "underweight", label: "Underweight", max: 18.5, color: "#5b8def" },
   { key: "normal", label: "Normal", max: 25, color: "#0e7c66" },
-  { key: "overweight", label: "Overweight", max: 30, color: "#c45c2a" },
+  { key: "overweight", label: "Overweight", max: 30, color: "#0a5c4c" },
   { key: "obese", label: "Obese", max: BMI_SCALE_MAX, color: "#b42318" },
 ] as const;
 

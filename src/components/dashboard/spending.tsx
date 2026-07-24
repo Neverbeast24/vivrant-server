@@ -247,7 +247,7 @@ export function SpendingOverview({
           <Progress
             value={stats.usedPct}
             className={
-              stats.overBudget > 0 ? "from-ember to-[#a33f1a]" : "from-accent to-ember"
+              stats.overBudget > 0 ? "from-accent-deep to-accent" : "from-accent to-cyan"
             }
           />
           <div className="mt-4 flex flex-wrap gap-2">

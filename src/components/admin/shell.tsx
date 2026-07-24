@@ -180,7 +180,7 @@ export function AdminShell({
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="focus-ring inline-flex items-center gap-2 rounded-full border border-ember/15 bg-ember/10 px-4 py-2.5 text-xs font-black text-ember shadow-sm transition hover:-translate-y-0.5 hover:border-ember/35 hover:bg-ember/20"
+                  className="focus-ring inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-soft px-4 py-2.5 text-xs font-black text-accent shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/15"
                 >
                   <LogOut size={14} /> <span className="hidden sm:inline">Sign out</span>
                 </button>

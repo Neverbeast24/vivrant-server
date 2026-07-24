@@ -168,7 +168,7 @@ export function DashboardShell({
                 <button
                   type="submit"
                   title="Sign out"
-                  className="focus-ring grid size-9 place-items-center rounded-xl text-muted transition hover:bg-ember/15 hover:text-ember"
+                  className="focus-ring grid size-9 place-items-center rounded-xl text-muted transition hover:bg-accent-soft hover:text-accent"
                 >
                   <LogOut size={16} />
                 </button>
@@ -205,7 +205,7 @@ export function DashboardShell({
                   whileTap={{ scale: 0.96 }}
                   type="submit"
                   title="Sign out"
-                  className="focus-ring group flex items-center gap-2 rounded-full border border-ember/15 bg-ember/10 px-3.5 py-2.5 text-xs font-black text-ember shadow-sm transition hover:border-ember/35 hover:bg-ember/20"
+                  className="focus-ring group flex items-center gap-2 rounded-full border border-accent/20 bg-accent-soft px-3.5 py-2.5 text-xs font-black text-accent shadow-sm transition hover:border-accent/40 hover:bg-accent/15"
                 >
                   <LogOut size={14} />
                   <span className="hidden md:inline">Sign out</span>
@@ -234,7 +234,7 @@ export function DashboardShell({
                         {nickname && <span className="block truncate text-[11px] font-semibold text-muted">@{nickname}</span>}
                       </span>
                       <form action={signOut}>
-                        <button type="submit" title="Sign out" className="focus-ring grid size-9 place-items-center rounded-xl text-muted transition hover:bg-ember/15 hover:text-ember">
+                        <button type="submit" title="Sign out" className="focus-ring grid size-9 place-items-center rounded-xl text-muted transition hover:bg-accent-soft hover:text-accent">
                           <LogOut size={16} />
                         </button>
                       </form>

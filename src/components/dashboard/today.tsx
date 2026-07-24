@@ -324,7 +324,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 value={`₱${data.spendToday.toLocaleString()}`}
                 detail={data.spendToday === 0 ? "No spend logged today" : "Logged today"}
                 icon={WalletCards}
-                className="bg-ember/10 text-ember"
+                className="bg-accent-soft text-accent-deep"
               />
             </div>
 
