@@ -8,21 +8,29 @@ export type SupabaseConfigStatus = {
   message: string | null;
 };
 
-function classifyKey(
+type KeyKind = "publishable" | "secret";
+
+type KeyStatus<K extends KeyKind> = K extends "publishable"
+  ? SupabaseConfigStatus["publishable"]
+  : SupabaseConfigStatus["secret"];
+
+function classifyKey<K extends KeyKind>(
   value: string | undefined,
-  kind: "publishable" | "secret",
-): SupabaseConfigStatus["publishable"] | SupabaseConfigStatus["secret"] {
-  if (!value || !value.trim()) return "missing";
+  kind: K,
+): KeyStatus<K> {
+  if (!value || !value.trim()) return "missing" as KeyStatus<K>;
   const v = value.trim();
   if (/your_key|changeme|placeholder|example|paste_/i.test(v)) {
-    return "placeholder";
+    return "placeholder" as KeyStatus<K>;
   }
-  if (v.startsWith("eyJ")) return "legacy_jwt";
+  if (v.startsWith("eyJ")) return "legacy_jwt" as KeyStatus<K>;
   if (kind === "publishable" && v.startsWith("sb_publishable_")) {
-    return "sb_publishable";
+    return "sb_publishable" as KeyStatus<K>;
   }
-  if (kind === "secret" && v.startsWith("sb_secret_")) return "sb_secret";
-  return "unknown";
+  if (kind === "secret" && v.startsWith("sb_secret_")) {
+    return "sb_secret" as KeyStatus<K>;
+  }
+  return "unknown" as KeyStatus<K>;
 }
 
 /** Safe status for logs / API responses — never includes key material. */
