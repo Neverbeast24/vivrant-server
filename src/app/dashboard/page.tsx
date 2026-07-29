@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { TodayView, type TodayData } from "@/components/dashboard/today";
 import { requireUser } from "@/lib/auth/roles";
-import { processDueReminders } from "@/lib/reminders/process";
 
 export const metadata: Metadata = {
   title: "Today",
@@ -19,7 +18,7 @@ function weekLabels() {
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
-  await processDueReminders({ userId: user.id });
+  // Reminders run via /api/cron/reminders — don't block the Today dashboard.
 
   const today = new Date().toISOString().slice(0, 10);
   const weekAgo = new Date();

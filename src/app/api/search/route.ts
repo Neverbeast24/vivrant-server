@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getMobileSupabase } from "@/lib/mobile/auth";
+
+export const runtime = "nodejs";
 
 type SearchResult = {
   id: string;
@@ -13,10 +15,17 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim().slice(0, 80) ?? "";
   if (query.length < 2) return NextResponse.json({ results: [] });
 
-  const supabase = await createClient();
+  const supabase = await getMobileSupabase(request);
+  if (!supabase) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const accessToken = request.headers
+    .get("authorization")
+    ?.replace(/^Bearer\s+/i, "")
+    .trim();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = accessToken
+    ? await supabase.auth.getUser(accessToken)
+    : await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const safeQuery = query.replace(/[^\p{L}\p{N}\s.'-]/gu, "");

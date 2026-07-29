@@ -32,41 +32,47 @@ export default async function GroceriesPage() {
       .gte("spent_at", ph.monthStart),
   ]);
 
-  // Refresh line estimates + fix obvious miscategorization (e.g. hotdog in produce).
-  const items = await Promise.all(
-    (groceriesRes.data ?? []).map(async (row) => {
-      const guessed = suggestGroceryCategory(row.name);
-      const category =
-        !row.category ||
-        row.category === "other" ||
-        (row.category === "produce" && guessed !== "produce" && guessed !== "other")
-          ? guessed
-          : row.category;
-      const breakdown = estimateGroceryPriceDetailed(row.name, row.quantity, category);
-      const estimated_price = breakdown.estimated_price;
-      const patch: { estimated_price?: number; category?: string } = {};
-      if (Number(row.estimated_price ?? 0) !== estimated_price) {
-        patch.estimated_price = estimated_price;
-      }
-      if (category !== row.category) {
-        patch.category = category;
-      }
-      if (Object.keys(patch).length) {
-        await supabase
-          .from("grocery_items")
-          .update(patch)
-          .eq("id", row.id)
-          .eq("user_id", user.id);
-      }
-      return {
-        ...row,
-        category,
-        estimated_price,
-        price_low: breakdown.low,
-        price_high: breakdown.high,
-      };
-    }),
-  );
+  // Reprice in memory for the response; persist patches without blocking render.
+  const patches: Array<{
+    id: string | number;
+    patch: { estimated_price?: number; category?: string };
+  }> = [];
+  const items = (groceriesRes.data ?? []).map((row) => {
+    const guessed = suggestGroceryCategory(row.name);
+    const category =
+      !row.category ||
+      row.category === "other" ||
+      (row.category === "produce" && guessed !== "produce" && guessed !== "other")
+        ? guessed
+        : row.category;
+    const breakdown = estimateGroceryPriceDetailed(row.name, row.quantity, category);
+    const estimated_price = breakdown.estimated_price;
+    const patch: { estimated_price?: number; category?: string } = {};
+    if (Number(row.estimated_price ?? 0) !== estimated_price) {
+      patch.estimated_price = estimated_price;
+    }
+    if (category !== row.category) {
+      patch.category = category;
+    }
+    if (Object.keys(patch).length) {
+      patches.push({ id: row.id, patch });
+    }
+    return {
+      ...row,
+      category,
+      estimated_price,
+      price_low: breakdown.low,
+      price_high: breakdown.high,
+    };
+  });
+
+  if (patches.length) {
+    void Promise.all(
+      patches.map(({ id, patch }) =>
+        supabase.from("grocery_items").update(patch).eq("id", id).eq("user_id", user.id),
+      ),
+    ).catch(() => null);
+  }
 
   const spentThisMonth = (expensesRes.data ?? []).reduce(
     (sum, row) => sum + Number(row.amount ?? 0),

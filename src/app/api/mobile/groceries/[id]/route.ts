@@ -1,0 +1,104 @@
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
+import { jsonOk, jsonError, readJson, parseIdParam } from "@/lib/mobile/http";
+
+export const runtime = "nodejs";
+
+const patchSchema = z.object({
+  is_checked: z.boolean(),
+});
+
+async function restockPantryFromGrocery(
+  supabase: SupabaseClient,
+  userId: string,
+  item: { name: string; category: string | null },
+) {
+  const name = item.name.trim();
+  if (!name) return;
+  const { data: existing } = await supabase
+    .from("pantry_items")
+    .select("id, stock_level")
+    .eq("user_id", userId)
+    .ilike("name", name)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from("pantry_items")
+      .update({ stock_level: Math.min(100, Math.max(existing.stock_level ?? 0, 80)) })
+      .eq("id", existing.id)
+      .eq("user_id", userId);
+  } else {
+    await supabase.from("pantry_items").insert({
+      user_id: userId,
+      name,
+      category: item.category || "other",
+      stock_level: 80,
+    });
+  }
+}
+
+/** Toggle is_checked; restocks the pantry when an item is checked off. */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireMobileUser(request);
+  if (isMobileAuthError(auth)) return auth;
+  const { supabase, user } = auth;
+
+  const { id: rawId } = await params;
+  const id = parseIdParam(rawId);
+  if (id == null) return jsonError("Invalid item id.", 400);
+
+  const body = await readJson(request);
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) return jsonError("Provide is_checked (boolean).", 400);
+
+  const { data: item } = await supabase
+    .from("grocery_items")
+    .select("id, name, category")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from("grocery_items")
+    .update({ is_checked: parsed.data.is_checked })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("*")
+    .single();
+
+  if (error) return jsonError(error.message, 500);
+
+  if (parsed.data.is_checked && item) {
+    await restockPantryFromGrocery(supabase, user.id, item);
+  }
+
+  return jsonOk({ item: data });
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireMobileUser(request);
+  if (isMobileAuthError(auth)) return auth;
+  const { supabase, user } = auth;
+
+  const { id: rawId } = await params;
+  const id = parseIdParam(rawId);
+  if (id == null) return jsonError("Invalid item id.", 400);
+
+  const { error } = await supabase
+    .from("grocery_items")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return jsonError(error.message, 500);
+
+  return jsonOk();
+}

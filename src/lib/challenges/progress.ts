@@ -99,51 +99,95 @@ export async function syncChallengeProgress(
 
   if (!challenges?.length) return { updated: 0 };
 
-  let updated = 0;
-  for (const challenge of challenges) {
-    const value = await metricValue(
-      supabase,
-      userId,
-      challenge.metric,
-      challenge.starts_on,
-      challenge.ends_on,
+  const { data: existingRows } = await supabase
+    .from("challenge_progress")
+    .select("id, challenge_id, current_value, completed")
+    .eq("user_id", userId)
+    .in(
+      "challenge_id",
+      challenges.map((c) => c.id),
     );
-    const completed = value >= Number(challenge.target_value);
-    const { data: existing } = await supabase
-      .from("challenge_progress")
-      .select("id, current_value, completed")
-      .eq("challenge_id", challenge.id)
-      .eq("user_id", userId)
-      .maybeSingle();
 
+  const existingByChallenge = new Map(
+    (existingRows ?? []).map((row) => [row.challenge_id, row] as const),
+  );
+
+  const values = await Promise.all(
+    challenges.map((challenge) =>
+      metricValue(
+        supabase,
+        userId,
+        challenge.metric,
+        challenge.starts_on,
+        challenge.ends_on,
+      ).then((value) => ({ challenge, value })),
+    ),
+  );
+
+  const inserts: Array<{
+    challenge_id: number;
+    user_id: string;
+    current_value: number;
+    completed: boolean;
+  }> = [];
+  const updates: Array<{
+    id: number;
+    current_value: number;
+    completed: boolean;
+  }> = [];
+  const newlyCompleted: Array<{ title: string }> = [];
+
+  for (const { challenge, value } of values) {
+    const completed = value >= Number(challenge.target_value);
+    const existing = existingByChallenge.get(challenge.id);
     if (!existing) {
-      await supabase.from("challenge_progress").insert({
+      inserts.push({
         challenge_id: challenge.id,
         user_id: userId,
         current_value: value,
         completed,
       });
-      updated += 1;
-    } else {
-      const wasComplete = existing.completed;
-      await supabase
-        .from("challenge_progress")
-        .update({ current_value: value, completed })
-        .eq("id", existing.id);
-      updated += 1;
-      if (completed && !wasComplete) {
-        await notifyUsers({
-          userIds: [userId],
-          title: "Challenge complete",
-          body: `You hit your target for “${challenge.title}”.`,
-          href: "/dashboard/habits/challenges",
-          asUserClient: supabase,
-        });
-      }
+      continue;
+    }
+    if (
+      Number(existing.current_value) === value &&
+      Boolean(existing.completed) === completed
+    ) {
+      continue;
+    }
+    updates.push({ id: existing.id, current_value: value, completed });
+    if (completed && !existing.completed) {
+      newlyCompleted.push({ title: challenge.title });
     }
   }
 
-  return { updated };
+  await Promise.all([
+    inserts.length
+      ? supabase.from("challenge_progress").insert(inserts)
+      : Promise.resolve(),
+    ...updates.map((row) =>
+      supabase
+        .from("challenge_progress")
+        .update({ current_value: row.current_value, completed: row.completed })
+        .eq("id", row.id),
+    ),
+  ]);
+
+  if (newlyCompleted.length) {
+    await Promise.all(
+      newlyCompleted.map((item) =>
+        notifyUsers({
+          userIds: [userId],
+          title: "Challenge complete",
+          body: `You hit your target for “${item.title}”.`,
+          href: "/dashboard/habits/challenges",
+          asUserClient: supabase,
+        }),
+      ),
+    );
+  }
+
+  return { updated: inserts.length + updates.length };
 }
 
 export function defaultWeekChallengeDates() {

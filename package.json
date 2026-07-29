@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:supabase": "node scripts/check-supabase-env.mjs",
+    "set:supabase": "node scripts/set-supabase-keys.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

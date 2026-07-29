@@ -1,11 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getMobileSupabase } from "@/lib/mobile/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const schema = z.object({
   password: z.string().min(8, "Use a password with at least 8 characters."),
 });
 
+/**
+ * Set a new password for an authenticated recovery or signed-in session.
+ * Accepts web cookie sessions and mobile Bearer JWTs.
+ */
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -17,17 +22,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-
-  if (!userData.user) {
+  const supabase = await getMobileSupabase(request);
+  if (!supabase) {
     return NextResponse.json(
       { error: "Your reset link has expired. Request a new one from the login page." },
       { status: 401 },
     );
   }
 
-  const { error } = await supabase.auth.updateUser({
+  const authHeader = request.headers.get("authorization");
+  const bearer = authHeader?.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7).trim()
+    : null;
+
+  const {
+    data: { user },
+    error: userError,
+  } = bearer
+    ? await supabase.auth.getUser(bearer)
+    : await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Your reset link has expired. Request a new one from the login page." },
+      { status: 401 },
+    );
+  }
+
+  // Admin update works for both cookie (web) and Bearer (mobile) sessions.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(user.id, {
     password: parsed.data.password,
   });
 

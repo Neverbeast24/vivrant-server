@@ -77,7 +77,7 @@ export async function syncGoalProgress(
   const habitCount = (habitLogs.data ?? []).length;
 
   let updated = 0;
-  for (const goal of rows) {
+  const pending = rows.map(async (goal) => {
     const unit = (goal.unit ?? "").toLowerCase();
     let next = Number(goal.current_value ?? 0);
 
@@ -112,15 +112,18 @@ export async function syncGoalProgress(
         break;
     }
 
-    if (Number(goal.current_value ?? 0) === next) continue;
+    if (Number(goal.current_value ?? 0) === next) return false;
 
     const { error } = await supabase
       .from("health_goals")
       .update({ current_value: next })
       .eq("id", goal.id)
       .eq("user_id", userId);
-    if (!error) updated += 1;
-  }
+    return !error;
+  });
+
+  const results = await Promise.all(pending);
+  updated = results.filter(Boolean).length;
 
   return { updated };
 }

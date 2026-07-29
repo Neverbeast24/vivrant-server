@@ -1,14 +1,18 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-export async function writeAuditLog(input: {
-  action: string;
-  entity: string;
-  entityId?: string;
-  metadata?: Record<string, unknown>;
-}) {
-  const supabase = await createClient();
+export async function writeAuditLog(
+  input: {
+    action: string;
+    entity: string;
+    entityId?: string;
+    metadata?: Record<string, unknown>;
+  },
+  client?: SupabaseClient,
+) {
+  const supabase = client ?? (await createClient());
   const {
     data: { user },
   } = await supabase.auth.getUser();

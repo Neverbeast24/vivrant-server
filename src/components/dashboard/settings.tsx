@@ -6,6 +6,7 @@ import {
   saveSettings,
 } from "@/app/dashboard/settings/actions";
 import { AvatarEditor } from "@/components/dashboard/avatar-editor";
+import { ChangePasswordForm } from "@/components/dashboard/change-password-form";
 import { GoalsPanel, type HealthGoal } from "@/components/dashboard/goals";
 import { HealthHistoryPanel, type HealthHistoryEntry } from "@/components/dashboard/health-history";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
@@ -442,6 +443,7 @@ export function SettingsView({
       {section === "history" && <HealthHistoryPanel entries={history} />}
 
       {section === "preferences" && (
+      <div className="grid gap-4">
       <Panel title="App preferences">
         <form action={preferencesAction.submit} className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -497,6 +499,13 @@ export function SettingsView({
           </PrimaryButton>
         </form>
       </Panel>
+      <Panel title="Password">
+        <p className="mb-4 text-sm leading-6 text-muted">
+          Updates the same password for web and mobile email sign-in.
+        </p>
+        <ChangePasswordForm />
+      </Panel>
+      </div>
       )}
     </>
   );
