@@ -5,6 +5,7 @@ import {
   getSupabaseConfigStatus,
   logSupabaseConfigOnce,
 } from "@/lib/supabase/config-check";
+import { logger } from "@/lib/logger";
 
 const schema = z.object({
   email: z.email("Enter a valid email address."),
@@ -19,12 +20,9 @@ function friendlyError(message: string) {
     return "Your email isn't confirmed yet. Check your inbox for the confirmation link.";
   }
   if (/invalid api key/i.test(message)) {
-    return (
-      getSupabaseConfigStatus().message ??
-      "Server Supabase API key is invalid. Check viva-server/.env.local and restart the backend."
-    );
+    return "Authentication is temporarily unavailable. Please try again shortly.";
   }
-  return message;
+  return "Sign in failed. Please try again.";
 }
 
 export async function POST(request: NextRequest) {
@@ -35,9 +33,7 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {
-    console.warn(
-      `[vivrant:auth/login] 400 validation email=${typeof body?.email === "string" ? body.email : "(none)"}`,
-    );
+    logger.warn("auth/login", "validation failed");
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request." },
       { status: 400 },
@@ -46,33 +42,31 @@ export async function POST(request: NextRequest) {
 
   const status = getSupabaseConfigStatus();
   if (!status.ok) {
-    console.error(
-      `[vivrant:auth/login] 503 misconfigured publishable=${status.publishable} secret=${status.secret}`,
-    );
+    logger.error("auth/login", "supabase misconfigured", {
+      publishable: status.publishable,
+      secret: status.secret,
+    });
     return NextResponse.json(
       {
-        error: status.message,
+        error: "Authentication is temporarily unavailable. Please try again shortly.",
         code: "supabase_misconfigured",
-        debug: {
-          host: status.urlHost,
-          publishable: status.publishable,
-          secret: status.secret,
-        },
       },
       { status: 503 },
     );
   }
 
   const email = parsed.data.email;
-  console.info(`[vivrant:auth/login] attempt email=${email} host=${status.urlHost}`);
+  logger.info("auth/login", "attempt", { email, host: status.urlHost });
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    console.warn(
-      `[vivrant:auth/login] fail email=${email} ms=${Date.now() - started} supabase="${error.message}"`,
-    );
+    logger.warn("auth/login", "failed", {
+      email,
+      ms: Date.now() - started,
+      internal: error.message,
+    });
     return NextResponse.json(
       { error: friendlyError(error.message) },
       { status: 401 },
@@ -87,9 +81,10 @@ export async function POST(request: NextRequest) {
 
   if (profile?.status === "suspended") {
     await supabase.auth.signOut();
-    console.warn(
-      `[vivrant:auth/login] suspended email=${email} user=${data.user.id}`,
-    );
+    logger.warn("auth/login", "suspended account", {
+      email,
+      user_id: data.user.id,
+    });
     return NextResponse.json(
       { error: "Your account has been suspended. Contact support if this is unexpected." },
       { status: 403 },
@@ -97,9 +92,12 @@ export async function POST(request: NextRequest) {
   }
 
   const session = data.session;
-  console.info(
-    `[vivrant:auth/login] ok email=${email} user=${data.user.id} hasProfile=${Boolean(profile)} ms=${Date.now() - started}`,
-  );
+  logger.info("auth/login", "ok", {
+    email,
+    user_id: data.user.id,
+    has_profile: Boolean(profile),
+    ms: Date.now() - started,
+  });
 
   return NextResponse.json({
     ok: true,

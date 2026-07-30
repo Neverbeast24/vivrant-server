@@ -5,12 +5,26 @@ import {
   getSupabaseConfigStatus,
   logSupabaseConfigOnce,
 } from "@/lib/supabase/config-check";
+import { logger } from "@/lib/logger";
 
 const schema = z.object({
   email: z.email("Enter a valid email address."),
   password: z.string().min(8, "Use a password with at least 8 characters."),
   displayName: z.string().trim().max(80).optional().default(""),
 });
+
+function friendlySignupError(message: string) {
+  if (/already registered|already been registered|user already/i.test(message)) {
+    return "This email is already registered. Sign in instead, or reset your password.";
+  }
+  if (/password/i.test(message)) {
+    return "Use a stronger password (at least 8 characters).";
+  }
+  if (/invalid api key/i.test(message)) {
+    return "Sign-up is temporarily unavailable. Please try again shortly.";
+  }
+  return "Could not create your account. Please try again.";
+}
 
 export async function POST(request: NextRequest) {
   const started = Date.now();
@@ -20,7 +34,7 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(body);
 
   if (!parsed.success) {
-    console.warn("[vivrant:auth/signup] 400 validation");
+    logger.warn("auth/signup", "validation failed");
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request." },
       { status: 400 },
@@ -29,18 +43,14 @@ export async function POST(request: NextRequest) {
 
   const status = getSupabaseConfigStatus();
   if (!status.ok) {
-    console.error(
-      `[vivrant:auth/signup] 503 misconfigured publishable=${status.publishable} secret=${status.secret}`,
-    );
+    logger.error("auth/signup", "supabase misconfigured", {
+      publishable: status.publishable,
+      secret: status.secret,
+    });
     return NextResponse.json(
       {
-        error: status.message,
+        error: "Sign-up is temporarily unavailable. Please try again shortly.",
         code: "supabase_misconfigured",
-        debug: {
-          host: status.urlHost,
-          publishable: status.publishable,
-          secret: status.secret,
-        },
       },
       { status: 503 },
     );
@@ -48,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   const { email, password, displayName } = parsed.data;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  console.info(`[vivrant:auth/signup] attempt email=${email}`);
+  logger.info("auth/signup", "attempt", { email });
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -61,16 +71,21 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    console.warn(
-      `[vivrant:auth/signup] fail email=${email} ms=${Date.now() - started} supabase="${error.message}"`,
+    logger.warn("auth/signup", "failed", {
+      email,
+      ms: Date.now() - started,
+      internal: error.message,
+    });
+    return NextResponse.json(
+      { error: friendlySignupError(error.message) },
+      { status: 400 },
     );
-    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
   // Supabase returns a user with an empty identities array when the email
   // is already registered (to avoid leaking accounts it doesn't error).
   if (data.user && data.user.identities?.length === 0) {
-    console.warn(`[vivrant:auth/signup] conflict email=${email}`);
+    logger.warn("auth/signup", "conflict", { email });
     return NextResponse.json(
       { error: "This email is already registered. Sign in instead, or reset your password." },
       { status: 409 },
@@ -79,9 +94,10 @@ export async function POST(request: NextRequest) {
 
   const needsConfirmation = !data.session;
   if (needsConfirmation) {
-    console.info(
-      `[vivrant:auth/signup] ok needs_confirm email=${email} ms=${Date.now() - started}`,
-    );
+    logger.info("auth/signup", "needs confirmation", {
+      email,
+      ms: Date.now() - started,
+    });
     return NextResponse.json({
       ok: true,
       needs_email_confirmation: true,
@@ -98,9 +114,11 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
     : { data: null };
 
-  console.info(
-    `[vivrant:auth/signup] ok email=${email} user=${data.user?.id} ms=${Date.now() - started}`,
-  );
+  logger.info("auth/signup", "ok", {
+    email,
+    user_id: data.user?.id,
+    ms: Date.now() - started,
+  });
 
   return NextResponse.json({
     ok: true,
