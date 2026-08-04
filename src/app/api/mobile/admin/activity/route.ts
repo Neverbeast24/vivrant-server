@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const memberId = url.searchParams.get("member_id") ?? "all";
-  const module = url.searchParams.get("module") ?? "all";
+  const moduleFilter = url.searchParams.get("module") ?? "all";
 
   const [
     profiles,
@@ -273,7 +273,7 @@ export async function GET(request: Request) {
     })),
   ]
     .filter((row) => memberId === "all" || row.user_id === memberId)
-    .filter((row) => module === "all" || row.module === module)
+    .filter((row) => moduleFilter === "all" || row.module === moduleFilter)
     .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp))
     .slice(0, 400);
 

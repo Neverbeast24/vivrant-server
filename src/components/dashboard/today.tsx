@@ -83,7 +83,11 @@ export function TodayView({ data }: { data: TodayData }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const dismissed = window.localStorage.getItem(DISMISS_KEY) === "1";
-    setShowGuide(data.isNewMember && !dismissed);
+    // Defer so we sync from localStorage without cascading render warnings.
+    const id = window.setTimeout(() => {
+      setShowGuide(data.isNewMember && !dismissed);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [data.isNewMember]);
 
   const gettingStarted = [

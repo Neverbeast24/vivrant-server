@@ -85,31 +85,37 @@ export function JournalView({ entries }: { entries: Entry[] }) {
     : entries.find((e) => e.id === selectedId) ?? null;
 
   useEffect(() => {
-    if (selectedId === "new") {
-      setTitle("");
-      setBody("");
-      setEntryDate(today);
-      setMood("");
-      setTags("");
-      return;
-    }
-    if (selected) {
-      setTitle(selected.title);
-      setBody(selected.body);
-      setEntryDate(selected.entry_date);
-      setMood(selected.mood != null ? String(selected.mood) : "");
-      setTags((selected.tags ?? []).join(", "));
-    }
+    const id = window.setTimeout(() => {
+      if (selectedId === "new") {
+        setTitle("");
+        setBody("");
+        setEntryDate(today);
+        setMood("");
+        setTags("");
+        return;
+      }
+      if (selected) {
+        setTitle(selected.title);
+        setBody(selected.body);
+        setEntryDate(selected.entry_date);
+        setMood(selected.mood != null ? String(selected.mood) : "");
+        setTags((selected.tags ?? []).join(", "));
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [selectedId, selected, today]);
 
   useEffect(() => {
-    if (selectedId != null && selectedId !== "new") {
-      if (!entries.some((e) => e.id === selectedId)) {
-        setSelectedId(entries[0]?.id ?? null);
+    const id = window.setTimeout(() => {
+      if (selectedId != null && selectedId !== "new") {
+        if (!entries.some((e) => e.id === selectedId)) {
+          setSelectedId(entries[0]?.id ?? null);
+        }
+      } else if (selectedId == null && entries[0]) {
+        setSelectedId(entries[0].id);
       }
-    } else if (selectedId == null && entries[0]) {
-      setSelectedId(entries[0].id);
-    }
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [entries, selectedId]);
 
   function openNew() {

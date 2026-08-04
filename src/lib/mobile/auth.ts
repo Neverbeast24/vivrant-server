@@ -72,13 +72,18 @@ export async function requireMobileUser(
     if (process.env.NODE_ENV === "development") {
       console.warn("[vivrant:mobile-auth] missing Authorization Bearer header");
     }
-    supabase = await createClient();
-    const {
-      data: { user: cookieUser },
-      error: userError,
-    } = await supabase.auth.getUser();
-    if (userError || !cookieUser) return unauthorized();
-    user = cookieUser;
+    try {
+      supabase = await createClient();
+      const {
+        data: { user: cookieUser },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !cookieUser) return unauthorized();
+      user = cookieUser;
+    } catch {
+      // Cookie session helpers can throw outside a Next.js request cookie store.
+      return unauthorized();
+    }
   }
 
   const { data: profile, error: profileError } = await supabase

@@ -11,6 +11,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "qa": "npm run typecheck && npm run lint && npm run test",
+    "qa:smoke": "node scripts/qa-smoke.mjs",
     "check:supabase": "node scripts/check-supabase-env.mjs",
     "set:supabase": "node scripts/set-supabase-keys.mjs"
   },
@@ -37,9 +41,11 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.10",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }

@@ -157,11 +157,10 @@ function ExpenseForm({
 export function SpendingOverview({
   expenses,
   monthlyBudget = 2000,
-  today,
 }: {
   expenses: Expense[];
   monthlyBudget?: number;
-  today: string;
+  today?: string;
 }) {
   const [coaching, startCoach] = useTransition();
   const [advice, setAdvice] = useState<{
