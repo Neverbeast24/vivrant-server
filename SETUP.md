@@ -163,9 +163,16 @@ npm run dev
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://gcqbuccazplfpmuhperg.supabase.co` | Production, Preview, Development |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | your publishable key | Production, Preview, Development |
+| `SUPABASE_URL` | same as `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview, Development |
+| `SUPABASE_PUBLISHABLE_KEY` | same as publishable key | Production, Preview, Development |
+| `SUPABASE_SECRET_KEY` | Supabase **secret** key (required — login/signup fail without it) | Production, Preview, Development |
+| `CRON_SECRET` | random secret; must match Vercel Cron `Authorization: Bearer …` | Production |
 | `NEXT_PUBLIC_APP_URL` | your Vercel URL, e.g. `https://viva-server.vercel.app` | Production |
 | `RESEND_API_KEY` | from [resend.com/api-keys](https://resend.com/api-keys) | Production, Preview, Development |
 | `EMAIL_FROM` (optional) | e.g. `VIVRΛNT <quotes@yourdomain.com>` | Production, Preview, Development |
+| `GEMINI_API_KEY` | Google AI Studio key (AI features) | Production, Preview, Development |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account JSON string (FCM push) | Production |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase web config (apiKey, authDomain, projectId, …) | Production, Preview, Development |
 
 5. Click **Deploy**.
 6. Copy your live URL from Vercel (example: `https://viva-server.vercel.app`).

@@ -5,6 +5,8 @@ import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
+import { processDueReminders } from "@/lib/reminders/process";
+import { safeAppPath } from "@/lib/security/safe-path";
 
 const kindEnum = z.enum([
   "gym",
@@ -25,7 +27,17 @@ const reminderSchema = z.object({
     .transform((value) => value.slice(0, 5))
     .pipe(z.string().regex(/^\d{2}:\d{2}$/)),
   days_of_week: z.array(z.number().int().min(1).max(7)).min(1).max(7),
-  href: z.string().trim().max(500).optional().nullable(),
+  href: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value == null || value === "") return null;
+      const safe = safeAppPath(value, "");
+      return safe || null;
+    }),
   source_id: z.string().trim().max(80).optional().nullable(),
   enabled: z.boolean().default(true),
 });
@@ -35,6 +47,9 @@ export async function GET(request: Request) {
   const auth = await requireMobileUser(request);
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
+
+  // Process due reminders for this member (daily cron alone is too coarse).
+  await processDueReminders({ userId: user.id, client: supabase, limit: 20 });
 
   const { data, error } = await supabase
     .from("user_reminders")

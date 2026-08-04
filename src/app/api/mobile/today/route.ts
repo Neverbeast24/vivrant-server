@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { dayStartIso, jsonOk, todayDate } from "@/lib/mobile/http";
+import { processDueReminders } from "@/lib/reminders/process";
 
 export async function GET(request: Request) {
   const auth = await requireMobileUser(request);
@@ -11,7 +12,11 @@ export async function GET(request: Request) {
   const today = todayDate();
   const since = dayStartIso();
 
-  // Reminders are processed by /api/cron/reminders — keep Today on the fast path.
+  // Hobby cron is daily-only — fire this member's due reminders on Today open
+  // (same pattern as the web reminders page).
+  void processDueReminders({ userId: user.id, client: supabase, limit: 20 }).catch(
+    () => undefined,
+  );
 
   const [checkinRes, nutritionRes, workoutRes, goalsRes, notificationsRes] =
     await Promise.all([

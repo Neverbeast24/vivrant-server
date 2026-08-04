@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getMobileSupabase } from "@/lib/mobile/auth";
 import { createAdminClient, getServerConfig } from "@/lib/supabase/admin";
+import { logger } from "@/lib/logger";
 
 const schema = z
   .object({
@@ -22,6 +23,16 @@ function hasEmailPassword(user: {
     return true;
   }
   return user.app_metadata?.providers?.includes("email") ?? false;
+}
+
+function friendlyPasswordError(message: string) {
+  if (/weak|at least|too short|password/i.test(message)) {
+    return "Use a stronger password with at least 8 characters.";
+  }
+  if (/rate|limit|too many/i.test(message)) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  return "Could not update your password. Please try again.";
 }
 
 export async function POST(request: NextRequest) {
@@ -69,7 +80,7 @@ export async function POST(request: NextRequest) {
   const { url, publishableKey } = getServerConfig();
   if (!url || !publishableKey) {
     return NextResponse.json(
-      { error: "Authentication is not configured." },
+      { error: "Authentication is temporarily unavailable. Please try again shortly." },
       { status: 503 },
     );
   }
@@ -90,14 +101,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Admin update works for both cookie (web) and Bearer (mobile) sessions.
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (error) {
+    logger.error("auth/change-password", "Admin client unavailable", {
+      internal: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Authentication is temporarily unavailable. Please try again shortly." },
+      { status: 503 },
+    );
+  }
+
   const { error } = await admin.auth.admin.updateUserById(user.id, {
     password: parsed.data.password,
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    logger.warn("auth/change-password", "update failed", { internal: error.message });
+    return NextResponse.json({ error: friendlyPasswordError(error.message) }, { status: 400 });
   }
 
   return NextResponse.json({

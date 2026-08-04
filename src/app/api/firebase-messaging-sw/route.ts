@@ -34,9 +34,18 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const href = event.notification.data?.href || "/dashboard";
+  const raw = event.notification.data?.href || "/dashboard";
   const origin = self.location.origin;
-  const targetUrl = href.startsWith("http") ? href : origin + href;
+  // Same-origin relative paths only — never open absolute http(s) from payload.
+  const path =
+    typeof raw === "string" &&
+    raw.startsWith("/") &&
+    !raw.startsWith("//") &&
+    !raw.includes(":") &&
+    /^\\/[a-zA-Z0-9/_-]*$/.test(raw)
+      ? raw
+      : "/dashboard";
+  const targetUrl = origin + path;
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeAppPath } from "@/lib/security/safe-path";
 
 function loginRedirect(request: NextRequest, message: string) {
   const destination = request.nextUrl.clone();
@@ -11,7 +12,7 @@ function loginRedirect(request: NextRequest, message: string) {
 
 function successRedirect(request: NextRequest, next: string) {
   const destination = request.nextUrl.clone();
-  destination.pathname = next.startsWith("/") ? next : "/dashboard";
+  destination.pathname = safeAppPath(next, "/dashboard");
   destination.search = "";
   return NextResponse.redirect(destination);
 }
