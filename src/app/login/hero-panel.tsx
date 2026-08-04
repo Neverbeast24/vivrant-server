@@ -46,18 +46,20 @@ const FOODS: Food[] = [
   { id: "icecream", emoji: "🍦", name: "Ice cream", kind: "unhealthy", tip: "Dessert energy only" },
 ];
 
-/* Fixed slots around the panel; each floating food lives in one.
-   `depth` controls how far it drifts with the pointer, `dx`/`dy` control
-   the size of its own wandering loop. */
+/* Fixed slots around the panel. `depth` is subtle parallax strength;
+   `dx`/`dy` size the idle wander; `size` is emoji scale. */
 const SLOTS = [
-  { className: "left-[8%] top-[16%]", duration: 7, depth: 34, dx: 14, dy: 18 },
-  { className: "right-[14%] top-[13%]", duration: 8.5, depth: 52, dx: -18, dy: 14 },
-  { className: "left-[30%] top-[28%]", duration: 6.5, depth: 24, dx: 12, dy: 20 },
-  { className: "right-[8%] top-[38%]", duration: 9, depth: 44, dx: -14, dy: 22 },
-  { className: "left-[6%] top-[78%]", duration: 7.5, depth: 58, dx: 16, dy: 12 },
-  { className: "right-[28%] top-[58%]", duration: 8, depth: 30, dx: -12, dy: 18 },
-  { className: "left-[34%] top-[70%]", duration: 6.8, depth: 48, dx: 18, dy: 16 },
+  { className: "left-[7%] top-[14%]", duration: 9.5, depth: 0.18, dx: 10, dy: 14, size: "text-[2.35rem]" },
+  { className: "right-[12%] top-[11%]", duration: 11, depth: 0.28, dx: -12, dy: 10, size: "text-[2.5rem]" },
+  { className: "left-[28%] top-[26%]", duration: 8.8, depth: 0.14, dx: 8, dy: 12, size: "text-[2.1rem]" },
+  { className: "right-[6%] top-[36%]", duration: 10.5, depth: 0.24, dx: -10, dy: 14, size: "text-[2.4rem]" },
+  { className: "left-[5%] top-[76%]", duration: 9.8, depth: 0.3, dx: 11, dy: 9, size: "text-[2.55rem]" },
+  { className: "right-[26%] top-[56%]", duration: 10.2, depth: 0.16, dx: -8, dy: 12, size: "text-[2.2rem]" },
+  { className: "left-[32%] top-[68%]", duration: 9.2, depth: 0.22, dx: 12, dy: 11, size: "text-[2.45rem]" },
 ];
+
+const SPRING = { stiffness: 90, damping: 22, mass: 0.85 } as const;
+const SPOT_SPRING = { stiffness: 70, damping: 24, mass: 0.9 } as const;
 
 function shuffle<T>(list: T[]) {
   const next = [...list];
@@ -70,7 +72,7 @@ function shuffle<T>(list: T[]) {
 
 type Parallax = { x: MotionValue<number>; y: MotionValue<number> };
 
-/** Wrapper that drifts with the pointer; higher depth moves further. */
+/** Soft global drift — depth is a fraction of a small max travel. */
 function ParallaxLayer({
   parallax,
   depth,
@@ -82,12 +84,159 @@ function ParallaxLayer({
   className?: string;
   children: React.ReactNode;
 }) {
-  const x = useTransform(parallax.x, (value) => value * depth);
-  const y = useTransform(parallax.y, (value) => value * depth);
+  const max = 28;
+  const x = useTransform(parallax.x, (value) => value * depth * max);
+  const y = useTransform(parallax.y, (value) => value * depth * max);
   return (
     <motion.div style={{ x, y }} className={className}>
       {children}
     </motion.div>
+  );
+}
+
+/** Idle float + magnetic nudge when the pointer is nearby. */
+function FloatingFood({
+  food,
+  slotIndex,
+  duration,
+  dx,
+  dy,
+  size,
+  pointerX,
+  pointerY,
+  onCollect,
+}: {
+  food: Food;
+  slotIndex: number;
+  duration: number;
+  dx: number;
+  dy: number;
+  size: string;
+  pointerX: MotionValue<number>;
+  pointerY: MotionValue<number>;
+  onCollect: () => void;
+}) {
+  // Anchor stays put so magnetic math ignores float/scale transforms.
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const magneticX = useSpring(0, SPRING);
+  const magneticY = useSpring(0, SPRING);
+  const scale = useSpring(1, { stiffness: 220, damping: 24, mass: 0.7 });
+
+  useEffect(() => {
+    let frame = 0;
+
+    function updateMagnetic() {
+      const el = anchorRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const px = pointerX.get();
+      const py = pointerY.get();
+
+      if (px < -200 || py < -200) {
+        magneticX.set(0);
+        magneticY.set(0);
+        return;
+      }
+
+      const dxp = cx - px;
+      const dyp = cy - py;
+      const dist = Math.hypot(dxp, dyp);
+      const radius = 130;
+
+      if (dist < radius && dist > 0.01) {
+        const force = (1 - dist / radius) ** 1.35;
+        const push = 18 * force;
+        magneticX.set((dxp / dist) * push);
+        magneticY.set((dyp / dist) * push);
+      } else {
+        magneticX.set(0);
+        magneticY.set(0);
+      }
+    }
+
+    const unsubX = pointerX.on("change", () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updateMagnetic);
+    });
+    const unsubY = pointerY.on("change", () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updateMagnetic);
+    });
+
+    return () => {
+      unsubX();
+      unsubY();
+      cancelAnimationFrame(frame);
+    };
+  }, [pointerX, pointerY, magneticX, magneticY]);
+
+  return (
+    <div ref={anchorRef} className="relative size-[3.4rem]">
+      <motion.div
+        style={{ x: magneticX, y: magneticY }}
+        initial={{ opacity: 0, scale: 0.55 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.45 }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute inset-0"
+      >
+        {/* Idle wander lives on its own layer so hover scale never fights it. */}
+        <motion.div
+          animate={{
+            x: [0, dx, -dx * 0.55, 0],
+            y: [0, -dy, dy * 0.45, 0],
+            rotate: [0, 3.5, -3, 0],
+          }}
+          transition={{
+            x: {
+              duration: duration * 1.35,
+              repeat: Infinity,
+              ease: "easeInOut",
+              repeatType: "mirror",
+            },
+            y: {
+              duration,
+              repeat: Infinity,
+              ease: "easeInOut",
+              repeatType: "mirror",
+            },
+            rotate: {
+              duration: duration * 1.6,
+              repeat: Infinity,
+              ease: "easeInOut",
+              repeatType: "mirror",
+            },
+          }}
+          className="grid size-full place-items-center"
+        >
+          <motion.button
+            type="button"
+            draggable
+            title={`${food.name} — drag or tap to add to the cart`}
+            style={{ scale }}
+            onHoverStart={() => scale.set(1.14)}
+            onHoverEnd={() => scale.set(1)}
+            onTapStart={() => scale.set(0.92)}
+            onTapCancel={() => scale.set(1)}
+            onDragStartCapture={(event) => {
+              const data = (event as unknown as React.DragEvent<HTMLButtonElement>)
+                .dataTransfer;
+              data.setData("text/food-slot", `${food.id}:${slotIndex}`);
+              data.effectAllowed = "copy";
+            }}
+            onClick={onCollect}
+            className={`focus-ring relative grid size-full cursor-grab place-items-center rounded-full bg-transparent ${size} leading-none drop-shadow-[0_14px_28px_rgba(0,0,0,.45)] transition-[filter] duration-300 active:cursor-grabbing hover:drop-shadow-[0_18px_36px_rgba(14,124,102,.35)]`}
+          >
+            <span className="select-none" aria-hidden>
+              {food.emoji}
+            </span>
+            <span className="sr-only">{food.name}</span>
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -105,16 +254,22 @@ export function HeroPanel() {
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const respawnTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Pointer-follow effects: parallax drift for floating items + spotlight.
   const sectionRef = useRef<HTMLElement>(null);
   const rawX = useMotionValue(0);
   const rawY = useMotionValue(0);
-  const parallaxX = useSpring(rawX, { stiffness: 55, damping: 16, mass: 0.6 });
-  const parallaxY = useSpring(rawY, { stiffness: 55, damping: 16, mass: 0.6 });
+  const parallaxX = useSpring(rawX, SPRING);
+  const parallaxY = useSpring(rawY, SPRING);
   const parallax: Parallax = { x: parallaxX, y: parallaxY };
-  const spotX = useMotionValue(-400);
-  const spotY = useMotionValue(-400);
-  const spotlight = useMotionTemplate`radial-gradient(24rem circle at ${spotX}px ${spotY}px, rgba(139,112,255,.15), transparent 70%)`;
+
+  // Absolute pointer for magnetic food repulsion (client coords).
+  const pointerX = useMotionValue(-9999);
+  const pointerY = useMotionValue(-9999);
+
+  const spotRawX = useMotionValue(-400);
+  const spotRawY = useMotionValue(-400);
+  const spotX = useSpring(spotRawX, SPOT_SPRING);
+  const spotY = useSpring(spotRawY, SPOT_SPRING);
+  const spotlight = useMotionTemplate`radial-gradient(26rem circle at ${spotX}px ${spotY}px, rgba(61,184,150,.14), transparent 68%)`;
 
   function handlePointerMove(event: React.PointerEvent<HTMLElement>) {
     const bounds = sectionRef.current?.getBoundingClientRect();
@@ -123,15 +278,19 @@ export function HeroPanel() {
     const py = event.clientY - bounds.top;
     rawX.set((px / bounds.width) * 2 - 1);
     rawY.set((py / bounds.height) * 2 - 1);
-    spotX.set(px);
-    spotY.set(py);
+    spotRawX.set(px);
+    spotRawY.set(py);
+    pointerX.set(event.clientX);
+    pointerY.set(event.clientY);
   }
 
   function handlePointerLeave() {
     rawX.set(0);
     rawY.set(0);
-    spotX.set(-400);
-    spotY.set(-400);
+    spotRawX.set(-400);
+    spotRawY.set(-400);
+    pointerX.set(-9999);
+    pointerY.set(-9999);
   }
 
   useEffect(() => {
@@ -198,72 +357,50 @@ export function HeroPanel() {
       ref={sectionRef}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className="relative hidden overflow-hidden bg-[#1b1826] p-12 text-white lg:flex lg:flex-col"
+      className="relative hidden overflow-hidden bg-[#0c1210] p-12 text-white lg:flex lg:flex-col"
     >
-      {/* Ambient glow + grid backdrop */}
-      <div className="animate-glow absolute -left-32 top-24 size-[30rem] rounded-full bg-accent/28 blur-[100px]" />
-      <div className="animate-glow-slow absolute -bottom-44 right-0 size-[32rem] rounded-full bg-[#0fb3ab]/20 blur-[110px]" />
-      <div className="animate-glow-slow absolute left-1/3 top-1/2 size-[22rem] rounded-full bg-ember/10 blur-[110px]" />
+      {/* Botanical ambient glow + grid */}
+      <div className="animate-glow absolute -left-32 top-20 size-[30rem] rounded-full bg-[#0e7c66]/22 blur-[110px]" />
+      <div className="animate-glow-slow absolute -bottom-44 right-0 size-[34rem] rounded-full bg-[#2a9d8f]/18 blur-[120px]" />
+      <div className="animate-glow-slow absolute left-1/3 top-1/2 size-[20rem] rounded-full bg-[#3db896]/10 blur-[100px]" />
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 opacity-[0.045]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",
+            "linear-gradient(rgba(232,240,235,.55) 1px, transparent 1px), linear-gradient(90deg, rgba(232,240,235,.55) 1px, transparent 1px)",
           backgroundSize: "56px 56px",
         }}
       />
-      {/* Cursor spotlight follows the pointer */}
       <motion.div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{ background: spotlight }}
       />
 
-      {/* Floating foods — they wander on their own and drift with the cursor */}
-      {slots.map((food, index) =>
-        food ? (
-          <ParallaxLayer
-            key={`${food.id}-${index}`}
-            parallax={parallax}
-            depth={SLOTS[index].depth}
-            className={`absolute z-10 ${SLOTS[index].className}`}
-          >
-            <motion.button
-              type="button"
-              draggable
-              title={`${food.name} — drag or tap to add to the cart`}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                x: [0, SLOTS[index].dx, -SLOTS[index].dx * 0.6, 0],
-                y: [0, -SLOTS[index].dy, SLOTS[index].dy * 0.5, 0],
-                rotate: [0, 4, -4, 0],
-              }}
-              exit={{ opacity: 0, scale: 0.4 }}
-              transition={{
-                opacity: { duration: 0.5 },
-                scale: { duration: 0.5 },
-                x: { duration: SLOTS[index].duration * 1.4, repeat: Infinity, ease: "easeInOut" },
-                y: { duration: SLOTS[index].duration, repeat: Infinity, ease: "easeInOut" },
-                rotate: { duration: SLOTS[index].duration * 1.8, repeat: Infinity, ease: "easeInOut" },
-              }}
-              whileHover={{ scale: 1.25 }}
-              whileTap={{ scale: 0.9 }}
-              onDragStartCapture={(event) => {
-                const data = (event as unknown as React.DragEvent<HTMLButtonElement>)
-                  .dataTransfer;
-                data.setData("text/food-slot", `${food.id}:${index}`);
-                data.effectAllowed = "copy";
-              }}
-              onClick={() => collect(food, index)}
-              className="focus-ring grid size-12 cursor-grab place-items-center rounded-2xl border border-panel/10 bg-panel/6 text-2xl backdrop-blur-md transition-colors active:cursor-grabbing hover:border-panel/30 hover:bg-panel/12"
+      <AnimatePresence mode="popLayout">
+        {slots.map((food, index) =>
+          food ? (
+            <ParallaxLayer
+              key={`slot-${index}-${food.id}`}
+              parallax={parallax}
+              depth={SLOTS[index].depth}
+              className={`absolute z-10 ${SLOTS[index].className}`}
             >
-              {food.emoji}
-            </motion.button>
-          </ParallaxLayer>
-        ) : null,
-      )}
+              <FloatingFood
+                food={food}
+                slotIndex={index}
+                duration={SLOTS[index].duration}
+                dx={SLOTS[index].dx}
+                dy={SLOTS[index].dy}
+                size={SLOTS[index].size}
+                pointerX={pointerX}
+                pointerY={pointerY}
+                onCollect={() => collect(food, index)}
+              />
+            </ParallaxLayer>
+          ) : null,
+        )}
+      </AnimatePresence>
 
       <div className="relative z-20 flex items-start justify-between gap-4">
         <Brand tone="dark" />
@@ -271,7 +408,7 @@ export function HeroPanel() {
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-full border border-panel/10 bg-panel/6 px-3.5 py-2 text-xs font-black backdrop-blur-xl"
+            className="rounded-full border border-white/10 bg-white/[0.06] px-3.5 py-2 text-xs font-black backdrop-blur-xl"
           >
             {score} pts
             <span className="ml-2 font-semibold text-white/40">
@@ -285,10 +422,11 @@ export function HeroPanel() {
         <motion.div
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h1 className="font-display text-6xl leading-[1.02]">
-            Your healthier rhythm starts quietly.
+          <h1 className="font-display text-6xl leading-[1.02] tracking-[-0.03em]">
+            Your healthier rhythm starts{" "}
+            <em className="gradient-text not-italic">quietly.</em>
           </h1>
           <p className="mt-7 max-w-md text-base leading-7 text-white/55">
             One private space to notice patterns, celebrate progress, and make
@@ -296,27 +434,34 @@ export function HeroPanel() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+        <motion.nav
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-9 flex flex-wrap gap-2.5"
+          transition={{ delay: 0.28, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-10 flex flex-wrap gap-x-6 gap-y-2"
+          aria-label="Product pillars"
         >
-          {["Nutrition", "Movement", "Sleep", "Groceries", "AI insights"].map((label) => (
-            <motion.span
-              key={label}
-              whileHover={{ y: -3, scale: 1.05, backgroundColor: "rgba(255,255,255,0.14)" }}
-              className="cursor-default rounded-full border border-panel/12 bg-panel/6 px-4 py-1.5 text-xs font-bold text-white/75 backdrop-blur-md"
-            >
-              {label}
-            </motion.span>
-          ))}
-        </motion.div>
+          {["Nutrition", "Movement", "Sleep", "Groceries", "AI insights"].map(
+            (label, i) => (
+              <motion.span
+                key={label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.38 + i * 0.05, duration: 0.45 }}
+                whileHover={{ y: -2, color: "rgba(255,255,255,0.95)" }}
+                className="cursor-default text-[13px] font-bold tracking-wide text-white/80 transition-colors"
+              >
+                {label}
+              </motion.span>
+            ),
+          )}
+        </motion.nav>
       </div>
 
-      <p className="relative z-20 text-xs text-white/35">Every choice shapes your health.</p>
+      <p className="relative z-20 text-xs text-white/35">
+        Every choice shapes your health.
+      </p>
 
-      {/* Floating cart — icon only */}
       <motion.button
         type="button"
         title="Your cart — drop foods here"
@@ -327,22 +472,23 @@ export function HeroPanel() {
         onDragLeave={() => setDragOver(false)}
         onDrop={onDropFood}
         animate={{
-          y: [0, -8, 0],
-          scale: cartPulse || dragOver ? 1.15 : 1,
+          y: [0, -7, 0],
+          scale: cartPulse || dragOver ? 1.12 : 1,
           borderColor:
             cartPulse === "good"
-              ? "rgba(52, 211, 153, 0.6)"
+              ? "rgba(52, 211, 153, 0.55)"
               : cartPulse === "warn"
-                ? "rgba(228, 87, 31, 0.6)"
+                ? "rgba(248, 113, 113, 0.5)"
                 : dragOver
-                  ? "rgba(182, 168, 255, 0.6)"
-                  : "rgba(255, 255, 255, 0.14)",
+                  ? "rgba(61, 184, 150, 0.55)"
+                  : "rgba(255, 255, 255, 0.16)",
         }}
         transition={{
-          y: { duration: 5.5, repeat: Infinity, ease: "easeInOut" },
-          scale: { type: "spring", stiffness: 300, damping: 18 },
+          y: { duration: 6.2, repeat: Infinity, ease: "easeInOut" },
+          scale: { type: "spring", stiffness: 260, damping: 20 },
+          borderColor: { duration: 0.25 },
         }}
-        className="absolute bottom-[16%] right-[10%] z-20 grid size-16 place-items-center rounded-full border bg-panel/8 shadow-[0_20px_50px_rgba(10,6,30,.5)] backdrop-blur-xl"
+        className="absolute bottom-[16%] right-[10%] z-20 grid size-16 place-items-center rounded-full border bg-white/[0.06] shadow-[0_20px_50px_rgba(0,0,0,.45)] backdrop-blur-xl"
       >
         <ShoppingCart size={22} className="text-white/85" />
         <AnimatePresence>
@@ -351,7 +497,7 @@ export function HeroPanel() {
               key={cartCount}
               initial={{ scale: 0.4, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="absolute -right-1 -top-1 grid size-6 place-items-center rounded-full bg-accent text-[10px] font-black text-white shadow-lg"
+              className="absolute -right-1 -top-1 grid size-6 place-items-center rounded-full bg-[#0e7c66] text-[10px] font-black text-white shadow-lg"
             >
               {cartCount}
             </motion.span>
@@ -359,18 +505,18 @@ export function HeroPanel() {
         </AnimatePresence>
       </motion.button>
 
-      {/* Feedback toast near the cart */}
       <AnimatePresence>
         {toast && (
           <motion.div
             key={toast.id}
-            initial={{ opacity: 0, y: 12, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className={`absolute bottom-[7%] right-[6%] z-20 max-w-64 rounded-2xl border px-4 py-2.5 text-xs font-bold shadow-[0_18px_45px_rgba(0,0,0,.35)] backdrop-blur-xl ${
               toast.tone === "good"
                 ? "border-emerald-400/30 bg-emerald-950/70 text-emerald-100"
-                : "border-accent/30 bg-accent-soft/80 text-accent"
+                : "border-red-400/25 bg-red-950/65 text-red-100"
             }`}
           >
             {toast.text}

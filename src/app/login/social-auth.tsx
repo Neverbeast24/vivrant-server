@@ -46,7 +46,7 @@ export function SocialAuth({ next }: { next?: string }) {
           whileTap={{ scale: 0.98 }}
           disabled={pending !== null}
           onClick={() => signInWith("google")}
-          className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl border border-ink/10 bg-card px-4 py-3.5 text-sm font-black text-ink shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+          className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl border border-ink/10 bg-panel px-4 py-3.5 text-sm font-black text-ink shadow-[0_10px_24px_rgba(var(--shadow-color),.05)] transition duration-200 hover:border-accent/25 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending === "google" ? (
             <Loader2 size={17} className="animate-spin" />
@@ -79,7 +79,7 @@ export function SocialAuth({ next }: { next?: string }) {
           whileTap={{ scale: 0.98 }}
           disabled={pending !== null}
           onClick={() => signInWith("github")}
-          className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl border border-ink/8 bg-inverse px-4 py-3.5 text-sm font-black text-inverse-fg shadow-sm transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+          className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl border border-ink/8 bg-inverse px-4 py-3.5 text-sm font-black text-inverse-fg shadow-[0_10px_24px_rgba(var(--shadow-color),.08)] transition duration-200 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending === "github" ? (
             <Loader2 size={17} className="animate-spin" />

@@ -26,7 +26,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_.95fr]">
       <HeroPanel />
 
-      <section className="flex min-h-screen flex-col px-5 py-5 sm:px-10 lg:px-16">
+      <section className="relative flex min-h-screen flex-col overflow-hidden px-5 py-5 sm:px-10 lg:px-16">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 opacity-90"
+          style={{
+            background:
+              "radial-gradient(circle at 90% 8%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 22rem), radial-gradient(circle at 12% 88%, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 20rem)",
+          }}
+        />
         <Brand className="lg:hidden" />
 
         <div className="animate-rise mx-auto my-auto w-full max-w-md py-14">
@@ -37,17 +45,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           ) : null}
           <AuthForm next={safeNext} initialError={error} initialNotice={notice} />
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-ink/12" />
+          <div className="my-7 flex items-center gap-3">
+            <span className="h-px flex-1 bg-ink/10" />
             <span className="text-[10px] font-black tracking-[0.16em] text-muted">
               OR CONTINUE WITH
             </span>
-            <span className="h-px flex-1 bg-ink/12" />
+            <span className="h-px flex-1 bg-ink/10" />
           </div>
 
           <SocialAuth next={safeNext} />
 
-          <p className="mt-6 text-center text-[11px] leading-5 text-muted">
+          <p className="mt-7 text-center text-[11px] leading-5 text-muted/90">
             By continuing, you agree to use VIVRΛNT for wellness guidance only.
             It does not replace professional medical care.
           </p>
