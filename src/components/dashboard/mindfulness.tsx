@@ -77,7 +77,7 @@ export function MindfulnessView({
             suffix="/5"
             detail="Check in honestly"
             icon={Heart}
-            className="bg-inverse text-inverse-fg"
+            tone="ink"
           />
           <StatCard
             label="7-day average"

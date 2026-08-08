@@ -173,7 +173,7 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
             value={String(items.length)}
             detail="In your pantry"
             icon={Refrigerator}
-            className="bg-gradient-to-br from-accent-deep to-accent text-white"
+            tone="brand"
           />
           <StatCard
             label="Running low"
@@ -187,14 +187,14 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
                 : "Everything is stocked"
             }
             icon={AlertTriangle}
-            className="bg-ember/10 text-ember"
+            tone="warn"
           />
           <StatCard
             label="Categories"
             value={String(categories)}
             detail={`${wellStocked} item${wellStocked === 1 ? "" : "s"} well stocked`}
             icon={Tags}
-            className="bg-accent-soft text-accent-deep"
+            tone="soft"
           />
         </div>
 

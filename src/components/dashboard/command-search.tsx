@@ -33,8 +33,8 @@ import {
 
 const dashboardDestinations = [
   { label: "Today", detail: "Daily health overview and quick check-in", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview mood energy water steps" },
-  { label: "Nutrition", detail: "Meal overview and macros", href: "/dashboard/nutrition", icon: Apple, keywords: "food meal calorie protein diet" },
-  { label: "Log meal", detail: "Add a meal with AI estimate", href: "/dashboard/nutrition/log", icon: Apple, keywords: "log food meal" },
+  { label: "Nutrition", detail: "Meal overview and macros", href: "/dashboard/nutrition", icon: Apple, keywords: "food meal calorie protein diet suggest" },
+  { label: "Log meal", detail: "Add a meal or get an AI suggestion", href: "/dashboard/nutrition/log", icon: Apple, keywords: "log food meal suggest estimate" },
   { label: "Movement", detail: "Activity overview", href: "/dashboard/movement", icon: Dumbbell, keywords: "exercise workout calories minutes steps" },
   { label: "Log workout", detail: "Record a movement session", href: "/dashboard/movement/log", icon: Dumbbell, keywords: "log workout" },
   { label: "Gym", detail: "Gym home and quick links", href: "/dashboard/gym", icon: Weight, keywords: "gym overview" },

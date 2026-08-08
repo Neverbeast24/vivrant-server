@@ -43,11 +43,11 @@
   color-scheme: dark;
 
   --ink: #e8f0eb;
-  --muted: #c5d4cb;
+  --muted: #b7c9be;
   --violet: #3db896;
   --accent: #3db896;
-  --accent-soft: #16352e;
-  --accent-deep: #2a9d8f;
+  --accent-soft: #214840;
+  --accent-deep: #4ec4b6;
   /* Alias of accent — keep dark mode on teal, not orange. */
   --ember: #3db896;
   --cyan: #4ec4b6;

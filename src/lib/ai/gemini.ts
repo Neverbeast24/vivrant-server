@@ -22,6 +22,10 @@ export type MealEstimate = {
   tip: string;
 };
 
+export type MealSuggestion = MealEstimate & {
+  reason: string;
+};
+
 export type MealImageInput = {
   mimeType: string;
   base64: string;
@@ -336,6 +340,51 @@ ${context}`,
     carbs_g: Math.max(0, Math.round(Number(parsed.carbs_g ?? 0) * 10) / 10),
     fat_g: Math.max(0, Math.round(Number(parsed.fat_g ?? 0) * 10) / 10),
     tip: String(parsed.tip ?? "Add a protein side if you're still hungry.").slice(0, 300),
+  };
+}
+
+export async function suggestMeal(context: string): Promise<MealSuggestion> {
+  const parsed = await generateJson<Partial<MealSuggestion>>(`Suggest ONE practical next meal the user could eat soon.
+Use pantry_items and meals_today when present:
+- Prefer ingredients they already have when possible
+- If protein today looks low, lean protein-forward
+- Keep it realistic for home cooking or a simple store / canteen option (Philippines-friendly when relevant)
+- No medical or therapeutic claims
+Return ONLY one valid JSON object:
+- "meal_name": short name (max 8 words)
+- "meal_type": one of "breakfast" | "lunch" | "dinner" | "snack"
+- "calories": integer kcal estimate for a typical plate
+- "protein_g": number
+- "carbs_g": number
+- "fat_g": number
+- "reason": 1–2 sentences why this fits today (mention pantry or protein gap when used)
+- "tip": one short logging tip (numbers are estimates)
+
+USER CONTEXT:
+${context}`);
+
+  const mealTypeRaw = String(parsed.meal_type ?? "lunch").toLowerCase();
+  const meal_type =
+    mealTypeRaw === "breakfast" ||
+    mealTypeRaw === "lunch" ||
+    mealTypeRaw === "dinner" ||
+    mealTypeRaw === "snack"
+      ? mealTypeRaw
+      : "lunch";
+
+  return {
+    meal_name: String(parsed.meal_name ?? "Simple protein bowl").slice(0, 120),
+    meal_type,
+    calories: Math.max(120, Math.min(1200, Math.round(Number(parsed.calories ?? 420)))),
+    protein_g: Math.max(0, Math.round(Number(parsed.protein_g ?? 25) * 10) / 10),
+    carbs_g: Math.max(0, Math.round(Number(parsed.carbs_g ?? 40) * 10) / 10),
+    fat_g: Math.max(0, Math.round(Number(parsed.fat_g ?? 14) * 10) / 10),
+    reason: String(
+      parsed.reason ?? "A balanced plate that fits what you have logged today.",
+    ).slice(0, 400),
+    tip: String(
+      parsed.tip ?? "Rough macros only — tweak if your portion was smaller or larger.",
+    ).slice(0, 300),
   };
 }
 

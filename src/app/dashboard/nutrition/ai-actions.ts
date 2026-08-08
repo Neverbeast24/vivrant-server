@@ -2,7 +2,11 @@
 
 import { z } from "zod";
 import { buildUserContext } from "@/lib/ai/context";
-import { estimateMealMacros, type MealImageInput } from "@/lib/ai/gemini";
+import {
+  estimateMealMacros,
+  suggestMeal,
+  type MealImageInput,
+} from "@/lib/ai/gemini";
 import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -95,6 +99,24 @@ export async function estimateMealWithAi(formData: FormData) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not estimate this meal.";
+    return { ok: false, message };
+  }
+}
+
+export async function suggestMealWithAi() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  try {
+    const context = await buildUserContext(user.id);
+    const suggestion = await suggestMeal(context);
+    return { ok: true, message: "Meal suggestion ready.", suggestion };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not suggest a meal.";
     return { ok: false, message };
   }
 }

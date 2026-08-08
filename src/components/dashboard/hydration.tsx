@@ -66,7 +66,7 @@ export function HydrationView({
             suffix="L"
             detail={`${pct}% of ${(goalMl / 1000).toFixed(1)}L goal`}
             icon={Droplets}
-            className="bg-inverse text-inverse-fg"
+            tone="ink"
           />
           <StatCard
             label="Goal days"

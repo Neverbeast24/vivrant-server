@@ -123,28 +123,28 @@ export function ReportsView({ data }: { data: ReportsData }) {
             value={String(data.checkins)}
             detail="This month"
             icon={Activity}
-            className="bg-gradient-to-br from-accent-deep to-accent text-white"
+            tone="brand"
           />
           <StatCard
             label="Meals logged"
             value={String(data.meals)}
             detail={`${data.totalCalories.toLocaleString()} kcal recorded`}
             icon={Utensils}
-            className="bg-accent-soft text-accent-deep"
+            tone="soft"
           />
           <StatCard
             label="Workouts"
             value={String(data.workouts)}
             detail={`${data.totalWorkoutMinutes} active minutes`}
             icon={Dumbbell}
-            className="bg-ember/10 text-ember"
+            tone="warn"
           />
           <StatCard
             label="Health spend"
             value={`₱${data.expensesTotal.toLocaleString()}`}
             detail="This month"
             icon={WalletCards}
-            className="bg-[#f3ebe6] text-[#5a2438]"
+            tone="surface"
           />
         </div>
 
@@ -154,21 +154,21 @@ export function ReportsView({ data }: { data: ReportsData }) {
             value={String(data.gymSessions)}
             detail={`${data.gymMinutes} gym minutes`}
             icon={Weight}
-            className="bg-accent-soft text-[#3d2f7a]"
+            tone="soft"
           />
           <StatCard
             label="Active goals"
             value={String(data.activeGoals)}
             detail="From your profile"
             icon={Target}
-            className="bg-accent-soft text-[#1f4a5c]"
+            tone="surface"
           />
           <StatCard
             label="Body history"
             value={String(data.historyEntries)}
             detail="Measurements this month"
             icon={Scale}
-            className="bg-[#f3f6e9] text-[#5c4820]"
+            tone="surface"
           />
         </div>
 

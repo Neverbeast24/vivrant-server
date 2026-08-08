@@ -57,7 +57,7 @@ export const dashboardNav: NavItem[] = [
     href: "/dashboard/nutrition",
     children: [
       { label: "Overview", href: "/dashboard/nutrition", caption: "Today’s meals" },
-      { label: "Log meal", href: "/dashboard/nutrition/log", caption: "Add food" },
+      { label: "Log meal", href: "/dashboard/nutrition/log", caption: "Add or suggest" },
     ],
   },
   {

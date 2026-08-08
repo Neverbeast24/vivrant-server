@@ -120,7 +120,7 @@ export function HabitsView({
                 value={`${doneCount}/${habits.length || 0}`}
                 detail="Daily checkboxes"
                 icon={Check}
-                className="bg-inverse text-inverse-fg"
+                tone="ink"
               />
               <StatCard
                 label="Best streak"

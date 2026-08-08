@@ -44,21 +44,62 @@ export function Stagger({ children }: { children: React.ReactNode }) {
   );
 }
 
+export type StatTone = "brand" | "surface" | "soft" | "warn" | "ink";
+
+const STAT_TONES: Record<
+  StatTone,
+  { card: string; label: string; detail: string; icon: string }
+> = {
+  brand: {
+    card: "border-transparent bg-gradient-to-br from-accent-deep to-accent text-white shadow-[0_16px_34px_rgba(14,124,102,.24)]",
+    label: "text-white/80",
+    detail: "text-white/75",
+    icon: "bg-white/18 text-white",
+  },
+  surface: {
+    card: "border-ink/12 bg-card text-ink",
+    label: "text-muted",
+    detail: "text-muted",
+    icon: "bg-surface-soft text-accent",
+  },
+  soft: {
+    card: "border-accent/25 bg-surface text-ink",
+    label: "text-muted",
+    detail: "text-muted",
+    icon: "bg-accent/15 text-accent",
+  },
+  warn: {
+    card: "border-accent/30 bg-surface text-ink",
+    label: "text-muted",
+    detail: "text-muted",
+    icon: "bg-accent/20 text-accent",
+  },
+  ink: {
+    card: "border-transparent bg-inverse text-inverse-fg shadow-[0_14px_32px_rgba(var(--shadow-color),.14)]",
+    label: "text-inverse-fg/75",
+    detail: "text-inverse-fg/70",
+    icon: "bg-inverse-fg/12 text-inverse-fg",
+  },
+};
+
 export function StatCard({
   label,
   value,
   suffix,
   detail,
   icon: Icon,
-  className = "bg-card text-ink",
+  tone = "surface",
+  className = "",
 }: {
   label: string;
   value: string;
   suffix?: string;
   detail: string;
   icon: LucideIcon;
+  tone?: StatTone;
   className?: string;
 }) {
+  const styles = STAT_TONES[tone];
   return (
     <motion.article
       variants={{
@@ -67,21 +108,21 @@ export function StatCard({
       }}
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 280, damping: 22 }}
-      className={`rounded-[1.4rem] border border-ink/8 p-5 shadow-[0_14px_32px_rgba(var(--shadow-color),.08)] ${className}`}
+      className={`rounded-[1.4rem] border p-5 shadow-[0_14px_32px_rgba(var(--shadow-color),.08)] ${styles.card} ${className}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold tracking-wide opacity-65">{label}</span>
-        <span className="grid size-8 place-items-center rounded-xl bg-ink/8 opacity-80">
+      <div className="flex items-center justify-between gap-3">
+        <span className={`text-[11px] font-bold tracking-wide ${styles.label}`}>{label}</span>
+        <span className={`grid size-8 shrink-0 place-items-center rounded-xl ${styles.icon}`}>
           <Icon size={16} />
         </span>
       </div>
-      <p className="font-display mt-7 text-4xl leading-none tracking-tight">
+      <p className="font-display mt-7 text-4xl leading-none tracking-tight text-current">
         {value}
         {suffix && (
-          <span className="ml-1 align-middle text-xs font-bold opacity-55">{suffix}</span>
+          <span className={`ml-1 align-middle text-xs font-bold ${styles.detail}`}>{suffix}</span>
         )}
       </p>
-      <p className="mt-2.5 text-xs font-semibold opacity-60">{detail}</p>
+      <p className={`mt-2.5 text-xs font-semibold leading-5 ${styles.detail}`}>{detail}</p>
     </motion.article>
   );
 }

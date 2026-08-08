@@ -23,7 +23,7 @@ export function ModuleSubNav({
             className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-black transition ${
               active
                 ? "bg-inverse text-inverse-fg shadow-sm"
-                : "bg-surface text-muted hover:bg-panel hover:text-ink"
+                : "border border-ink/10 bg-surface text-ink/80 hover:bg-panel hover:text-ink"
             }`}
           >
             {item.icon && <item.icon size={13} />}

@@ -169,21 +169,21 @@ export function MovementView({
             value={steps.toLocaleString()}
             detail={`${stepPct}% of ${stepGoal.toLocaleString()} goal`}
             icon={Footprints}
-            className="bg-gradient-to-br from-accent-deep to-accent text-white"
+            tone="brand"
           />
           <StatCard
             label="Active min"
             value={String(totalMinutes)}
             detail={`${workouts.length} sessions`}
             icon={Timer}
-            className="bg-accent-soft text-accent-deep"
+            tone="soft"
           />
           <StatCard
             label="Calories"
             value={String(totalCalories)}
             detail="Burned from logged workouts"
             icon={Flame}
-            className="bg-ember/10 text-ember"
+            tone="warn"
           />
           <StatCard
             label="Effort"
@@ -191,7 +191,7 @@ export function MovementView({
             suffix="/100"
             detail={workouts.length || steps ? "From today’s activity" : "Log movement to score"}
             icon={Heart}
-            className="bg-[#f3ebe6] text-[#5a2438]"
+            tone="surface"
           />
         </div>
 

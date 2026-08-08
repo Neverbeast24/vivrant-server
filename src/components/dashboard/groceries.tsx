@@ -355,7 +355,7 @@ export function GroceriesView({
           </div>
         </form>
         {aiTip && (
-          <p className="mt-3 rounded-xl border border-accent/20 bg-accent-soft/60 px-3 py-2 text-xs font-semibold leading-5 text-accent-deep">
+          <p className="mt-3 rounded-xl border border-accent/20 bg-accent-soft/60 px-3 py-2 text-xs font-semibold leading-5 text-ink">
             {aiTip}
           </p>
         )}
@@ -368,7 +368,7 @@ export function GroceriesView({
             value={`${done}/${items.length}`}
             detail="Items checked off"
             icon={ShoppingBasket}
-            className="bg-gradient-to-br from-accent-deep to-accent text-white"
+            tone="brand"
           />
           <StatCard
             label="Open list"
@@ -379,7 +379,7 @@ export function GroceriesView({
                 : `All items ${formatPhp(listTotal)}`
             }
             icon={Package}
-            className="bg-accent-soft text-accent-deep"
+            tone="soft"
           />
           <StatCard
             label="Budget left"
@@ -390,14 +390,14 @@ export function GroceriesView({
                 : `of ${formatPhp(monthlyBudget)} this month`
             }
             icon={Wallet}
-            className="bg-ember/10 text-ember"
+            tone="warn"
           />
           <StatCard
             label={overBudget ? "Over allotment" : "Room for list"}
             value={formatPhp(Math.abs(roomForList))}
             detail={overBudget ? "Trim items or raise budget" : "After open list estimate"}
             icon={Wallet}
-            className={overBudget ? "bg-ember/15 text-ember" : "bg-surface text-ink"}
+            tone={overBudget ? "warn" : "surface"}
           />
         </div>
 

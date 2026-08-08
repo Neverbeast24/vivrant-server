@@ -4,7 +4,12 @@ import { requireUser } from "@/lib/auth/roles";
 
 export const metadata: Metadata = { title: "Log Meal" };
 
-export default async function NutritionLogPage() {
+type NutritionLogPageProps = {
+  searchParams: Promise<{ suggest?: string }>;
+};
+
+export default async function NutritionLogPage({ searchParams }: NutritionLogPageProps) {
+  const { suggest } = await searchParams;
   const { supabase, user } = await requireUser();
   const today = new Date().toISOString().slice(0, 10);
   const dayStart = new Date();
@@ -34,6 +39,7 @@ export default async function NutritionLogPage() {
   return (
     <NutritionView
       mode="log"
+      autoSuggest={suggest === "1"}
       meals={mealsRes.data ?? []}
       waterMl={checkinRes.data?.water_ml ?? 0}
       waterGoalMl={profile.data?.daily_water_goal_ml ?? 2400}

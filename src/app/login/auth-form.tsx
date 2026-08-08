@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
+  Eye,
+  EyeOff,
   KeyRound,
   Loader2,
   LockKeyhole,
@@ -89,12 +91,14 @@ export function AuthForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const copy = COPY[mode];
 
   function switchMode(target: Mode) {
     setMode(target);
     setFeedback(null);
+    setShowPassword(false);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -244,17 +248,26 @@ export function AuthForm({
                   )}
                 </span>
                 <span className={inputShell}>
-                  <LockKeyhole size={17} className="text-muted" />
+                  <LockKeyhole size={17} className="shrink-0 text-muted" />
                   <input
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     minLength={8}
                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     placeholder="At least 8 characters"
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="focus-ring -mr-1 shrink-0 rounded-lg p-1.5 text-muted transition hover:bg-ink/5 hover:text-ink"
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
                 </span>
               </label>
             </motion.div>

@@ -81,7 +81,7 @@ export function SleepView({
             suffix="h"
             detail="From your check-in"
             icon={Moon}
-            className="bg-inverse text-inverse-fg"
+            tone="ink"
           />
           <StatCard
             label="7-day average"

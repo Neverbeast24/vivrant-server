@@ -216,14 +216,14 @@ export function SpendingOverview({
             value={money(stats.total)}
             detail={`${expenses.length} expenses`}
             icon={WalletCards}
-            className="bg-gradient-to-br from-accent-deep to-accent text-white"
+            tone="brand"
           />
           <StatCard
             label="Monthly budget"
             value={money(monthlyBudget)}
             detail={`${stats.usedPct}% used`}
             icon={Target}
-            className="bg-ember/10 text-ember"
+            tone="warn"
           />
           <StatCard
             label="Left this month"
@@ -234,7 +234,7 @@ export function SpendingOverview({
                 : `${stats.remainingPct}% remaining`
             }
             icon={TrendingDown}
-            className="bg-accent-soft text-accent-deep"
+            tone="soft"
           />
         </div>
 
@@ -372,21 +372,21 @@ export function SpendingBudget({
             value={money(monthlyBudget)}
             detail="Your spending limit this month"
             icon={Target}
-            className="bg-gradient-to-br from-accent-deep to-accent text-white"
+            tone="brand"
           />
           <StatCard
             label="Spent so far"
             value={money(spentTotal)}
             detail={`${usedPct}% of monthly budget used`}
             icon={WalletCards}
-            className="bg-ember/10 text-ember"
+            tone="warn"
           />
           <StatCard
             label="Left this month"
             value={money(remaining)}
             detail={spentTotal > monthlyBudget ? "Over budget — consider adjusting" : "Still available"}
             icon={TrendingDown}
-            className="bg-accent-soft text-accent-deep"
+            tone="soft"
           />
         </div>
 
@@ -591,9 +591,9 @@ export function SpendingSheet({
             <p className="text-[10px] font-black uppercase tracking-wider text-muted">Budget</p>
             <p className="mt-1 text-lg font-black">{money(monthlyBudget)}</p>
           </div>
-          <div className="rounded-2xl border border-ink/8 bg-accent-soft px-4 py-3">
+          <div className="rounded-2xl border border-accent/25 bg-surface px-4 py-3">
             <p className="text-[10px] font-black uppercase tracking-wider text-muted">Left</p>
-            <p className="mt-1 text-lg font-black text-accent">{money(stats.remaining)}</p>
+            <p className="mt-1 text-lg font-black text-ink">{money(stats.remaining)}</p>
           </div>
         </div>
 

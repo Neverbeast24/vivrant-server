@@ -65,28 +65,28 @@ export function GymOverviewStats({
           value={String(sessionCount)}
           detail="Your gym history"
           icon={Dumbbell}
-          className="bg-gradient-to-br from-accent-deep to-accent text-white"
+          tone="brand"
         />
         <StatCard
           label="Training time"
           value={String(totalMinutes)}
           detail="Minutes recorded"
           icon={Clock3}
-          className="bg-accent-soft text-accent-deep"
+          tone="soft"
         />
         <StatCard
           label="Energy burned"
           value={String(totalCalories)}
           detail="From gym sessions"
           icon={Flame}
-          className="bg-ember/10 text-ember"
+          tone="warn"
         />
         <StatCard
           label="Machine demos"
           value={String(machineCount)}
           detail="Guided gym equipment"
           icon={Cog}
-          className="bg-accent-soft text-accent-deep"
+          tone="soft"
         />
       </div>
     </Stagger>

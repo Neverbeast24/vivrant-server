@@ -314,21 +314,21 @@ export function TodayView({ data }: { data: TodayData }) {
                 suffix={data.energy != null ? "/100" : undefined}
                 detail={data.hasCheckin ? "From today’s check-in" : "Check in to start"}
                 icon={Activity}
-                className="bg-gradient-to-br from-accent-deep to-accent text-white"
+                tone="brand"
               />
               <StatCard
                 label="Daily steps"
                 value={steps.toLocaleString()}
                 detail={`${stepPct}% of ${stepGoal.toLocaleString()} goal`}
                 icon={Waves}
-                className="bg-accent-soft text-accent-deep"
+                tone="soft"
               />
               <StatCard
                 label="Spent today"
                 value={`₱${data.spendToday.toLocaleString()}`}
                 detail={data.spendToday === 0 ? "No spend logged today" : "Logged today"}
                 icon={WalletCards}
-                className="bg-accent-soft text-accent-deep"
+                tone="soft"
               />
             </div>
 
@@ -400,7 +400,7 @@ export function TodayView({ data }: { data: TodayData }) {
             <motion.article
               variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
               whileHover={{ scale: 1.015 }}
-              className="rounded-[1.6rem] bg-gradient-to-br from-accent-soft via-accent-soft to-paper p-5"
+              className="rounded-[1.6rem] border border-ink/10 bg-card p-5"
             >
               <div className="flex items-center justify-between">
                 <span className="grid size-10 place-items-center rounded-xl bg-card text-accent shadow-sm">
