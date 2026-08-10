@@ -224,14 +224,19 @@ function getSmtpTransporter(smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
 }
 
 async function sendViaSmtp(payload: MailPayload, smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
-  // Prefer brand inbox as From. Gmail only accepts this when SMTP_USER is that
-  // same address (or an authorized Send-as alias on the authenticated account).
-  const from = emailFrom(BRAND_FROM);
+  // Gmail authenticates as SMTP_USER. From can only be that address (or an
+  // authorized Send-as alias). Prefer EMAIL_FROM when it matches SMTP_USER;
+  // otherwise send as the authenticated mailbox so login does not fail.
+  const configuredFrom = emailFrom(BRAND_FROM);
+  const authFrom = `VIVRΛNT <${smtp.user}>`;
+  const from =
+    configuredFrom.toLowerCase().includes(smtp.user.toLowerCase())
+      ? configuredFrom
+      : authFrom;
   const transporter = getSmtpTransporter(smtp);
   await transporter.sendMail({
     from,
     replyTo: brandReplyTo(),
-    sender: BRAND_CONTACT_EMAIL,
     to: payload.to,
     subject: payload.subject,
     html: payload.html,
