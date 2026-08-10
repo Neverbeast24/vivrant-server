@@ -148,7 +148,7 @@ function friendlySmtpError(error: unknown) {
     lower.includes("535") ||
     lower.includes("eauth")
   ) {
-    return "Gmail rejected the login. Use a Google App Password (not your normal password) in SMTP_PASS, then restart/redeploy.";
+    return "Gmail rejected the login. Create a new App Password at https://myaccount.google.com/apppasswords (2-Step Verification on), put it in SMTP_PASS for the same SMTP_USER mailbox, then redeploy.";
   }
   if (lower.includes("self signed") || lower.includes("certificate")) {
     return "SMTP TLS failed. Keep SMTP_PORT=587 (STARTTLS) for Gmail.";

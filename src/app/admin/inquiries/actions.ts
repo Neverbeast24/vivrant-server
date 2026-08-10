@@ -66,10 +66,13 @@ export async function updateContactInquiry(formData: FormData) {
   }
 
   let emailMessage: string | null = null;
+  let emailError: string | null = null;
   let priceEmailedAt: string | null = null;
   let nextStatus = parsed.data.status;
 
   if (parsed.data.send_price_email && parsed.data.quoted_price != null) {
+    // Quote send always closes the inquiry (reopen is available in the UI).
+    nextStatus = "closed";
     const emailed = await sendInquiryPriceEmail({
       to: existing.email,
       name: existing.name,
@@ -79,14 +82,12 @@ export async function updateContactInquiry(formData: FormData) {
       note: parsed.data.admin_note,
     });
 
-    if (!emailed.ok) {
-      return { ok: false, message: emailed.message };
+    if (emailed.ok) {
+      emailMessage = emailed.message;
+      priceEmailedAt = new Date().toISOString();
+    } else {
+      emailError = emailed.message;
     }
-
-    emailMessage = emailed.message;
-    priceEmailedAt = new Date().toISOString();
-    // Sending a quote closes the inquiry; admin can reopen later.
-    nextStatus = "closed";
   }
 
   const { error } = await supabase
@@ -117,10 +118,19 @@ export async function updateContactInquiry(formData: FormData) {
       status: nextStatus,
       quoted_price: parsed.data.quoted_price,
       emailed: Boolean(emailMessage),
+      email_failed: Boolean(emailError),
     },
   });
 
   revalidateInquiries();
+
+  if (emailError) {
+    return {
+      ok: false,
+      message: `Inquiry closed and quote saved, but email failed: ${emailError}`,
+    };
+  }
+
   return {
     ok: true,
     message: emailMessage

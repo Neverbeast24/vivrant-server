@@ -66,7 +66,9 @@ export async function PATCH(request: Request) {
 
   let priceEmailedAt: string | null = existing.price_emailed_at ?? null;
   let nextStatus = parsed.data.status;
+  let emailError: string | null = null;
   if (parsed.data.send_price_email && parsed.data.quoted_price != null) {
+    nextStatus = "closed";
     const emailed = await sendInquiryPriceEmail({
       to: existing.email,
       name: existing.name,
@@ -75,9 +77,11 @@ export async function PATCH(request: Request) {
       inquiryId: existing.id,
       note: parsed.data.admin_note ?? existing.admin_note,
     });
-    if (!emailed.ok) return jsonError(emailed.message, 500);
-    priceEmailedAt = new Date().toISOString();
-    nextStatus = "closed";
+    if (emailed.ok) {
+      priceEmailedAt = new Date().toISOString();
+    } else {
+      emailError = emailed.message;
+    }
   }
 
   const { data, error } = await admin
@@ -105,10 +109,21 @@ export async function PATCH(request: Request) {
       action: "contact_inquiry_updated",
       entity: "contact_inquiries",
       entityId: String(parsed.data.id),
-      metadata: { status: nextStatus, emailed: Boolean(parsed.data.send_price_email) },
+      metadata: {
+        status: nextStatus,
+        emailed: Boolean(parsed.data.send_price_email) && !emailError,
+        email_failed: Boolean(emailError),
+      },
     },
     auth.supabase,
   );
+
+  if (emailError) {
+    return jsonError(
+      `Inquiry closed and quote saved, but email failed: ${emailError}`,
+      502,
+    );
+  }
 
   return jsonOk({ inquiry: data });
 }
