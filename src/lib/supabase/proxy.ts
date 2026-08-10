@@ -27,22 +27,30 @@ export async function updateSession(request: NextRequest) {
 
   // getClaims verifies and refreshes the session without trusting local storage.
   const { data } = await supabase.auth.getClaims();
-  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
-  const isLogin = request.nextUrl.pathname === "/login";
+  const pathname = request.nextUrl.pathname;
+  const isHome = pathname === "/";
+  const isDashboard = pathname.startsWith("/dashboard");
+  const isAdmin = pathname.startsWith("/admin");
+  const isLogin = pathname === "/login";
 
   if ((isDashboard || isAdmin) && !data?.claims) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isLogin && data?.claims) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
+  // After auth success, never leave signed-in users on marketing/login surfaces.
+  if (data?.claims && (isLogin || isHome)) {
+    const nextParam = request.nextUrl.searchParams.get("next");
+    const destination = request.nextUrl.clone();
+    const preferred =
+      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+        ? nextParam
+        : "/dashboard";
+    destination.pathname = preferred;
+    destination.search = "";
+    return NextResponse.redirect(destination);
   }
 
   return response;

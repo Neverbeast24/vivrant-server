@@ -214,6 +214,7 @@ function getSmtpTransporter(smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
     host: smtp.host,
     port: smtp.port,
     secure: smtp.secure,
+    requireTLS: !smtp.secure && smtp.port === 587,
     auth: {
       user: smtp.user,
       pass: smtp.pass,

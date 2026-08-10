@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
@@ -77,7 +76,6 @@ export function AuthForm({
   initialError?: string;
   initialNotice?: string;
 }) {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(
@@ -109,8 +107,8 @@ export function AuthForm({
     try {
       if (mode === "signin") {
         await postJson("/api/auth/login", { email, password });
-        router.push(next);
-        router.refresh();
+        // Hard navigation so session cookies are applied before the next page.
+        window.location.assign(next.startsWith("/") ? next : "/dashboard");
         return; // keep the spinner while navigating
       }
 
@@ -123,8 +121,7 @@ export function AuthForm({
         if (data.message && /check your inbox/i.test(data.message)) {
           setFeedback({ tone: "notice", text: data.message });
         } else {
-          router.push(next);
-          router.refresh();
+          window.location.assign(next.startsWith("/") ? next : "/dashboard");
           return;
         }
       }

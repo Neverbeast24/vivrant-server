@@ -10,6 +10,8 @@ type Provider = "google" | "github";
 export function SocialAuth({ next }: { next?: string }) {
   const [pending, setPending] = useState<Provider | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 
   async function signInWith(provider: Provider) {
     setError(null);
@@ -17,9 +19,7 @@ export function SocialAuth({ next }: { next?: string }) {
 
     try {
       const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/confirm${
-        next ? `?next=${encodeURIComponent(next)}` : ""
-      }`;
+      const redirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(safeNext)}`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -32,7 +32,7 @@ export function SocialAuth({ next }: { next?: string }) {
       }
       // On success the browser is redirected to the provider.
     } catch {
-      setError("Could not start sign in. Check your connection and try again.");
+      setError("Could not start sign in. Please try again.");
       setPending(null);
     }
   }

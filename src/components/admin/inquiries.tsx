@@ -323,7 +323,7 @@ export function AdminInquiriesView({
           {smtpReady ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-3 py-1.5 text-[11px] font-bold text-accent">
               <Mail size={12} />
-              Gmail/SMTP ready
+              Gmail/SMTP configured
             </span>
           ) : emailProvider === "resend" ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-ember/30 bg-ember/10 px-3 py-1.5 text-[11px] font-bold text-ember">
