@@ -107,6 +107,19 @@ export function GymOverviewStats({
   );
 }
 
+function toDemoEmbedSrc(url: string) {
+  const raw = String(url ?? "").trim();
+  const idMatch = raw.match(
+    /(?:youtube(?:-nocookie)?\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  );
+  const id = idMatch?.[1];
+  if (id) {
+    return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+  }
+  if (!raw) return "";
+  return `${raw}${raw.includes("?") ? "&" : "?"}rel=0`;
+}
+
 function DemoModal({
   exercise,
   onClose,
@@ -114,7 +127,7 @@ function DemoModal({
   exercise: GymExercise;
   onClose: () => void;
 }) {
-  const src = `${exercise.demo_video_url}${exercise.demo_video_url.includes("?") ? "&" : "?"}rel=0`;
+  const src = toDemoEmbedSrc(exercise.demo_video_url);
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -149,13 +162,20 @@ function DemoModal({
           </button>
         </div>
         <div className="aspect-video bg-black">
-          <iframe
-            title={`${exercise.name} demo`}
-            src={src}
-            className="size-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+          {src ? (
+            <iframe
+              title={`${exercise.name} demo`}
+              src={src}
+              className="size-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          ) : (
+            <div className="grid size-full place-items-center px-6 text-center text-sm text-muted">
+              Demo video unavailable for this machine.
+            </div>
+          )}
         </div>
         {exercise.cues && (
           <p className="px-5 py-4 text-sm leading-6 text-muted">{exercise.cues}</p>

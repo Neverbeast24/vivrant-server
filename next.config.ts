@@ -7,6 +7,9 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
+  // Gym demos embed YouTube players in modals.
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+  "child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
   // Next.js + Firebase Messaging SW need inline/eval in places; keep scoped.
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com",
   "style-src 'self' 'unsafe-inline'",
