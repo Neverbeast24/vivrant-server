@@ -1,12 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import {
+  checkRateLimit,
+  clientIp,
+  maybeSweepRateLimits,
+  rateLimitResponse,
+} from "@/lib/security/rate-limit";
 
 const schema = z.object({
   email: z.email("Enter a valid email address."),
 });
 
 export async function POST(request: NextRequest) {
+  maybeSweepRateLimits();
+  const ip = clientIp(request);
+  const limited = checkRateLimit(`auth:forgot:${ip}`, {
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Clock3,
@@ -41,10 +41,16 @@ import {
   type GymPlan,
   type GymSession,
 } from "@/lib/gym";
-import type { RoutineScaling } from "@/lib/health/body-metrics";
-import { gymSubNav } from "@/lib/nav";
+import {
+  clampGymPlanPrefs,
+  parseRoutineDefaults,
+  type RoutineScaling,
+} from "@/lib/health/body-metrics";
+import { trainingSubNav } from "@/lib/nav";
 
 export type { GymExercise, GymPlan, GymSession };
+
+const PLAN_PREFS_KEY = "vivrant.gym.planPrefs";
 
 export function GymOverviewStats({
   sessionCount,
@@ -297,7 +303,7 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
   return (
     <>
       <PageHeader eyebrow="GYM · DEMOS" title="Form first," highlight="then load." />
-      <ModuleSubNav items={gymSubNav} />
+      <ModuleSubNav items={trainingSubNav} />
       <Panel title="Free-weight & bodyweight demos" right={<Play size={16} className="text-accent" />}>
         <FilterChipRow>
           {muscleFilters.map((item) => (
@@ -371,7 +377,7 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
           </PrimaryButton>
         }
       />
-      <ModuleSubNav items={gymSubNav} />
+      <ModuleSubNav items={trainingSubNav} />
 
       {machineRecs && (
         <Panel
@@ -470,7 +476,7 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
   return (
     <>
       <PageHeader eyebrow="GYM · SESSIONS" title="Log what you" highlight="trained." />
-      <ModuleSubNav items={gymSubNav} />
+      <ModuleSubNav items={trainingSubNav} />
       <div className="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
         <Panel title="Log a gym session">
           <form action={submit} className="grid gap-3 sm:grid-cols-2">
@@ -555,6 +561,21 @@ export function GymPlansView({
   const [busy, start] = useTransition();
   const [planning, startPlan] = useTransition();
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
+  const suggested = useMemo(() => parseRoutineDefaults(scaling), [scaling]);
+  const [daysPerWeek, setDaysPerWeek] = useState(String(suggested.days_per_week));
+  const [sessionMinutes, setSessionMinutes] = useState(String(suggested.session_minutes));
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PLAN_PREFS_KEY);
+      if (!raw) return;
+      const saved = clampGymPlanPrefs(JSON.parse(raw) as { days_per_week?: number; session_minutes?: number });
+      setDaysPerWeek(String(saved.days_per_week));
+      setSessionMinutes(String(saved.session_minutes));
+    } catch {
+      // ignore corrupt local prefs
+    }
+  }, []);
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -565,8 +586,20 @@ export function GymPlansView({
   }
 
   function generatePlan() {
+    const prefs = clampGymPlanPrefs({
+      days_per_week: Number(daysPerWeek),
+      session_minutes: Number(sessionMinutes),
+    });
+    setDaysPerWeek(String(prefs.days_per_week));
+    setSessionMinutes(String(prefs.session_minutes));
+    try {
+      localStorage.setItem(PLAN_PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      // ignore quota / private mode
+    }
+
     startPlan(async () => {
-      const result = await createAiGymPlan();
+      const result = await createAiGymPlan(prefs);
       if (result.ok) toast.success(result.message);
       else toast.error(result.message);
     });
@@ -585,7 +618,7 @@ export function GymPlansView({
           </PrimaryButton>
         }
       />
-      <ModuleSubNav items={gymSubNav} />
+      <ModuleSubNav items={trainingSubNav} />
 
       {scaling && (
         <Panel title="BMI · target forecast" className="mb-4">
@@ -606,23 +639,51 @@ export function GymPlansView({
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                ["Focus", scaling.focus],
-                ["Days / week", scaling.days_per_week],
-                ["Session", `${scaling.session_minutes} min`],
-                ["Intensity", scaling.intensity],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-2xl border border-ink/5 bg-card px-3 py-3"
-                >
-                  <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-ink">{value}</p>
-                </div>
-              ))}
+              <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Focus</p>
+                <p className="mt-1 text-sm font-bold text-ink">{scaling.focus}</p>
+              </div>
+              <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#948e99]" htmlFor="plan-days">
+                  Days / week
+                </label>
+                <input
+                  id="plan-days"
+                  type="number"
+                  min={2}
+                  max={6}
+                  step={1}
+                  value={daysPerWeek}
+                  onChange={(e) => setDaysPerWeek(e.target.value)}
+                  className={`${fieldClass} mt-1 py-2`}
+                />
+                <p className="mt-1 text-[10px] text-muted">Suggested {scaling.days_per_week}</p>
+              </div>
+              <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+                <label className="text-[10px] font-black uppercase tracking-wider text-[#948e99]" htmlFor="plan-session">
+                  Session (min)
+                </label>
+                <input
+                  id="plan-session"
+                  type="number"
+                  min={15}
+                  max={120}
+                  step={5}
+                  value={sessionMinutes}
+                  onChange={(e) => setSessionMinutes(e.target.value)}
+                  className={`${fieldClass} mt-1 py-2`}
+                />
+                <p className="mt-1 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
+              </div>
+              <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Intensity</p>
+                <p className="mt-1 text-sm font-bold text-ink">{scaling.intensity}</p>
+              </div>
             </div>
+
+            <p className="text-xs font-semibold text-muted">
+              Edit days / week and session length, then click Generate AI plan — the AI will match those inputs.
+            </p>
 
             {(scaling.kg_to_goal != null || scaling.target_date) && (
               <p className="text-xs font-semibold text-muted">

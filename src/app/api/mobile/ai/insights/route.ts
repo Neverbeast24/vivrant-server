@@ -5,12 +5,25 @@ import { jsonError, jsonOk } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
 import { buildUserContext } from "@/lib/ai/context";
 import { generateHealthInsight } from "@/lib/ai/gemini";
+import {
+  checkRateLimit,
+  clientIp,
+  maybeSweepRateLimits,
+  rateLimitResponse,
+} from "@/lib/security/rate-limit";
 
 /** Generate + save a fresh AI health insight, and notify the member. */
 export async function POST(request: Request) {
   const auth = await requireMobileUser(request);
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
+
+  maybeSweepRateLimits();
+  const limited = checkRateLimit(`ai:insight:${user.id}:${clientIp(request)}`, {
+    limit: 20,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
 
   try {
     const context = await buildUserContext(user.id, { supabase });

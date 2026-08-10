@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Moon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { coachSleep, logSleep } from "@/app/dashboard/sleep/actions";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   Bars,
   EmptyState,
@@ -16,6 +17,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { wellnessSubNav } from "@/lib/nav";
 
 type SleepRow = {
   checkin_date: string;
@@ -73,6 +75,7 @@ export function SleepView({
           </PrimaryButton>
         }
       />
+      <ModuleSubNav items={wellnessSubNav} />
       <Stagger>
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard

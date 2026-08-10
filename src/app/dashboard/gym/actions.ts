@@ -5,7 +5,28 @@ import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
 import { buildUserContext } from "@/lib/ai/context";
 import { generateGymPlan, recommendGymMachines } from "@/lib/ai/gemini";
+import {
+  applyRoutineOverrides,
+  clampGymPlanPrefs,
+  type GymPlanPrefs,
+  type RoutineScaling,
+} from "@/lib/health/body-metrics";
 import { createClient } from "@/lib/supabase/server";
+
+function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
+  try {
+    const parsed = JSON.parse(context) as { routine_scaling?: RoutineScaling };
+    if (parsed.routine_scaling) {
+      parsed.routine_scaling = applyRoutineOverrides(parsed.routine_scaling, prefs);
+    }
+    return JSON.stringify({
+      ...parsed,
+      plan_prefs: prefs,
+    });
+  } catch {
+    return context;
+  }
+}
 
 const sessionSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -85,15 +106,17 @@ export async function deleteGymSession(id: number) {
   return { ok: true, message: "Session removed." };
 }
 
-export async function createAiGymPlan() {
+export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
+  const prefs = clampGymPlanPrefs(input);
+
   try {
-    const [{ data: exercises }, context] = await Promise.all([
+    const [{ data: exercises }, rawContext] = await Promise.all([
       supabase
         .from("gym_exercises")
         .select("name, muscle_group, equipment, difficulty")
@@ -101,12 +124,14 @@ export async function createAiGymPlan() {
       buildUserContext(user.id),
     ]);
 
+    const context = withPlanPrefs(rawContext, prefs);
     const catalog = (exercises ?? [])
       .map((row) => `${row.name} (${row.muscle_group}, ${row.equipment}, ${row.difficulty})`)
       .join("\n");
     const plan = await generateGymPlan(
       context,
       catalog || "bodyweight squat, push-up, plank, glute bridge, leg press, lat pulldown",
+      prefs,
     );
 
     const { data, error } = await supabase

@@ -25,7 +25,6 @@ import {
   Target,
   UserRound,
   WalletCards,
-  Weight,
   Wind,
 } from "lucide-react";
 
@@ -62,44 +61,29 @@ export const dashboardNav: NavItem[] = [
   },
   {
     icon: Dumbbell,
-    label: "Movement",
-    caption: "Workouts and activity",
-    href: "/dashboard/movement",
+    label: "Training",
+    caption: "Activity and gym",
+    href: "/dashboard/training",
     children: [
-      { label: "Overview", href: "/dashboard/movement", caption: "Activity pulse" },
-      { label: "Log workout", href: "/dashboard/movement/log", caption: "Record a session" },
-    ],
-  },
-  {
-    icon: Weight,
-    label: "Gym",
-    caption: "Demos & machines",
-    href: "/dashboard/gym",
-    children: [
-      { label: "Overview", href: "/dashboard/gym", caption: "Gym home" },
+      { label: "Overview", href: "/dashboard/training", caption: "Daily + gym pulse" },
+      { label: "Log workout", href: "/dashboard/movement/log", caption: "Walk, run, yoga…" },
       { label: "Exercise demos", href: "/dashboard/gym/demos", caption: "Free weights & bodyweight" },
       { label: "Machines", href: "/dashboard/gym/machines", caption: "Machine demos & AI picks" },
-      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Log & history" },
+      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Log gym training" },
       { label: "Training plans", href: "/dashboard/gym/plans", caption: "Saved programs" },
     ],
   },
   {
-    icon: Moon,
-    label: "Sleep",
-    caption: "Rest and recovery",
-    href: "/dashboard/sleep",
-  },
-  {
-    icon: Droplets,
-    label: "Hydration",
-    caption: "Water goals",
-    href: "/dashboard/hydration",
-  },
-  {
-    icon: Wind,
-    label: "Mindfulness",
-    caption: "Mood and calm",
-    href: "/dashboard/mindfulness",
+    icon: HeartPulse,
+    label: "Wellness",
+    caption: "Sleep, water, mood",
+    href: "/dashboard/wellness",
+    children: [
+      { label: "Overview", href: "/dashboard/wellness", caption: "Daily body signals" },
+      { label: "Sleep", href: "/dashboard/sleep", caption: "Rest and recovery" },
+      { label: "Hydration", href: "/dashboard/hydration", caption: "Water goals" },
+      { label: "Mindfulness", href: "/dashboard/mindfulness", caption: "Mood and calm" },
+    ],
   },
   {
     icon: BookOpen,
@@ -118,18 +102,14 @@ export const dashboardNav: NavItem[] = [
     ],
   },
   {
-    icon: ShoppingBasket,
-    label: "Groceries",
-    caption: "Smart shopping list",
-    href: "/dashboard/groceries",
-  },
-  {
     icon: Refrigerator,
-    label: "Pantry",
-    caption: "Stock at a glance",
-    href: "/dashboard/pantry",
+    label: "Kitchen",
+    caption: "Shopping and stock",
+    href: "/dashboard/kitchen",
     children: [
-      { label: "Overview", href: "/dashboard/pantry", caption: "Stock pulse" },
+      { label: "Overview", href: "/dashboard/kitchen", caption: "List + pantry pulse" },
+      { label: "Shopping", href: "/dashboard/groceries", caption: "Smart grocery list" },
+      { label: "Pantry", href: "/dashboard/pantry", caption: "Stock at a glance" },
       { label: "All items", href: "/dashboard/pantry/items", caption: "Full inventory" },
       { label: "Categories", href: "/dashboard/pantry/categories", caption: "Browse by type" },
       { label: "Low stock", href: "/dashboard/pantry/low-stock", caption: "Needs restock" },
@@ -185,13 +165,38 @@ export const dashboardNav: NavItem[] = [
   },
 ];
 
-export const gymSubNav = [
-  { href: "/dashboard/gym", label: "Overview", icon: LayoutDashboard },
+/** Shared sub-nav for Training (daily activity + gym). */
+export const trainingSubNav = [
+  { href: "/dashboard/training", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/movement/log", label: "Log workout", icon: Dumbbell },
   { href: "/dashboard/gym/demos", label: "Demos", icon: Play },
   { href: "/dashboard/gym/machines", label: "Machines", icon: Cog },
   { href: "/dashboard/gym/sessions", label: "Sessions", icon: ClipboardList },
-  { href: "/dashboard/gym/plans", label: "Training plans", icon: Sparkles },
+  { href: "/dashboard/gym/plans", label: "Plans", icon: Sparkles },
 ] as const;
+
+/** @deprecated Use trainingSubNav */
+export const gymSubNav = trainingSubNav;
+
+export const wellnessSubNav = [
+  { href: "/dashboard/wellness", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/sleep", label: "Sleep", icon: Moon },
+  { href: "/dashboard/hydration", label: "Hydration", icon: Droplets },
+  { href: "/dashboard/mindfulness", label: "Mindfulness", icon: Wind },
+] as const;
+
+export const kitchenSubNav = [
+  { href: "/dashboard/kitchen", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/groceries", label: "Shopping", icon: ShoppingBasket },
+  { href: "/dashboard/pantry", label: "Pantry", icon: Refrigerator },
+  { href: "/dashboard/pantry/items", label: "Items", icon: Refrigerator },
+  { href: "/dashboard/pantry/categories", label: "Categories", icon: Tags },
+  { href: "/dashboard/pantry/low-stock", label: "Low stock", icon: AlertTriangle },
+  { href: "/dashboard/pantry/add", label: "Add", icon: PackagePlus },
+] as const;
+
+/** @deprecated Use kitchenSubNav */
+export const pantrySubNav = kitchenSubNav;
 
 export const settingsSubNav = [
   { href: "/dashboard/settings", label: "Profile", icon: UserRound },
@@ -207,19 +212,23 @@ export const spendingSubNav = [
   { href: "/dashboard/spending/budget", label: "Monthly budget", icon: Target },
 ] as const;
 
-export const pantrySubNav = [
-  { href: "/dashboard/pantry", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/pantry/items", label: "Items", icon: Refrigerator },
-  { href: "/dashboard/pantry/categories", label: "Categories", icon: Tags },
-  { href: "/dashboard/pantry/low-stock", label: "Low stock", icon: AlertTriangle },
-  { href: "/dashboard/pantry/add", label: "Add", icon: PackagePlus },
-] as const;
+const sectionRoots: Record<string, string[]> = {
+  "/dashboard/training": ["/dashboard/training", "/dashboard/movement", "/dashboard/gym"],
+  "/dashboard/wellness": [
+    "/dashboard/wellness",
+    "/dashboard/sleep",
+    "/dashboard/hydration",
+    "/dashboard/mindfulness",
+  ],
+  "/dashboard/kitchen": ["/dashboard/kitchen", "/dashboard/groceries", "/dashboard/pantry"],
+};
 
 export function pathMatches(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
-  if (href === "/dashboard/gym") return pathname === "/dashboard/gym";
   if (href === "/dashboard/nutrition") return pathname === "/dashboard/nutrition";
-  if (href === "/dashboard/movement") return pathname === "/dashboard/movement";
+  if (href === "/dashboard/training") return pathname === "/dashboard/training";
+  if (href === "/dashboard/wellness") return pathname === "/dashboard/wellness";
+  if (href === "/dashboard/kitchen") return pathname === "/dashboard/kitchen";
   if (href === "/dashboard/pantry") return pathname === "/dashboard/pantry";
   if (href === "/dashboard/spending") return pathname === "/dashboard/spending";
   if (href === "/dashboard/ai") return pathname === "/dashboard/ai";
@@ -228,7 +237,15 @@ export function pathMatches(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function sectionContains(pathname: string, root: string) {
+  const roots = sectionRoots[root] ?? [root];
+  return roots.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
+
 export function sectionActive(pathname: string, item: NavItem) {
+  if (item.href === "/dashboard/training" || item.href === "/dashboard/wellness" || item.href === "/dashboard/kitchen") {
+    return sectionContains(pathname, item.href);
+  }
   if (item.children?.length) {
     return item.children.some((child) => pathMatches(pathname, child.href)) || pathMatches(pathname, item.href);
   }

@@ -39,7 +39,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
-import { pantrySubNav } from "@/lib/nav";
+import { kitchenSubNav } from "@/lib/nav";
 
 export type PantryMode = "overview" | "items" | "categories" | "low-stock" | "add";
 
@@ -163,8 +163,8 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
 
   return (
     <>
-      <PageHeader eyebrow="PANTRY" title="Know what you" highlight="have." />
-      <ModuleSubNav items={pantrySubNav} />
+      <PageHeader eyebrow="KITCHEN · PANTRY" title="Know what you" highlight="have." />
+      <ModuleSubNav items={kitchenSubNav} />
 
       <Stagger>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -313,7 +313,7 @@ function PantryItems({ items }: { items: PantryItem[] }) {
           </Link>
         }
       />
-      <ModuleSubNav items={pantrySubNav} />
+      <ModuleSubNav items={kitchenSubNav} />
 
       <Panel title="Stock levels">
         <div className="space-y-4">
@@ -354,7 +354,7 @@ function PantryCategories({ items }: { items: PantryItem[] }) {
   return (
     <>
       <PageHeader eyebrow="PANTRY" title="Browse by" highlight="category." />
-      <ModuleSubNav items={pantrySubNav} />
+      <ModuleSubNav items={kitchenSubNav} />
 
       <Stagger>
         {!grouped.length && (
@@ -432,7 +432,7 @@ function PantryLowStock({ items }: { items: PantryItem[] }) {
           </div>
         }
       />
-      <ModuleSubNav items={pantrySubNav} />
+      <ModuleSubNav items={kitchenSubNav} />
 
       <Panel
         title={`Needs restock (≤${LOW_STOCK_THRESHOLD}%)`}
@@ -461,7 +461,7 @@ function PantryAdd({ defaultCategory }: { defaultCategory?: string }) {
   return (
     <>
       <PageHeader eyebrow="PANTRY" title="Add to the" highlight="shelf." />
-      <ModuleSubNav items={pantrySubNav} />
+      <ModuleSubNav items={kitchenSubNav} />
 
       <Panel title="New pantry item">
         <PantryAddForm pending={pending} submit={submit} defaultCategory={defaultCategory} />

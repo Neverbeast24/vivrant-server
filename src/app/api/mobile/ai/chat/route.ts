@@ -5,6 +5,12 @@ import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson } from "@/lib/mobile/http";
 import { buildUserContext } from "@/lib/ai/context";
 import { askViva } from "@/lib/ai/gemini";
+import {
+  checkRateLimit,
+  clientIp,
+  maybeSweepRateLimits,
+  rateLimitResponse,
+} from "@/lib/security/rate-limit";
 
 const chatSchema = z.object({
   question: z.string().trim().min(3).max(500),
@@ -31,6 +37,13 @@ export async function POST(request: Request) {
   const auth = await requireMobileUser(request);
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
+
+  maybeSweepRateLimits();
+  const limited = checkRateLimit(`ai:chat:${user.id}:${clientIp(request)}`, {
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
 
   const body = await readJson(request);
   const parsed = chatSchema.safeParse(body);

@@ -20,6 +20,52 @@ export type RoutineScaling = {
   summary: string;
 };
 
+/** Editable plan prefs used by Training plans + AI generation. */
+export type GymPlanPrefs = {
+  days_per_week: number;
+  session_minutes: number;
+};
+
+function midpointFromRange(raw: string, fallback: number) {
+  const nums = String(raw)
+    .match(/\d+/g)
+    ?.map((n) => Number(n))
+    .filter((n) => Number.isFinite(n));
+  if (!nums?.length) return fallback;
+  if (nums.length === 1) return nums[0];
+  return Math.round((nums[0] + nums[1]) / 2);
+}
+
+/** Turn BMI-suggested range strings into editable number defaults. */
+export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_week" | "session_minutes"> | null | undefined): GymPlanPrefs {
+  return {
+    days_per_week: Math.max(2, Math.min(6, midpointFromRange(scaling?.days_per_week ?? "3", 3))),
+    session_minutes: Math.max(15, Math.min(120, midpointFromRange(scaling?.session_minutes ?? "45", 45))),
+  };
+}
+
+export function clampGymPlanPrefs(input: Partial<GymPlanPrefs> | null | undefined): GymPlanPrefs {
+  const days = Number(input?.days_per_week);
+  const session = Number(input?.session_minutes);
+  return {
+    days_per_week: Math.max(2, Math.min(6, Number.isFinite(days) ? Math.round(days) : 3)),
+    session_minutes: Math.max(15, Math.min(120, Number.isFinite(session) ? Math.round(session) : 45)),
+  };
+}
+
+/** Overlay user-chosen days/session onto routine_scaling for AI prompts. */
+export function applyRoutineOverrides(
+  scaling: RoutineScaling,
+  prefs: GymPlanPrefs,
+): RoutineScaling {
+  const clamped = clampGymPlanPrefs(prefs);
+  return {
+    ...scaling,
+    days_per_week: String(clamped.days_per_week),
+    session_minutes: String(clamped.session_minutes),
+  };
+}
+
 const BAND_LABELS: Record<BmiBand, string> = {
   underweight: "Underweight",
   normal: "Normal",

@@ -11,19 +11,17 @@ export type PriceQuoteEmailInput = {
   note?: string | null;
 };
 
-/** Read at runtime so env is not inlined empty during `next build`. */
-function runtimeEnv(name: string) {
-  // Concatenate so bundlers cannot replace this with a build-time constant.
-  const value = process.env[name.slice(0)] ?? process.env[`${name}`];
-  return value?.trim() || "";
-}
-
+/**
+ * Next.js only inlines env vars referenced with static property access
+ * (`process.env.FOO`). Dynamic keys like `process.env[name]` stay empty
+ * at runtime even when `.env.local` / Vercel has the value.
+ */
 function resendApiKey() {
-  return runtimeEnv(["RESEND", "API_KEY"].join("_"));
+  return (process.env.RESEND_API_KEY ?? "").trim();
 }
 
 function emailFrom() {
-  return runtimeEnv(["EMAIL", "FROM"].join("_"));
+  return (process.env.EMAIL_FROM ?? "").trim();
 }
 
 function formatPhp(amount: number) {

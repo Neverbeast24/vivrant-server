@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Heart, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { coachMindfulness, logMood } from "@/app/dashboard/journal/actions";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   EmptyState,
   FormField,
@@ -16,6 +17,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { wellnessSubNav } from "@/lib/nav";
 
 const moods = [
   ["1", "😔"],
@@ -69,6 +71,7 @@ export function MindfulnessView({
           </PrimaryButton>
         }
       />
+      <ModuleSubNav items={wellnessSubNav} />
       <Stagger>
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard

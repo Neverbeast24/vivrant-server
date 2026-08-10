@@ -4,6 +4,7 @@ import { Droplets, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useTransition } from "react";
 import { addHydration, scheduleHydrationReminders } from "@/app/dashboard/hydration/actions";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   EmptyState,
   PageHeader,
@@ -14,6 +15,7 @@ import {
   StatCard,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { wellnessSubNav } from "@/lib/nav";
 
 export function HydrationView({
   waterMl,
@@ -58,6 +60,7 @@ export function HydrationView({
           </PrimaryButton>
         }
       />
+      <ModuleSubNav items={wellnessSubNav} />
       <Stagger>
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard

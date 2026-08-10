@@ -19,6 +19,7 @@ import {
 } from "@/components/dashboard/ui";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { trainingSubNav } from "@/lib/nav";
 
 type Workout = {
   id: number;
@@ -27,11 +28,6 @@ type Workout = {
   duration_minutes: number | null;
   calories_burned: number | null;
 };
-
-const movementSubNav = [
-  { href: "/dashboard/movement", label: "Overview" },
-  { href: "/dashboard/movement/log", label: "Log workout" },
-] as const;
 
 export function MovementView({
   workouts,
@@ -81,7 +77,7 @@ export function MovementView({
   return (
     <>
       <PageHeader
-        eyebrow="MOVEMENT"
+        eyebrow="TRAINING"
         title={mode === "log" ? "Log your" : "Move a little"}
         highlight={mode === "log" ? "workout." : "today."}
         action={
@@ -93,7 +89,7 @@ export function MovementView({
           ) : undefined
         }
       />
-      <ModuleSubNav items={movementSubNav} />
+      <ModuleSubNav items={trainingSubNav} />
 
       {mode === "log" && (
         <>

@@ -104,7 +104,7 @@ def build() -> Document:
             ["Project", "VIVRΛNT — AI-powered health decision support platform"],
             ["Applications", "VIVRΛNT Web (Next.js) + VIVRΛNT Mobile (Flutter)"],
             ["Document ID", "VIVRANT-SDLC-MASTER-002"],
-            ["Version / Status", "2.0 / QA gate complete — August 4, 2026"],
+            ["Version / Status", "2.1 / QA re-verified locally — August 4, 2026"],
             ["Prepared Date", date.today().isoformat()],
             ["Prepared by", "Daniella Sayson"],
             ["Classification", "Internal Use"],
@@ -120,9 +120,11 @@ def build() -> Document:
     doc.add_paragraph()
     add_para(
         doc,
-        "This revision replaces the July 20, 2026 baseline. It consolidates the live VIVRΛNT Web "
-        "and Flutter mobile products, documents the automated Quality Assurance gate executed on "
-        "August 4, 2026, and records residual risks with owners.",
+        "This revision updates the August 4, 2026 QA baseline with a full local re-verification "
+        "(`npm run qa`, `npm run qa:smoke`, `flutter test`) and tooling cleanup "
+        "(`vitest.config.mts` to remove the Vite ESM warning). "
+        "It consolidates VIVRΛNT Web and Flutter mobile, documents the automated Quality Assurance gate, "
+        "and records residual risks with owners.",
     )
 
     add_heading(doc, "Document Control", 1)
@@ -143,6 +145,13 @@ def build() -> Document:
                 "Daniella Sayson",
                 "Full VIVRΛNT Web+Mobile baseline; QA suite implemented; test evidence recorded; "
                 "auth/reminder/security hardening; production redeploy",
+            ],
+            [
+                "2.1",
+                "2026-08-04",
+                "Daniella Sayson",
+                "Local re-verification: npm run qa PASS, qa:smoke 5/5, flutter test 13/13; "
+                "Vitest config moved to .mts (no ESM warning)",
             ],
         ],
     )
@@ -249,14 +258,28 @@ def build() -> Document:
         doc,
         ["Check", "Command", "Result"],
         [
-            ["Web typecheck", "npm run typecheck", "PASS"],
-            ["Web lint", "npm run lint", "PASS (0 errors after fixes)"],
+            ["Web typecheck", "npm run typecheck", "PASS (re-verified locally ~10:52)"],
+            ["Web lint", "npm run lint", "PASS — 0 errors"],
             ["Web unit tests", "npm run test (Vitest)", "PASS — 21/21"],
             ["Web combined gate", "npm run qa", "PASS"],
+            ["Production smoke", "npm run qa:smoke", "PASS — 5/5 against viva-server-delta.vercel.app"],
             ["Mobile tests", "flutter test", "PASS — 13/13"],
-            ["Mobile analyzer", "flutter analyze lib test", "INFO-level style findings only; no failing tests"],
-            ["Production smoke", "npm run qa:smoke", "4/5 PASS prior to auth-catch redeploy; unauth Today expected 401 after deploy"],
+            ["Mobile analyzer", "flutter analyze lib test --no-fatal-infos", "INFO-only style findings; tests green"],
+            ["Vitest config", "vitest.config.mts", "ESM warning cleared (no longer .ts CJS load)"],
             ["Production deploy", "vercel --prod (saysondaniellads24)", "READY — https://viva-server-delta.vercel.app"],
+        ],
+    )
+
+    add_para(doc, "Smoke detail (production)", bold=True)
+    add_table(
+        doc,
+        ["Check", "Expected", "Actual"],
+        [
+            ["Landing /", "200", "PASS 200"],
+            ["Login /login", "200", "PASS 200"],
+            ["Firebase SW /api/firebase-messaging-sw", "200", "PASS 200"],
+            ["Mobile Today unauthenticated", "401", "PASS 401"],
+            ["Auth login validation POST", "400", "PASS 400"],
         ],
     )
 
@@ -361,9 +384,9 @@ def build() -> Document:
             ["G1 Requirements", "Module inventory + acceptance scenarios", "Complete for current scope"],
             ["G2 Architecture", "Stack + auth/API notes in this document", "Complete"],
             ["G3 Build", "Next.js build + Flutter tests", "Complete"],
-            ["G4 Test", "Vitest 21 + Flutter 13 + lint/typecheck", "Complete (Aug 4, 2026)"],
+            ["G4 Test", "Vitest 21 + Flutter 13 + lint/typecheck + smoke 5/5", "Complete & re-verified (Aug 4, 2026)"],
             ["G5 UAT", "UAT-V-001…012 register", "Ready for business execution"],
-            ["G6 Production acceptance", "Vercel production READY", "Web accepted; mobile store TBD"],
+            ["G6 Production acceptance", "Vercel production READY; smoke 5/5", "Web accepted; mobile store TBD"],
         ],
     )
 

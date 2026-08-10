@@ -14,8 +14,13 @@ const broadcastSchema = z.object({
   user_id: z.string().uuid().optional(),
 });
 
-function envConfigured(name: string) {
-  return Boolean((process.env[name] ?? "").trim());
+function envFlags() {
+  // Static process.env.* access is required — dynamic keys stay empty in Next.js.
+  return {
+    gemini: Boolean((process.env.GEMINI_API_KEY ?? "").trim()),
+    firebase: Boolean((process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "").trim()),
+    resend: Boolean((process.env.RESEND_API_KEY ?? "").trim()),
+  };
 }
 
 /** System health + active members for broadcast. */
@@ -42,6 +47,8 @@ export async function GET(request: Request) {
       admin.from("notifications").select("id", { count: "exact", head: true }),
     ]);
 
+  const env = envFlags();
+
   return jsonOk({
     services: [
       {
@@ -52,17 +59,17 @@ export async function GET(request: Request) {
       {
         name: "Gemini AI engine",
         detail: "Personalized insights and coaching",
-        ok: envConfigured("GEMINI_API_KEY"),
+        ok: env.gemini,
       },
       {
         name: "Firebase messaging",
         detail: "Push notifications for reminders",
-        ok: envConfigured("NEXT_PUBLIC_FIREBASE_API_KEY"),
+        ok: env.firebase,
       },
       {
         name: "Resend email",
         detail: "Inquiry quote emails",
-        ok: envConfigured("RESEND_API_KEY"),
+        ok: env.resend,
       },
     ],
     noticeCount: noticeCount ?? 0,

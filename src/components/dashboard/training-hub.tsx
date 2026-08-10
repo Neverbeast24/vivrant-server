@@ -4,16 +4,21 @@ import Link from "next/link";
 import {
   ClipboardList,
   Cog,
+  Dumbbell,
+  Footprints,
   Play,
   Sparkles,
-  Weight,
 } from "lucide-react";
 import { GymOverviewStats } from "@/components/dashboard/gym-parts";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
-import { PageHeader, Panel, PrimaryButton, Stagger } from "@/components/dashboard/ui";
+import { PageHeader, Panel, PrimaryButton, Stagger, StatCard } from "@/components/dashboard/ui";
 import { trainingSubNav } from "@/lib/nav";
 
-export function GymOverview({
+export function TrainingHub({
+  workoutsToday,
+  workoutMinutes,
+  steps,
+  stepGoal,
   sessionCount,
   totalMinutes,
   totalCalories,
@@ -21,6 +26,10 @@ export function GymOverview({
   demoCount,
   planCount,
 }: {
+  workoutsToday: number;
+  workoutMinutes: number;
+  steps: number;
+  stepGoal: number;
   sessionCount: number;
   totalMinutes: number;
   totalCalories: number;
@@ -28,19 +37,63 @@ export function GymOverview({
   demoCount: number;
   planCount: number;
 }) {
+  const stepPct = Math.min(100, Math.round((steps / Math.max(stepGoal, 1)) * 100));
+
   return (
     <>
-      <PageHeader eyebrow="TRAINING · GYM" title="Train with" highlight="intention." />
+      <PageHeader eyebrow="TRAINING" title="Move and" highlight="train." />
       <p className="-mt-5 mb-4 max-w-xl text-sm text-muted">
-        New to the gym? Start with bodyweight demos, then try machines when you feel ready.
+        Daily activity and gym work in one place — walks and yoga beside demos, machines, and plans.
       </p>
       <ModuleSubNav items={trainingSubNav} />
-      <GymOverviewStats
-        sessionCount={sessionCount}
-        totalMinutes={totalMinutes}
-        totalCalories={totalCalories}
-        machineCount={machineCount}
-      />
+
+      <Stagger>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Workouts today"
+            value={String(workoutsToday)}
+            detail={workoutMinutes ? `${workoutMinutes} min logged` : "Log a walk or session"}
+            icon={Dumbbell}
+          />
+          <StatCard
+            label="Steps"
+            value={steps.toLocaleString()}
+            detail={`${stepPct}% of ${stepGoal.toLocaleString()} goal`}
+            icon={Footprints}
+          />
+          <StatCard
+            label="Gym sessions"
+            value={String(sessionCount)}
+            detail={totalMinutes ? `${totalMinutes} min · ${totalCalories} kcal` : "No sessions yet"}
+            icon={ClipboardList}
+          />
+        </div>
+      </Stagger>
+
+      <Panel
+        title="Daily activity"
+        className="mt-4"
+        right={
+          <Link href="/dashboard/movement/log" className="inline-flex">
+            <PrimaryButton className="rounded-full px-4 py-2 text-xs">Log workout</PrimaryButton>
+          </Link>
+        }
+      >
+        <p className="text-sm leading-6 text-muted">
+          Track walks, runs, cycles, yoga, and light strength. AI can suggest one workout from your
+          energy and steps.
+        </p>
+      </Panel>
+
+      <div className="mt-4">
+        <GymOverviewStats
+          sessionCount={sessionCount}
+          totalMinutes={totalMinutes}
+          totalCalories={totalCalories}
+          machineCount={machineCount}
+        />
+      </div>
+
       <Stagger>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {[
@@ -83,29 +136,6 @@ export function GymOverview({
           ))}
         </div>
       </Stagger>
-      <Panel title="Quick start for beginners" className="mt-4" right={<Weight size={16} className="text-accent" />}>
-        <p className="text-sm leading-6 text-muted">
-          1) Watch a short beginner demo · 2) Log a light session · 3) Ask AI for machine picks when you
-          want a guided circuit.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/dashboard/gym/demos" className="inline-flex">
-            <PrimaryButton className="rounded-full px-5">Watch beginner demos</PrimaryButton>
-          </Link>
-          <Link
-            href="/dashboard/gym/sessions"
-            className="inline-flex items-center rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
-          >
-            Log a short session
-          </Link>
-          <Link
-            href="/dashboard/gym/machines"
-            className="inline-flex items-center rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
-          >
-            Browse machines later
-          </Link>
-        </div>
-      </Panel>
     </>
   );
 }

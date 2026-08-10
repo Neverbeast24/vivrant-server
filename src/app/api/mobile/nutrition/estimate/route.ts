@@ -3,6 +3,12 @@ import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson } from "@/lib/mobile/http";
 import { buildUserContext } from "@/lib/ai/context";
 import { estimateMealMacros, type MealImageInput } from "@/lib/ai/gemini";
+import {
+  checkRateLimit,
+  clientIp,
+  maybeSweepRateLimits,
+  rateLimitResponse,
+} from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -38,6 +44,13 @@ export async function POST(request: Request) {
   const auth = await requireMobileUser(request);
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
+
+  maybeSweepRateLimits();
+  const limited = checkRateLimit(`ai:estimate:${user.id}:${clientIp(request)}`, {
+    limit: 40,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
 
   const contentType = request.headers.get("content-type") ?? "";
   let description = "";

@@ -22,6 +22,7 @@ import {
   estimateItemCostWithAi,
   generateSmartGroceryPlan,
 } from "@/app/dashboard/groceries/ai-actions";
+import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   Bars,
   EmptyState,
@@ -39,6 +40,7 @@ import {
   formatPhp,
   suggestGroceryCategory,
 } from "@/lib/groceries/ph-price-catalog";
+import { kitchenSubNav } from "@/lib/nav";
 import { toast } from "sonner";
 
 type GroceryItem = {
@@ -231,7 +233,7 @@ export function GroceriesView({
   return (
     <>
       <PageHeader
-        eyebrow="GROCERIES"
+        eyebrow="KITCHEN · SHOPPING"
         title="Shop"
         highlight="smarter."
         action={
@@ -254,6 +256,7 @@ export function GroceriesView({
           </div>
         }
       />
+      <ModuleSubNav items={kitchenSubNav} />
 
       {plan && (
         <Panel title={plan.title} className="mb-4" right={<Sparkles size={16} className="text-accent" />}>

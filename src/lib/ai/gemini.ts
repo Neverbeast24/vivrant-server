@@ -676,11 +676,20 @@ export type HealthHistoryInsight = {
 export async function generateGymPlan(
   context: string,
   availableExercises: string,
+  prefs?: { days_per_week?: number; session_minutes?: number },
 ): Promise<GymPlanPayload> {
+  const requestedDays = prefs?.days_per_week != null
+    ? Math.max(2, Math.min(6, Math.round(prefs.days_per_week)))
+    : null;
+  const requestedSession = prefs?.session_minutes != null
+    ? Math.max(15, Math.min(120, Math.round(prefs.session_minutes)))
+    : null;
+
   const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training plan for this user.
 Use their profile, energy, goals, recent activity, and especially routine_scaling (BMI band + target-date forecast).
 Scale the plan explicitly:
-- Match days_per_week and session length to routine_scaling.days_per_week / session_minutes
+- ${requestedDays != null ? `User chose EXACTLY ${requestedDays} training days/week — set days_per_week to ${requestedDays} and return exactly ${requestedDays} day entries` : "Match days_per_week to routine_scaling.days_per_week"}
+- ${requestedSession != null ? `User chose ~${requestedSession} minute sessions — size each day so it fits about ${requestedSession} minutes` : "Match session length to routine_scaling.session_minutes"}
 - Match focus to routine_scaling.focus (map to full_body, strength, fat_loss, mobility, or endurance)
 - underweight → strength / muscle gain, fewer long cardio blocks
 - overweight / obese → joint-friendly machines first, controlled tempo, sustainable fat_loss or full_body
@@ -692,7 +701,7 @@ Return JSON:
 - "title"
 - "focus": one of full_body, strength, fat_loss, mobility, endurance
 - "level": beginner | intermediate | advanced
-- "days_per_week": 2-5
+- "days_per_week": 2-6
 - "summary": 2 sentences
 - "days": array of { "day", "focus", "exercises": [{ "name", "sets", "rest", "notes" }] }
   Include 3–5 exercises per day. Name machines clearly when used (e.g. "Leg press machine").
@@ -704,13 +713,16 @@ USER CONTEXT:
 ${context}`);
 
   const days = Array.isArray(parsed.days) ? parsed.days : [];
+  const daysPerWeek =
+    requestedDays ??
+    Math.max(2, Math.min(6, Math.round(Number(parsed.days_per_week ?? 3))));
   return {
     title: String(parsed.title ?? "Your VIVRΛNT gym plan").slice(0, 120),
     focus: String(parsed.focus ?? "full_body"),
     level: String(parsed.level ?? "beginner"),
-    days_per_week: Math.max(2, Math.min(5, Math.round(Number(parsed.days_per_week ?? 3)))),
+    days_per_week: daysPerWeek,
     summary: String(parsed.summary ?? "A gentle plan matched to your current rhythm.").slice(0, 600),
-    days: days.slice(0, 5).map((day) => ({
+    days: days.slice(0, daysPerWeek).map((day) => ({
       day: String(day?.day ?? "Day").slice(0, 40),
       focus: String(day?.focus ?? "Training").slice(0, 60),
       exercises: (Array.isArray(day?.exercises) ? day.exercises : []).slice(0, 6).map((ex) => ({

@@ -6,6 +6,12 @@ import {
   logSupabaseConfigOnce,
 } from "@/lib/supabase/config-check";
 import { logger } from "@/lib/logger";
+import {
+  checkRateLimit,
+  clientIp,
+  maybeSweepRateLimits,
+  rateLimitResponse,
+} from "@/lib/security/rate-limit";
 
 const schema = z.object({
   email: z.email("Enter a valid email address."),
@@ -28,6 +34,14 @@ function friendlyError(message: string) {
 export async function POST(request: NextRequest) {
   const started = Date.now();
   logSupabaseConfigOnce("login");
+  maybeSweepRateLimits();
+
+  const ip = clientIp(request);
+  const limited = checkRateLimit(`auth:login:${ip}`, {
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
 
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);

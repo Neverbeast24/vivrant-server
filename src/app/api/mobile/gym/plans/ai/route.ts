@@ -3,6 +3,11 @@ import { jsonOk, jsonError } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
 import { buildUserContext } from "@/lib/ai/context";
 import { generateGymPlan } from "@/lib/ai/gemini";
+import {
+  applyRoutineOverrides,
+  clampGymPlanPrefs,
+  type RoutineScaling,
+} from "@/lib/health/body-metrics";
 
 export const runtime = "nodejs";
 
@@ -12,8 +17,16 @@ export async function POST(request: Request) {
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
 
+  let body: { days_per_week?: number; session_minutes?: number } = {};
   try {
-    const [{ data: exercises }, context] = await Promise.all([
+    body = (await request.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+  const prefs = clampGymPlanPrefs(body);
+
+  try {
+    const [{ data: exercises }, rawContext] = await Promise.all([
       supabase
         .from("gym_exercises")
         .select("name, muscle_group, equipment, difficulty")
@@ -21,12 +34,24 @@ export async function POST(request: Request) {
       buildUserContext(user.id, { supabase }),
     ]);
 
+    let context = rawContext;
+    try {
+      const parsed = JSON.parse(rawContext) as { routine_scaling?: RoutineScaling };
+      if (parsed.routine_scaling) {
+        parsed.routine_scaling = applyRoutineOverrides(parsed.routine_scaling, prefs);
+      }
+      context = JSON.stringify({ ...parsed, plan_prefs: prefs });
+    } catch {
+      // keep raw context
+    }
+
     const catalog = (exercises ?? [])
       .map((row) => `${row.name} (${row.muscle_group}, ${row.equipment}, ${row.difficulty})`)
       .join("\n");
     const plan = await generateGymPlan(
       context,
       catalog || "bodyweight squat, push-up, plank, glute bridge, leg press, lat pulldown",
+      prefs,
     );
 
     const { data, error } = await supabase
