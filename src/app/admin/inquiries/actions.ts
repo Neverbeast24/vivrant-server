@@ -7,9 +7,11 @@ import { requireSuperAdmin } from "@/lib/auth/roles";
 import { sendInquiryPriceEmail } from "@/lib/email/send";
 import { createClient } from "@/lib/supabase/server";
 
+const statusEnum = z.enum(["open", "in_progress", "resolved", "closed"]);
+
 const updateSchema = z.object({
   id: z.coerce.number().int().positive(),
-  status: z.enum(["open", "in_progress", "resolved", "closed"]),
+  status: statusEnum,
   admin_note: z.preprocess(
     (value) => (value === "" || value == null ? null : value),
     z.string().trim().max(1000).nullable(),
@@ -24,6 +26,11 @@ const updateSchema = z.object({
     z.boolean(),
   ),
 });
+
+function revalidateInquiries() {
+  revalidatePath("/admin/inquiries");
+  revalidatePath("/admin", "layout");
+}
 
 export async function updateContactInquiry(formData: FormData) {
   await requireSuperAdmin();
@@ -60,6 +67,7 @@ export async function updateContactInquiry(formData: FormData) {
 
   let emailMessage: string | null = null;
   let priceEmailedAt: string | null = null;
+  let nextStatus = parsed.data.status;
 
   if (parsed.data.send_price_email && parsed.data.quoted_price != null) {
     const emailed = await sendInquiryPriceEmail({
@@ -77,12 +85,14 @@ export async function updateContactInquiry(formData: FormData) {
 
     emailMessage = emailed.message;
     priceEmailedAt = new Date().toISOString();
+    // Sending a quote closes the inquiry; admin can reopen later.
+    nextStatus = "closed";
   }
 
   const { error } = await supabase
     .from("contact_inquiries")
     .update({
-      status: parsed.data.status,
+      status: nextStatus,
       admin_note: parsed.data.admin_note,
       quoted_price: parsed.data.quoted_price,
       ...(priceEmailedAt ? { price_emailed_at: priceEmailedAt } : {}),
@@ -104,18 +114,64 @@ export async function updateContactInquiry(formData: FormData) {
     entity: "contact_inquiries",
     metadata: {
       id: parsed.data.id,
-      status: parsed.data.status,
+      status: nextStatus,
       quoted_price: parsed.data.quoted_price,
       emailed: Boolean(emailMessage),
     },
   });
 
-  revalidatePath("/admin/inquiries");
-  revalidatePath("/admin", "layout");
+  revalidateInquiries();
   return {
     ok: true,
     message: emailMessage
-      ? `Inquiry updated. ${emailMessage}`
-      : "Inquiry updated.",
+      ? `Quote sent and inquiry closed. ${emailMessage}`
+      : nextStatus === "closed"
+        ? "Inquiry closed."
+        : "Inquiry updated.",
   };
+}
+
+export async function setContactInquiryStatus(formData: FormData) {
+  await requireSuperAdmin();
+
+  const parsed = z
+    .object({
+      id: z.coerce.number().int().positive(),
+      status: statusEnum,
+    })
+    .safeParse({
+      id: formData.get("id"),
+      status: formData.get("status"),
+    });
+
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid status." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("contact_inquiries")
+    .update({ status: parsed.data.status })
+    .eq("id", parsed.data.id);
+
+  if (error) {
+    console.error("contact_inquiries status failed:", error.message);
+    return { ok: false, message: "Could not update status." };
+  }
+
+  await writeAuditLog({
+    action: "contact_inquiry_status_changed",
+    entity: "contact_inquiries",
+    metadata: { id: parsed.data.id, status: parsed.data.status },
+  });
+
+  revalidateInquiries();
+
+  if (parsed.data.status === "open") {
+    return { ok: true, message: "Inquiry reopened." };
+  }
+  if (parsed.data.status === "closed") {
+    return { ok: true, message: "Inquiry closed." };
+  }
+  return { ok: true, message: `Status set to ${parsed.data.status.replaceAll("_", " ")}.` };
 }

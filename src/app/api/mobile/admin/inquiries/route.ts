@@ -65,6 +65,7 @@ export async function PATCH(request: Request) {
   if (loadError || !existing) return jsonError("Inquiry not found.", 404);
 
   let priceEmailedAt: string | null = existing.price_emailed_at ?? null;
+  let nextStatus = parsed.data.status;
   if (parsed.data.send_price_email && parsed.data.quoted_price != null) {
     const emailed = await sendInquiryPriceEmail({
       to: existing.email,
@@ -76,12 +77,13 @@ export async function PATCH(request: Request) {
     });
     if (!emailed.ok) return jsonError(emailed.message, 500);
     priceEmailedAt = new Date().toISOString();
+    nextStatus = "closed";
   }
 
   const { data, error } = await admin
     .from("contact_inquiries")
     .update({
-      status: parsed.data.status,
+      status: nextStatus,
       admin_note:
         parsed.data.admin_note === undefined
           ? existing.admin_note
@@ -103,7 +105,7 @@ export async function PATCH(request: Request) {
       action: "contact_inquiry_updated",
       entity: "contact_inquiries",
       entityId: String(parsed.data.id),
-      metadata: { status: parsed.data.status },
+      metadata: { status: nextStatus, emailed: Boolean(parsed.data.send_price_email) },
     },
     auth.supabase,
   );
