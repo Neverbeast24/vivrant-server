@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { sendInquiryAckEmail } from "@/lib/email/send";
 import { notifyStaff } from "@/lib/notifications/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -88,6 +89,20 @@ export async function submitContactInquiry(formData: FormData) {
   if (error) {
     console.error("contact_inquiries insert failed:", error.message);
     return { ok: false as const, message: "Could not send your inquiry. Please try again." };
+  }
+
+  try {
+    const ack = await sendInquiryAckEmail({
+      to: parsed.data.email,
+      name: parsed.data.name,
+      plan: parsed.data.plan,
+      inquiryId: data.id,
+    });
+    if (!ack.ok) {
+      console.error("contact inquiry ack email skipped:", ack.message);
+    }
+  } catch (ackError) {
+    console.error("contact inquiry ack email failed:", ackError);
   }
 
   try {

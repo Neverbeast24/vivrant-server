@@ -24,8 +24,10 @@ export type RoutineScaling = {
 export type GymPlanPrefs = {
   days_per_week: number;
   session_minutes: number;
-  /** Catalog slugs for machines the user already knows how to use. */
+  /** Catalog slugs for machines / free-weight moves the user already knows. */
   known_machine_slugs: string[];
+  /** Free-text moves the user typed that are not in the catalog checklist. */
+  known_custom_exercises: string[];
   /** Muscle / focus areas the user does not want emphasized (e.g. core). */
   avoid_targets: string[];
 };
@@ -73,9 +75,28 @@ function sanitizeKnownMachineSlugs(input: unknown): string[] {
       .slice(0, 80);
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
-    if (seen.size >= 40) break;
+    if (seen.size >= 60) break;
   }
   return [...seen];
+}
+
+function sanitizeCustomExercises(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of input) {
+    const name = String(raw ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80);
+    if (name.length < 2) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length >= 20) break;
+  }
+  return out;
 }
 
 function sanitizeAvoidTargets(input: unknown): string[] {
@@ -99,6 +120,7 @@ export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_wee
     days_per_week: Math.max(2, Math.min(6, midpointFromRange(scaling?.days_per_week ?? "3", 3))),
     session_minutes: Math.max(15, Math.min(120, midpointFromRange(scaling?.session_minutes ?? "45", 45))),
     known_machine_slugs: [],
+    known_custom_exercises: [],
     avoid_targets: [],
   };
 }
@@ -110,6 +132,7 @@ export function clampGymPlanPrefs(input: Partial<GymPlanPrefs> | null | undefine
     days_per_week: Math.max(2, Math.min(6, Number.isFinite(days) ? Math.round(days) : 3)),
     session_minutes: Math.max(15, Math.min(120, Number.isFinite(session) ? Math.round(session) : 45)),
     known_machine_slugs: sanitizeKnownMachineSlugs(input?.known_machine_slugs),
+    known_custom_exercises: sanitizeCustomExercises(input?.known_custom_exercises),
     avoid_targets: sanitizeAvoidTargets(input?.avoid_targets),
   };
 }

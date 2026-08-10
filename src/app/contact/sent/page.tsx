@@ -43,14 +43,14 @@ export default async function ContactSentPage({ searchParams }: SentPageProps) {
         <p className="mt-6 text-[11px] font-black tracking-[0.2em] text-accent">INQUIRY SENT</p>
         <h1 className="font-display mt-3 text-4xl text-ink sm:text-5xl">We got your message.</h1>
         <p className="mt-4 text-sm leading-7 text-ink/80">
-          Thanks for reaching out. Our team will review your inquiry
+          Thanks for reaching out. We sent a confirmation to your email for inquiry
           {ref ? (
             <>
               {" "}
               <span className="font-bold text-ink">#{ref}</span>
             </>
-          ) : null}{" "}
-          and follow up by email.
+          ) : null}
+          . Our team will follow up soon with next steps.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link

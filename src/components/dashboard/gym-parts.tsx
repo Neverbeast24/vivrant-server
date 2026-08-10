@@ -58,6 +58,7 @@ export type { GymExercise, GymPlan, GymSession };
 
 const PLAN_PREFS_KEY = "vivrant.gym.planPrefs";
 const KNOWN_MACHINES_KEY = "vivrant.gym.knownMachines";
+const KNOWN_CUSTOM_KEY = "vivrant.gym.knownCustom";
 const AVOID_TARGETS_KEY = "vivrant.gym.avoidTargets";
 
 export function GymOverviewStats({
@@ -593,11 +594,18 @@ export function GymPlansView({
   const [daysPerWeek, setDaysPerWeek] = useState(String(suggested.days_per_week));
   const [sessionMinutes, setSessionMinutes] = useState(String(suggested.session_minutes));
   const [knownMachineSlugs, setKnownMachineSlugs] = useState<string[]>([]);
+  const [knownCustomExercises, setKnownCustomExercises] = useState<string[]>([]);
+  const [customDraft, setCustomDraft] = useState("");
   const [avoidTargets, setAvoidTargets] = useState<string[]>([]);
   const machines = useMemo(
     () => exercises.filter((item) => isMachineGear(item.equipment)),
     [exercises],
   );
+  const freeWeights = useMemo(
+    () => exercises.filter((item) => !isMachineGear(item.equipment)),
+    [exercises],
+  );
+  const knownSelectedCount = knownMachineSlugs.length + knownCustomExercises.length;
 
   useEffect(() => {
     try {
@@ -608,6 +616,7 @@ export function GymPlansView({
             days_per_week?: number;
             session_minutes?: number;
             known_machine_slugs?: string[];
+            known_custom_exercises?: string[];
             avoid_targets?: string[];
           },
         );
@@ -615,6 +624,9 @@ export function GymPlansView({
         setSessionMinutes(String(saved.session_minutes));
         if (saved.known_machine_slugs.length) {
           setKnownMachineSlugs(saved.known_machine_slugs);
+        }
+        if (saved.known_custom_exercises.length) {
+          setKnownCustomExercises(saved.known_custom_exercises);
         }
         if (saved.avoid_targets.length) {
           setAvoidTargets(saved.avoid_targets);
@@ -625,6 +637,14 @@ export function GymPlansView({
         const parsed = JSON.parse(knownRaw) as unknown;
         const slugs = clampGymPlanPrefs({ known_machine_slugs: parsed as string[] }).known_machine_slugs;
         if (slugs.length) setKnownMachineSlugs(slugs);
+      }
+      const customRaw = localStorage.getItem(KNOWN_CUSTOM_KEY);
+      if (customRaw) {
+        const parsed = JSON.parse(customRaw) as unknown;
+        const customs = clampGymPlanPrefs({
+          known_custom_exercises: parsed as string[],
+        }).known_custom_exercises;
+        if (customs.length) setKnownCustomExercises(customs);
       }
       const avoidRaw = localStorage.getItem(AVOID_TARGETS_KEY);
       if (avoidRaw) {
@@ -647,6 +667,16 @@ export function GymPlansView({
     }
   }
 
+  function persistKnownCustom(next: string[]) {
+    const customs = clampGymPlanPrefs({ known_custom_exercises: next }).known_custom_exercises;
+    setKnownCustomExercises(customs);
+    try {
+      localStorage.setItem(KNOWN_CUSTOM_KEY, JSON.stringify(customs));
+    } catch {
+      // ignore quota / private mode
+    }
+  }
+
   function persistAvoidTargets(next: string[]) {
     const targets = clampGymPlanPrefs({ avoid_targets: next }).avoid_targets;
     setAvoidTargets(targets);
@@ -662,6 +692,18 @@ export function GymPlansView({
       ? knownMachineSlugs.filter((item) => item !== slug)
       : [...knownMachineSlugs, slug];
     persistKnownMachines(next);
+  }
+
+  function addCustomExercise() {
+    const prefs = clampGymPlanPrefs({
+      known_custom_exercises: [...knownCustomExercises, customDraft],
+    });
+    persistKnownCustom(prefs.known_custom_exercises);
+    setCustomDraft("");
+  }
+
+  function removeCustomExercise(name: string) {
+    persistKnownCustom(knownCustomExercises.filter((item) => item !== name));
   }
 
   function toggleAvoidTarget(target: string) {
@@ -684,11 +726,13 @@ export function GymPlansView({
       days_per_week: Number(daysPerWeek),
       session_minutes: Number(sessionMinutes),
       known_machine_slugs: knownMachineSlugs,
+      known_custom_exercises: knownCustomExercises,
       avoid_targets: avoidTargets,
     });
     setDaysPerWeek(String(prefs.days_per_week));
     setSessionMinutes(String(prefs.session_minutes));
     persistKnownMachines(prefs.known_machine_slugs);
+    persistKnownCustom(prefs.known_custom_exercises);
     persistAvoidTargets(prefs.avoid_targets);
     try {
       localStorage.setItem(PLAN_PREFS_KEY, JSON.stringify(prefs));
@@ -782,8 +826,8 @@ export function GymPlansView({
             </div>
 
             <p className="text-xs font-semibold text-muted">
-              Edit days / week and session length, mark areas to avoid and machines you know, then Generate
-              AI plan — suggestions will respect those choices.
+              Edit days / week and session length, mark areas to avoid and exercises you know, then
+              Generate AI plan — suggestions will respect those choices.
             </p>
 
             {(scaling.kg_to_goal != null || scaling.target_date) && (
@@ -874,7 +918,7 @@ export function GymPlansView({
       </Panel>
 
       <Panel
-        title="Machines you know"
+        title="Exercises you know"
         className="mb-4"
         right={
           <Link
@@ -887,24 +931,29 @@ export function GymPlansView({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Check machines you already know how to use. AI plans will build around these first. Use Demo to
-          watch form cues anytime.
+          Check machines and free-weight moves you already know (including stiff-leg deadlift). Type
+          anything missing under Other — AI plans will prioritize your list.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
-            {knownMachineSlugs.length} selected
+            {knownSelectedCount} selected
           </span>
-          {knownMachineSlugs.length > 0 && (
+          {knownSelectedCount > 0 && (
             <button
               type="button"
-              onClick={() => persistKnownMachines([])}
+              onClick={() => {
+                persistKnownMachines([]);
+                persistKnownCustom([]);
+              }}
               className="rounded-full px-2.5 py-1 transition hover:bg-surface hover:text-ink"
             >
               Clear all
             </button>
           )}
         </div>
-        <div className="grid max-h-80 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+
+        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">Machines</p>
+        <div className="mb-4 grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
           {machines.map((machine) => {
             const checked = knownMachineSlugs.includes(machine.slug);
             return (
@@ -951,10 +1000,109 @@ export function GymPlansView({
               </div>
             );
           })}
-          {!machines.length && (
-            <EmptyState>No machine demos in the catalog yet.</EmptyState>
-          )}
+          {!machines.length && <EmptyState>No machine demos in the catalog yet.</EmptyState>}
         </div>
+
+        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">
+          Free weights &amp; bodyweight
+        </p>
+        <div className="mb-4 grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+          {freeWeights.map((move) => {
+            const checked = knownMachineSlugs.includes(move.slug);
+            return (
+              <div
+                key={move.id}
+                className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${
+                  checked
+                    ? "border-accent/30 bg-accent-soft/50"
+                    : "border-ink/8 bg-card hover:border-ink/15"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleKnownMachine(move.slug)}
+                  className={`grid size-6 shrink-0 place-items-center rounded-md border transition ${
+                    checked
+                      ? "border-accent bg-accent text-inverse-fg"
+                      : "border-ink/15 bg-panel text-transparent"
+                  }`}
+                  aria-pressed={checked}
+                  aria-label={`${checked ? "Unmark" : "Mark"} ${move.name} as known`}
+                >
+                  <Check size={14} strokeWidth={3} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleKnownMachine(move.slug)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <p className="truncate text-sm font-bold text-ink">{move.name}</p>
+                  <p className="truncate text-[10px] capitalize text-muted">
+                    {humanizeGymLabel(move.muscle_group)} · {humanizeGymLabel(move.equipment)}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDemo(move)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-inverse px-2.5 py-1.5 text-[10px] font-black text-inverse-fg transition hover:bg-accent"
+                  aria-label={`Watch ${move.name} demo`}
+                >
+                  <Play size={10} fill="currentColor" />
+                  Demo
+                </button>
+              </div>
+            );
+          })}
+          {!freeWeights.length && <EmptyState>No free-weight demos in the catalog yet.</EmptyState>}
+        </div>
+
+        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">Other</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="block min-w-0 flex-1 text-xs font-bold text-muted">
+            Add a move not listed
+            <input
+              value={customDraft}
+              onChange={(e) => setCustomDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomExercise();
+                }
+              }}
+              placeholder="e.g. Hip thrust, landmine press…"
+              className={`${fieldClass} mt-1.5`}
+              maxLength={80}
+            />
+          </label>
+          <PrimaryButton
+            type="button"
+            disabled={customDraft.trim().length < 2}
+            onClick={addCustomExercise}
+            className="rounded-full px-5"
+          >
+            Add
+          </PrimaryButton>
+        </div>
+        {knownCustomExercises.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {knownCustomExercises.map((name) => (
+              <span
+                key={name}
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft/60 px-3 py-1.5 text-[11px] font-black text-accent"
+              >
+                {name}
+                <button
+                  type="button"
+                  onClick={() => removeCustomExercise(name)}
+                  className="grid size-4 place-items-center rounded-full text-accent transition hover:bg-accent hover:text-inverse-fg"
+                  aria-label={`Remove ${name}`}
+                >
+                  <X size={10} strokeWidth={3} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </Panel>
 
       <Panel title="Saved AI gym plans">

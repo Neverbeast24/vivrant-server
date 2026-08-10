@@ -680,6 +680,7 @@ export async function generateGymPlan(
     days_per_week?: number;
     session_minutes?: number;
     known_machine_slugs?: string[];
+    known_custom_exercises?: string[];
     avoid_targets?: string[];
   },
 ): Promise<GymPlanPayload> {
@@ -692,15 +693,22 @@ export async function generateGymPlan(
   const knownMachines = (prefs?.known_machine_slugs ?? [])
     .map((slug) => String(slug).trim())
     .filter(Boolean)
-    .slice(0, 40);
+    .slice(0, 60);
+  const knownCustom = (prefs?.known_custom_exercises ?? [])
+    .map((name) => String(name).replace(/\s+/g, " ").trim())
+    .filter((name) => name.length >= 2)
+    .slice(0, 20);
   const avoidTargets = (prefs?.avoid_targets ?? [])
     .map((target) => String(target).trim().toLowerCase().replaceAll(" ", "_"))
     .filter(Boolean)
     .slice(0, 20);
+  const knownParts: string[] = [];
+  if (knownMachines.length) knownParts.push(`catalog: ${knownMachines.join(", ")}`);
+  if (knownCustom.length) knownParts.push(`custom typed: ${knownCustom.join(", ")}`);
   const knownMachinesNote =
-    knownMachines.length > 0
-      ? `User already knows these gym machines (prefer them heavily — build the plan around this set when possible; only add unfamiliar machines if needed for balance): ${knownMachines.join(", ")}`
-      : "User has not marked known machines — prefer joint-friendly machines from the catalog and keep free-weight volume moderate.";
+    knownParts.length > 0
+      ? `User already knows these exercises (prefer them heavily — build the plan around this set when possible; only add unfamiliar moves if needed for balance): ${knownParts.join(" · ")}`
+      : "User has not marked known exercises — prefer joint-friendly machines from the catalog and keep free-weight volume moderate.";
   const avoidTargetsNote =
     avoidTargets.length > 0
       ? `User does NOT want to target these areas — do NOT schedule dedicated days or primary exercises for them (skip core-focused days, isolation work, and day titles that emphasize them): ${avoidTargets.join(", ")}. Redistribute volume to allowed muscle groups instead.`

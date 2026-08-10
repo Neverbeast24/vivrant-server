@@ -40,7 +40,7 @@ Fill in:
 3. Firebase web config from Firebase Console → Project Settings → Your apps
 4. Firebase Web Push certificate (VAPID) for Cloud Messaging
 5. Firebase Admin service account JSON for **server-side** push (`FIREBASE_SERVICE_ACCOUNT_JSON`)
-6. `RESEND_API_KEY` from [resend.com/api-keys](https://resend.com/api-keys) — needed to email inquiry price quotes from Admin → Inquiries (optional `EMAIL_FROM`)
+6. `RESEND_API_KEY` from [resend.com/api-keys](https://resend.com/api-keys) — sends automatic inquiry acknowledgments + admin price quotes (optional `EMAIL_FROM`). Restart the local server after adding it to `.env.local`.
 
 Full notification + mobile walkthrough: see [`NOTIFICATIONS.md`](./NOTIFICATIONS.md).
 

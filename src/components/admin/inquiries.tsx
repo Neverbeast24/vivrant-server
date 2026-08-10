@@ -67,7 +67,7 @@ function InquiryRow({
           <p className="mt-1 text-xs font-semibold capitalize text-accent">{planLabel}</p>
           {inquiry.price_emailed_at && (
             <p className="mt-1 text-[11px] font-semibold text-accent">
-              Price emailed {new Date(inquiry.price_emailed_at).toLocaleString()}
+              Quote emailed {new Date(inquiry.price_emailed_at).toLocaleString()}
               {inquiry.quoted_price != null ? ` · ₱${inquiry.quoted_price}` : ""}
             </p>
           )}
@@ -101,17 +101,17 @@ function InquiryRow({
           </select>
         </label>
         <label className="block text-xs font-bold text-muted">
-          Staff note
+          Note to include in quote email
           <input
             name="admin_note"
             maxLength={1000}
             defaultValue={inquiry.admin_note ?? ""}
-            placeholder="Optional note included in the email"
+            placeholder="Optional message for the requester"
             className="mt-1.5 w-full rounded-xl border border-ink/10 bg-panel px-3 py-2.5 text-sm font-semibold text-ink"
           />
         </label>
         <label className="block text-xs font-bold text-muted">
-          Price (₱)
+          Quote price (₱)
           <input
             name="quoted_price"
             type="number"
@@ -129,8 +129,8 @@ function InquiryRow({
             }`}
             title={
               emailConfigured
-                ? undefined
-                : "Add RESEND_API_KEY to enable quote emails"
+                ? "Sends the quote price to this person’s email when you update"
+                : "Email sending is unavailable until RESEND_API_KEY is loaded"
             }
           >
             <input
@@ -140,10 +140,14 @@ function InquiryRow({
               disabled={!emailConfigured}
               className="size-4 rounded border-ink/20 accent-[var(--accent)] disabled:opacity-50"
             />
-            Email price
+            Email quote now
           </label>
           <PrimaryButton type="submit" disabled={pending} className="w-full rounded-full px-5">
-            {pending ? "Saving…" : "Update"}
+            {pending
+              ? "Saving…"
+              : emailConfigured
+                ? "Save / send quote"
+                : "Save"}
           </PrimaryButton>
         </div>
       </form>
@@ -167,15 +171,24 @@ export function AdminInquiriesView({
       <p className="text-[11px] font-black tracking-[0.2em] text-accent">SUPER ADMIN</p>
       <h1 className="font-display mt-2 text-4xl tracking-tight">Contact inquiries</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-        Enter a price and keep <span className="font-bold text-ink">Email price</span> checked to
-        automatically email the quote to the requester.{" "}
+        Requesters get an automatic “we received your message” email when they submit the contact
+        form. Here you set a price and email the quote.{" "}
         <span className="font-bold text-accent">{openCount} active</span> right now.
       </p>
-      {!emailConfigured && (
+
+      {emailConfigured ? (
+        <p className="mt-4 max-w-2xl rounded-2xl border border-accent/20 bg-accent-soft/60 px-4 py-3 text-sm leading-6 text-ink">
+          <span className="font-bold text-accent">Email ready.</span> New inquiries auto-reply
+          immediately. To send a quote: enter a ₱ price, keep{" "}
+          <span className="font-bold">Email quote now</span> checked, then{" "}
+          <span className="font-bold">Save / send quote</span>.
+        </p>
+      ) : (
         <p className="mt-4 max-w-2xl rounded-2xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm leading-6 text-ink">
-          Quote email is off until <span className="font-bold">RESEND_API_KEY</span> is set in{" "}
-          <span className="font-bold">.env.local</span> (local) or Vercel env (production). You can
-          still save prices and status without sending mail.
+          <span className="font-bold">Email is off</span> because this server cannot see{" "}
+          <span className="font-bold">RESEND_API_KEY</span>. Add it to{" "}
+          <span className="font-bold">.env.local</span> and restart the local server, or confirm it
+          is set in Vercel and redeploy. You can still update status and prices without sending mail.
         </p>
       )}
 

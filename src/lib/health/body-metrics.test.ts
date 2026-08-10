@@ -44,6 +44,7 @@ describe("parseRoutineDefaults", () => {
       days_per_week: 4,
       session_minutes: 45,
       known_machine_slugs: [],
+      known_custom_exercises: [],
       avoid_targets: [],
     });
   });
@@ -53,6 +54,7 @@ describe("parseRoutineDefaults", () => {
       days_per_week: 6,
       session_minutes: 15,
       known_machine_slugs: [],
+      known_custom_exercises: [],
       avoid_targets: [],
     });
   });
@@ -63,6 +65,14 @@ describe("parseRoutineDefaults", () => {
         known_machine_slugs: [" Leg-Press ", "leg-press", "", "lat-pulldown"],
       }).known_machine_slugs,
     ).toEqual(["leg-press", "lat-pulldown"]);
+  });
+
+  it("sanitizes custom exercises", () => {
+    expect(
+      clampGymPlanPrefs({
+        known_custom_exercises: ["  Hip thrust ", "hip thrust", "a", "Landmine press"],
+      }).known_custom_exercises,
+    ).toEqual(["Hip thrust", "Landmine press"]);
   });
 
   it("sanitizes avoid targets", () => {
@@ -95,7 +105,13 @@ describe("parseRoutineDefaults", () => {
         tips: [],
         summary: "test",
       },
-      { days_per_week: 5, session_minutes: 40, known_machine_slugs: [], avoid_targets: [] },
+      {
+        days_per_week: 5,
+        session_minutes: 40,
+        known_machine_slugs: [],
+        known_custom_exercises: [],
+        avoid_targets: [],
+      },
     );
     expect(scaled.days_per_week).toBe("5");
     expect(scaled.session_minutes).toBe("40");

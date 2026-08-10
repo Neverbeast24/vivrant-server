@@ -147,10 +147,17 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
         `AVOID THESE TARGETS (do not program primary work for): ${prefs.avoid_targets.join(", ")}`,
       );
     }
-    if (knownRows.length) {
+    if (knownRows.length || prefs.known_custom_exercises.length) {
+      const knownBlock = [
+        knownRows.length ? knownRows.map(formatRow).join("\n") : null,
+        prefs.known_custom_exercises.length
+          ? prefs.known_custom_exercises.map((name) => `${name} (custom, user-typed)`).join("\n")
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
       catalogParts.push(
-        "KNOWN MACHINES (user checked these — prioritize):\n" +
-          knownRows.map(formatRow).join("\n"),
+        "KNOWN EXERCISES (user checked / typed these — prioritize):\n" + knownBlock,
       );
       catalogParts.push(
         "OTHER CATALOG (use sparingly if needed):\n" + otherRows.map(formatRow).join("\n"),
@@ -189,6 +196,7 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
         title: plan.title,
         focus: plan.focus,
         known_machine_count: prefs.known_machine_slugs.length,
+        known_custom_count: prefs.known_custom_exercises.length,
         avoid_targets: prefs.avoid_targets,
       },
     });
