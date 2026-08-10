@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { getEmailConfigStatus } from "@/lib/email/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isMobileAuthError, requireMobileStaff } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson } from "@/lib/mobile/http";
@@ -19,7 +20,7 @@ function envFlags() {
   return {
     gemini: Boolean((process.env.GEMINI_API_KEY ?? "").trim()),
     firebase: Boolean((process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "").trim()),
-    resend: Boolean((process.env.RESEND_API_KEY ?? "").trim()),
+    resend: getEmailConfigStatus().configured,
   };
 }
 

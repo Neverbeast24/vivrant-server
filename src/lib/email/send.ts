@@ -19,19 +19,28 @@ export type InquiryAckEmailInput = {
 };
 
 /**
- * Next.js only inlines env vars referenced with static property access
- * (`process.env.FOO`). Dynamic keys like `process.env[name]` stay empty
- * at runtime even when `.env.local` / Vercel has the value.
+ * Prefer static `process.env.RESEND_API_KEY` (Next inlines it when present).
+ * Also try concat access as a runtime fallback when the static slot is empty.
  */
 function resendApiKey() {
-  const raw = (process.env.RESEND_API_KEY ?? "").trim().replace(/^["']|["']$/g, "").trim();
+  const staticValue = process.env.RESEND_API_KEY;
+  const concatValue = process.env[`${"RESEND"}_${"API_KEY"}`];
+  const raw = String(staticValue || concatValue || "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
   // Ignore empty / placeholder values that would still look "set" in some env files.
   if (!raw || raw.length < 8 || /^(your|changeme|todo|xxx)/i.test(raw)) return "";
   return raw;
 }
 
 function emailFrom() {
-  return (process.env.EMAIL_FROM ?? "").trim().replace(/^["']|["']$/g, "").trim();
+  const staticValue = process.env.EMAIL_FROM;
+  const concatValue = process.env[`${"EMAIL"}_${"FROM"}`];
+  return String(staticValue || concatValue || "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
 }
 
 function formatPhp(amount: number) {
@@ -48,8 +57,28 @@ function planLabel(plan: string) {
   return "VIVRΛNT";
 }
 
+export type EmailConfigStatus = {
+  configured: boolean;
+  /** local | preview | production | unknown */
+  environment: string;
+};
+
+export function getEmailConfigStatus(): EmailConfigStatus {
+  const vercelEnv = (process.env.VERCEL_ENV ?? "").trim().toLowerCase();
+  const environment =
+    vercelEnv === "production" || vercelEnv === "preview" || vercelEnv === "development"
+      ? vercelEnv
+      : process.env.VERCEL === "1"
+        ? "production"
+        : "local";
+  return {
+    configured: Boolean(resendApiKey()),
+    environment,
+  };
+}
+
 export function isEmailConfigured() {
-  return Boolean(resendApiKey());
+  return getEmailConfigStatus().configured;
 }
 
 export async function sendInquiryAckEmail(input: InquiryAckEmailInput) {

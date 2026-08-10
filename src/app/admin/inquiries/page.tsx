@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { AdminInquiriesView, type AdminInquiry } from "@/components/admin/inquiries";
 import { requireSuperAdmin } from "@/lib/auth/roles";
-import { isEmailConfigured } from "@/lib/email/send";
+import { getEmailConfigStatus } from "@/lib/email/send";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Inquiries" };
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export default async function AdminInquiriesPage() {
   await connection();
   await requireSuperAdmin();
   const supabase = await createClient();
+  const emailStatus = getEmailConfigStatus();
 
   const { data } = await supabase
     .from("contact_inquiries")
@@ -24,7 +26,8 @@ export default async function AdminInquiriesPage() {
   return (
     <AdminInquiriesView
       inquiries={(data ?? []) as AdminInquiry[]}
-      emailConfigured={isEmailConfigured()}
+      emailConfigured={emailStatus.configured}
+      emailEnvironment={emailStatus.environment}
     />
   );
 }

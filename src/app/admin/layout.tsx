@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin/shell";
 import { isSuperAdmin, requireStaff } from "@/lib/auth/roles";
+import { getEmailConfigStatus } from "@/lib/email/send";
 import type { UserRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,7 +9,7 @@ function countSystemIssues() {
   // Static process.env.* access is required — dynamic keys stay empty in Next.js.
   if (!(process.env.GEMINI_API_KEY ?? "").trim()) issues += 1;
   if (!(process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "").trim()) issues += 1;
-  if (!(process.env.RESEND_API_KEY ?? "").trim()) issues += 1;
+  if (!getEmailConfigStatus().configured) issues += 1;
   return issues;
 }
 

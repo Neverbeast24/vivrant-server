@@ -158,13 +158,16 @@ function InquiryRow({
 export function AdminInquiriesView({
   inquiries,
   emailConfigured = false,
+  emailEnvironment = "local",
 }: {
   inquiries: AdminInquiry[];
   emailConfigured?: boolean;
+  emailEnvironment?: string;
 }) {
   const openCount = inquiries.filter(
     (row) => row.status === "open" || row.status === "in_progress",
   ).length;
+  const onVercel = emailEnvironment === "production" || emailEnvironment === "preview";
 
   return (
     <>
@@ -185,10 +188,30 @@ export function AdminInquiriesView({
         </p>
       ) : (
         <p className="mt-4 max-w-2xl rounded-2xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm leading-6 text-ink">
-          <span className="font-bold">Email is off</span> because this server cannot see{" "}
-          <span className="font-bold">RESEND_API_KEY</span>. Add it to{" "}
-          <span className="font-bold">.env.local</span> and restart the local server, or confirm it
-          is set in Vercel and redeploy. You can still update status and prices without sending mail.
+          <span className="font-bold">Email is off on this running server</span> (env:{" "}
+          <span className="font-bold">{emailEnvironment}</span>). Having{" "}
+          <span className="font-bold">RESEND_API_KEY</span> in a file is not enough until that
+          process loads it.
+          {onVercel ? (
+            <>
+              {" "}
+              You are on the deployed site — <span className="font-bold">.env.local is ignored</span>
+              . Confirm the key exists under Vercel → Project → Settings → Environment Variables for{" "}
+              <span className="font-bold">Production</span>, then redeploy.
+            </>
+          ) : (
+            <>
+              {" "}
+              Locally: stop the Next server, then start it again with{" "}
+              <span className="font-bold">npm run dev</span> from the{" "}
+              <span className="font-bold">viva-server</span> folder (or rebuild if you use{" "}
+              <span className="font-bold">npm run build && npm start</span>). Also keep a single{" "}
+              <span className="font-bold">EMAIL_FROM</span> using a Resend-verified sender such as{" "}
+              <span className="font-bold">VIVRΛNT &lt;onboarding@resend.dev&gt;</span> — a Gmail
+              address will not send until the domain is verified in Resend.
+            </>
+          )}{" "}
+          You can still update status and prices without sending mail.
         </p>
       )}
 
