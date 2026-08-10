@@ -1028,6 +1028,13 @@ export function LandingPage() {
           </div>
           <p className="text-xs font-semibold text-muted">
             © {new Date().getFullYear()} VIVRΛNT · Long live life
+            <span className="mx-2 text-ink/20">·</span>
+            <a
+              href="mailto:longlivelifevivrant@gmail.com"
+              className="transition-colors hover:text-accent"
+            >
+              longlivelifevivrant@gmail.com
+            </a>
           </p>
         </div>
       </footer>

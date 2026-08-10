@@ -162,7 +162,16 @@ export default function AboutPage() {
               Get started
             </Link>
           </div>
-          <p>© {new Date().getFullYear()} VIVRΛNT · Long live life</p>
+          <p>
+            © {new Date().getFullYear()} VIVRΛNT · Long live life
+            <span className="mx-2 text-ink/20">·</span>
+            <a
+              href="mailto:longlivelifevivrant@gmail.com"
+              className="hover:text-accent"
+            >
+              longlivelifevivrant@gmail.com
+            </a>
+          </p>
         </div>
       </footer>
     </main>

@@ -3,6 +3,12 @@ import "server-only";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { Resend } from "resend";
+import {
+  BRAND_CONTACT_EMAIL,
+  BRAND_FROM,
+  BRAND_NAME,
+  BRAND_TAGLINE,
+} from "@/lib/brand";
 
 export type PriceQuoteEmailInput = {
   to: string;
@@ -78,6 +84,44 @@ function smtpMissingFields() {
 
 function emailFrom(fallback: string) {
   return envValue("EMAIL_FROM") || fallback;
+}
+
+function brandReplyTo() {
+  return BRAND_CONTACT_EMAIL;
+}
+
+function appBaseUrl() {
+  const raw =
+    envValue("NEXT_PUBLIC_APP_URL") ||
+    envValue("APP_URL") ||
+    "https://vivrant-server.vercel.app";
+  return raw.replace(/\/$/, "");
+}
+
+function brandLogoUrl() {
+  return `${appBaseUrl()}/vivrant-logo.png`;
+}
+
+function emailFooterHtml() {
+  const logo = brandLogoUrl();
+  return `
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4ebe7;text-align:center">
+      <img src="${escapeHtml(logo)}" alt="${BRAND_NAME}" width="140" style="display:block;margin:0 auto 12px;width:140px;max-width:60%;height:auto;border:0" />
+      <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#0E7C66">— ${escapeHtml(BRAND_TAGLINE)} —</p>
+      <p style="margin:10px 0 0;font-size:12px;color:#4a5c54">
+        <a href="mailto:${BRAND_CONTACT_EMAIL}" style="color:#0E7C66;text-decoration:none;font-weight:600">${BRAND_CONTACT_EMAIL}</a>
+      </p>
+      <p style="margin:8px 0 0;font-size:12px;color:#4a5c54">— ${BRAND_NAME} · ${escapeHtml(BRAND_TAGLINE)}</p>
+    </div>
+  `;
+}
+
+function emailFooterText() {
+  return [
+    "",
+    `— ${BRAND_NAME} · ${BRAND_TAGLINE}`,
+    BRAND_CONTACT_EMAIL,
+  ].join("\n");
 }
 
 function formatPhp(amount: number) {
@@ -180,11 +224,11 @@ function getSmtpTransporter(smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
 }
 
 async function sendViaSmtp(payload: MailPayload, smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
-  const from = emailFrom(`VIVRΛNT <${smtp.user}>`);
+  const from = emailFrom(BRAND_FROM);
   const transporter = getSmtpTransporter(smtp);
   await transporter.sendMail({
     from,
-    replyTo: smtp.user,
+    replyTo: brandReplyTo(),
     to: payload.to,
     subject: payload.subject,
     html: payload.html,
@@ -194,10 +238,11 @@ async function sendViaSmtp(payload: MailPayload, smtp: NonNullable<ReturnType<ty
 }
 
 async function sendViaResend(payload: MailPayload, apiKey: string) {
-  const from = emailFrom("VIVRΛNT <onboarding@resend.dev>");
+  const from = emailFrom(BRAND_FROM);
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
     from,
+    replyTo: brandReplyTo(),
     to: payload.to,
     subject: payload.subject,
     html: payload.html,
@@ -260,29 +305,28 @@ export async function sendInquiryAckEmail(input: InquiryAckEmailInput) {
   const label = planLabel(input.plan);
   const result = await sendMail({
     to: input.to,
-    subject: `We received your VIVRΛNT inquiry · #${input.inquiryId}`,
+    subject: `We received your ${BRAND_NAME} inquiry · #${input.inquiryId}`,
     html: `
       <div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#14221b;max-width:560px">
         <p>Hi ${escapeHtml(input.name)},</p>
-        <p>Thanks for contacting VIVRΛNT about <strong>${escapeHtml(label)}</strong>.</p>
+        <p>Thanks for contacting ${BRAND_NAME} about <strong>${escapeHtml(label)}</strong>.</p>
         <p>
           We received your message
           <strong>#${input.inquiryId}</strong>
           and our team will follow up by email soon.
         </p>
         <p style="color:#4a5c54">No extra action is needed from you right now. You can reply to this email anytime.</p>
-        <p style="color:#4a5c54;font-size:12px">— VIVRΛNT · Long live life</p>
+        ${emailFooterHtml()}
       </div>
     `,
     text: [
       `Hi ${input.name},`,
       "",
-      `Thanks for contacting VIVRΛNT about ${label}.`,
+      `Thanks for contacting ${BRAND_NAME} about ${label}.`,
       `We received your message #${input.inquiryId} and our team will follow up by email soon.`,
       "",
       "No extra action is needed from you right now. You can reply to this email anytime.",
-      "",
-      "— VIVRΛNT",
+      emailFooterText(),
     ].join("\n"),
   });
 
@@ -300,11 +344,11 @@ export async function sendInquiryPriceEmail(input: PriceQuoteEmailInput) {
   const label = planLabel(input.plan);
   const result = await sendMail({
     to: input.to,
-    subject: `VIVRΛNT ${label} quote · ${priceLabel}`,
+    subject: `${BRAND_NAME} ${label} quote · ${priceLabel}`,
     html: `
       <div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#14221b;max-width:560px">
         <p>Hi ${escapeHtml(input.name)},</p>
-        <p>Thanks for your VIVRΛNT inquiry (#${input.inquiryId}).</p>
+        <p>Thanks for your ${BRAND_NAME} inquiry (#${input.inquiryId}).</p>
         <p>
           Here is the quoted price for <strong>${escapeHtml(label)}</strong>:
           <strong style="font-size:1.25rem">${priceLabel}</strong>
@@ -315,18 +359,17 @@ export async function sendInquiryPriceEmail(input: PriceQuoteEmailInput) {
             : ""
         }
         <p>Reply to this email if you have questions or are ready to proceed.</p>
-        <p style="color:#4a5c54;font-size:12px">— VIVRΛNT · Long live life</p>
+        ${emailFooterHtml()}
       </div>
     `,
     text: [
       `Hi ${input.name},`,
       "",
-      `Thanks for your VIVRΛNT inquiry (#${input.inquiryId}).`,
+      `Thanks for your ${BRAND_NAME} inquiry (#${input.inquiryId}).`,
       `Quoted price for ${label}: ${priceLabel}`,
       input.note ? `\n${input.note}\n` : "",
       "Reply to this email if you have questions or are ready to proceed.",
-      "",
-      "— VIVRΛNT",
+      emailFooterText(),
     ].join("\n"),
   });
 

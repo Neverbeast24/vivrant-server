@@ -48,7 +48,7 @@ Fill in:
      - `SMTP_PORT=587`
      - `SMTP_USER=your@gmail.com`
      - `SMTP_PASS=` the 16-character app password (not your normal Gmail password)
-     - `EMAIL_FROM="VIVRΛNT <your@gmail.com>"`
+     - `EMAIL_FROM="VIVRΛNT <longlivelifevivrant@gmail.com>"`
    - Restart `npm run dev` after saving. Optional fallback: `RESEND_API_KEY` from [resend.com](https://resend.com/api-keys) (Resend free tier only emails your own address until you verify a domain).
 
 Full notification + mobile walkthrough: see [`NOTIFICATIONS.md`](./NOTIFICATIONS.md).
@@ -181,7 +181,7 @@ npm run dev
 | `SMTP_PORT` | `587` (non-sensitive is fine) | Production, Preview, Development |
 | `SMTP_USER` | your Gmail address (non-sensitive is fine) | Production, Preview, Development |
 | `SMTP_PASS` | Gmail [App Password](https://myaccount.google.com/apppasswords) — may be Sensitive; app reads it at runtime | Production, Preview, Development |
-| `EMAIL_FROM` | e.g. `VIVRΛNT <your@gmail.com>` | Production, Preview, Development |
+| `EMAIL_FROM` | e.g. `VIVRΛNT <longlivelifevivrant@gmail.com>` | Production, Preview, Development |
 | `RESEND_API_KEY` (optional) | only if you verify a domain on Resend; otherwise leave unset so Gmail SMTP is used | Production, Preview, Development |
 | `GEMINI_API_KEY` | Google AI Studio key (AI features) | Production, Preview, Development |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account JSON string (FCM push) | Production |
