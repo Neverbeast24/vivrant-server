@@ -29,6 +29,8 @@ export default async function AdminInquiriesPage() {
       emailConfigured={emailStatus.configured}
       emailEnvironment={emailStatus.environment}
       emailProvider={emailStatus.provider}
+      smtpMissing={emailStatus.smtpMissing ?? []}
+      resendTestingMode={emailStatus.resendTestingMode ?? false}
     />
   );
 }

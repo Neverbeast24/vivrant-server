@@ -179,11 +179,15 @@ export function AdminInquiriesView({
   emailConfigured = false,
   emailEnvironment = "local",
   emailProvider = "none",
+  smtpMissing = [],
+  resendTestingMode = false,
 }: {
   inquiries: AdminInquiry[];
   emailConfigured?: boolean;
   emailEnvironment?: string;
   emailProvider?: "smtp" | "resend" | "none";
+  smtpMissing?: string[];
+  resendTestingMode?: boolean;
 }) {
   const openCount = inquiries.filter(
     (row) => row.status === "open" || row.status === "in_progress",
@@ -201,21 +205,41 @@ export function AdminInquiriesView({
         <span className="font-bold text-accent">{openCount} active</span> right now.
       </p>
 
-      {emailConfigured ? (
+      {emailConfigured && emailProvider === "smtp" ? (
         <p className="mt-4 max-w-2xl rounded-2xl border border-accent/20 bg-accent-soft/60 px-4 py-3 text-sm leading-6 text-ink">
           <span className="font-bold text-accent">Email ready</span> ({providerLabel}). New
           inquiries auto-reply immediately. Enter a ₱ price, keep{" "}
           <span className="font-bold">Email quote now</span> checked, then{" "}
           <span className="font-bold">Save / send quote</span>.
         </p>
+      ) : emailConfigured && emailProvider === "resend" ? (
+        <p className="mt-4 max-w-2xl rounded-2xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm leading-6 text-ink">
+          <span className="font-bold">Resend testing mode</span>
+          {resendTestingMode ? " is active" : ""}. It can only email your Resend account address
+          until you verify a domain. For customer quotes, set free Gmail SMTP (
+          <span className="font-bold">SMTP_HOST</span>, <span className="font-bold">SMTP_USER</span>,{" "}
+          <span className="font-bold">SMTP_PASS</span>)
+          {onVercel ? " on Vercel Production (Non-sensitive preferred), then redeploy." : " in .env.local and restart."}
+        </p>
       ) : (
         <p className="mt-4 max-w-2xl rounded-2xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm leading-6 text-ink">
-          <span className="font-bold">Email is off</span> on this server ({emailEnvironment}). Set
-          free Gmail SMTP (<span className="font-bold">SMTP_HOST</span>,{" "}
-          <span className="font-bold">SMTP_USER</span>,{" "}
-          <span className="font-bold">SMTP_PASS</span> App Password)
+          <span className="font-bold">Email is off</span> on this server ({emailEnvironment}).
+          {smtpMissing.length > 0 ? (
+            <>
+              {" "}
+              SMTP is incomplete — missing{" "}
+              <span className="font-bold">{smtpMissing.join(", ")}</span>.
+            </>
+          ) : (
+            <>
+              {" "}
+              Set free Gmail SMTP (<span className="font-bold">SMTP_HOST</span>,{" "}
+              <span className="font-bold">SMTP_USER</span>,{" "}
+              <span className="font-bold">SMTP_PASS</span> App Password)
+            </>
+          )}
           {onVercel
-            ? " in Vercel → Environment Variables (Production), then redeploy."
+            ? " in Vercel → Environment Variables (Production; prefer Non-sensitive for host/user/port), then redeploy."
             : " in .env.local and restart npm run dev."}{" "}
           You can still update status and prices without sending mail.
         </p>
@@ -226,7 +250,7 @@ export function AdminInquiriesView({
           <InquiryRow
             key={`${inquiry.id}-${inquiry.status}-${inquiry.admin_note ?? ""}-${inquiry.quoted_price ?? ""}-${inquiry.price_emailed_at ?? ""}`}
             inquiry={inquiry}
-            emailConfigured={emailConfigured}
+            emailConfigured={emailConfigured && emailProvider === "smtp"}
           />
         ))}
         {!inquiries.length && (

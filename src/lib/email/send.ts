@@ -61,6 +61,21 @@ function smtpConfig() {
   return { host, port, user, pass, secure };
 }
 
+/** True when any SMTP_* key is present (even if incomplete). */
+function smtpEnvAttempted() {
+  return Boolean(
+    envValue("SMTP_HOST") || envValue("SMTP_USER") || envValue("SMTP_PASS"),
+  );
+}
+
+function smtpMissingFields() {
+  const missing: string[] = [];
+  if (!envValue("SMTP_HOST")) missing.push("SMTP_HOST");
+  if (!envValue("SMTP_USER")) missing.push("SMTP_USER");
+  if (!envValue("SMTP_PASS")) missing.push("SMTP_PASS");
+  return missing;
+}
+
 function emailFrom(fallback: string) {
   return envValue("EMAIL_FROM") || fallback;
 }
@@ -103,6 +118,10 @@ export type EmailConfigStatus = {
   provider: "smtp" | "resend" | "none";
   /** local | preview | production | development */
   environment: string;
+  /** Present when SMTP was intended but a required var is missing/empty at runtime. */
+  smtpMissing?: string[];
+  /** Resend free tier can only mail the account owner until a domain is verified. */
+  resendTestingMode?: boolean;
 };
 
 export function getEmailConfigStatus(): EmailConfigStatus {
@@ -116,8 +135,23 @@ export function getEmailConfigStatus(): EmailConfigStatus {
   if (smtpConfig()) {
     return { configured: true, provider: "smtp", environment };
   }
+  // If SMTP vars were set (e.g. Sensitive on Vercel but empty at build/runtime),
+  // do not silently advertise Resend — surface the misconfig instead.
+  if (smtpEnvAttempted()) {
+    return {
+      configured: false,
+      provider: "none",
+      environment,
+      smtpMissing: smtpMissingFields(),
+    };
+  }
   if (resendApiKey()) {
-    return { configured: true, provider: "resend", environment };
+    return {
+      configured: true,
+      provider: "resend",
+      environment,
+      resendTestingMode: true,
+    };
   }
   return { configured: false, provider: "none", environment };
 }
@@ -172,9 +206,15 @@ async function sendViaResend(payload: MailPayload, apiKey: string) {
 
   if (error) {
     console.error("Resend inquiry email failed:", error);
+    const raw = error.message || "Could not send the email.";
+    const testingOnly =
+      /only send testing emails to your own email address/i.test(raw) ||
+      /verify a domain at resend\.com\/domains/i.test(raw);
     return {
       ok: false as const,
-      message: error.message || "Could not send the email.",
+      message: testingOnly
+        ? `${raw} Fix: use Gmail SMTP (SMTP_HOST/SMTP_USER/SMTP_PASS App Password) on Vercel Production so quotes can go to any customer email.`
+        : raw,
     };
   }
 
@@ -192,6 +232,16 @@ async function sendMail(payload: MailPayload) {
       console.error("SMTP inquiry email failed:", error);
       return { ok: false as const, message: friendlySmtpError(error) };
     }
+  }
+
+  if (smtpEnvAttempted()) {
+    const missing = smtpMissingFields();
+    return {
+      ok: false as const,
+      message: missing.length
+        ? `Gmail SMTP is incomplete (missing ${missing.join(", ")}). On Vercel, set them for Production (prefer Non-sensitive for SMTP_HOST/SMTP_USER/SMTP_PORT), then redeploy. Do not rely on Resend testing mode for customer quotes.`
+        : "Gmail SMTP env vars are present but could not be read at runtime. Mark SMTP_HOST/SMTP_USER/SMTP_PORT as Non-sensitive on Vercel (SMTP_PASS may stay Sensitive), then redeploy.",
+    };
   }
 
   const apiKey = resendApiKey();
