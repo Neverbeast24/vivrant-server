@@ -17,10 +17,14 @@ const broadcastSchema = z.object({
 
 function envFlags() {
   // Static process.env.* access is required — dynamic keys stay empty in Next.js.
+  const email = getEmailConfigStatus();
   return {
     gemini: Boolean((process.env.GEMINI_API_KEY ?? "").trim()),
     firebase: Boolean((process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "").trim()),
-    resend: getEmailConfigStatus().configured,
+    email: email.configured,
+    emailProvider: email.provider,
+    // legacy key kept for older mobile clients
+    resend: email.configured,
   };
 }
 
@@ -68,9 +72,14 @@ export async function GET(request: Request) {
         ok: env.firebase,
       },
       {
-        name: "Resend email",
-        detail: "Inquiry quote emails",
-        ok: env.resend,
+        name: "Email delivery",
+        detail:
+          env.emailProvider === "smtp"
+            ? "Gmail/SMTP inquiry emails"
+            : env.emailProvider === "resend"
+              ? "Resend inquiry emails"
+              : "Inquiry auto-replies and quotes",
+        ok: env.email,
       },
     ],
     noticeCount: noticeCount ?? 0,

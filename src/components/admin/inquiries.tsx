@@ -34,6 +34,14 @@ function defaultPrice(plan: string, existing: number | null) {
   return "";
 }
 
+function formatQuotedPrice(amount: number) {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  }).format(amount);
+}
+
 function InquiryRow({
   inquiry,
   emailConfigured,
@@ -42,6 +50,7 @@ function InquiryRow({
   emailConfigured: boolean;
 }) {
   const [pending, start] = useTransition();
+  const alreadyQuoted = Boolean(inquiry.price_emailed_at);
 
   function onSubmit(formData: FormData) {
     start(async () => {
@@ -60,7 +69,13 @@ function InquiryRow({
         <div className="min-w-0">
           <p className="font-bold text-ink">{inquiry.name}</p>
           <p className="mt-1 text-xs text-muted">
-            #{inquiry.id} · {inquiry.email}
+            #{inquiry.id} ·{" "}
+            <a
+              href={`mailto:${inquiry.email}`}
+              className="underline decoration-ink/20 underline-offset-2 hover:text-accent hover:decoration-accent/40"
+            >
+              {inquiry.email}
+            </a>
             {inquiry.organization ? ` · ${inquiry.organization}` : ""} ·{" "}
             {new Date(inquiry.created_at).toLocaleString()}
           </p>
@@ -68,7 +83,9 @@ function InquiryRow({
           {inquiry.price_emailed_at && (
             <p className="mt-1 text-[11px] font-semibold text-accent">
               Quote emailed {new Date(inquiry.price_emailed_at).toLocaleString()}
-              {inquiry.quoted_price != null ? ` · ₱${inquiry.quoted_price}` : ""}
+              {inquiry.quoted_price != null
+                ? ` · ${formatQuotedPrice(inquiry.quoted_price)}`
+                : ""}
             </p>
           )}
         </div>
@@ -129,18 +146,20 @@ function InquiryRow({
             }`}
             title={
               emailConfigured
-                ? "Sends the quote price to this person’s email when you update"
-                : "Email sending is unavailable until RESEND_API_KEY is loaded"
+                ? alreadyQuoted
+                  ? "Send an updated quote email again"
+                  : "Sends the quote price to this person’s email when you update"
+                : "Email sending is unavailable until SMTP or RESEND_API_KEY is configured"
             }
           >
             <input
               type="checkbox"
               name="send_price_email"
-              defaultChecked={emailConfigured}
+              defaultChecked={emailConfigured && !alreadyQuoted}
               disabled={!emailConfigured}
               className="size-4 rounded border-ink/20 accent-[var(--accent)] disabled:opacity-50"
             />
-            Email quote now
+            {alreadyQuoted ? "Resend quote email" : "Email quote now"}
           </label>
           <PrimaryButton type="submit" disabled={pending} className="w-full rounded-full px-5">
             {pending
@@ -159,58 +178,45 @@ export function AdminInquiriesView({
   inquiries,
   emailConfigured = false,
   emailEnvironment = "local",
+  emailProvider = "none",
 }: {
   inquiries: AdminInquiry[];
   emailConfigured?: boolean;
   emailEnvironment?: string;
+  emailProvider?: "smtp" | "resend" | "none";
 }) {
   const openCount = inquiries.filter(
     (row) => row.status === "open" || row.status === "in_progress",
   ).length;
   const onVercel = emailEnvironment === "production" || emailEnvironment === "preview";
+  const providerLabel =
+    emailProvider === "smtp" ? "Gmail/SMTP" : emailProvider === "resend" ? "Resend" : "none";
 
   return (
     <>
       <p className="text-[11px] font-black tracking-[0.2em] text-accent">SUPER ADMIN</p>
       <h1 className="font-display mt-2 text-4xl tracking-tight">Contact inquiries</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-        Requesters get an automatic “we received your message” email when they submit the contact
-        form. Here you set a price and email the quote.{" "}
+        Requesters get an automatic confirmation email. Here you set a price and email the quote.{" "}
         <span className="font-bold text-accent">{openCount} active</span> right now.
       </p>
 
       {emailConfigured ? (
         <p className="mt-4 max-w-2xl rounded-2xl border border-accent/20 bg-accent-soft/60 px-4 py-3 text-sm leading-6 text-ink">
-          <span className="font-bold text-accent">Email ready.</span> New inquiries auto-reply
-          immediately. To send a quote: enter a ₱ price, keep{" "}
+          <span className="font-bold text-accent">Email ready</span> ({providerLabel}). New
+          inquiries auto-reply immediately. Enter a ₱ price, keep{" "}
           <span className="font-bold">Email quote now</span> checked, then{" "}
           <span className="font-bold">Save / send quote</span>.
         </p>
       ) : (
         <p className="mt-4 max-w-2xl rounded-2xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm leading-6 text-ink">
-          <span className="font-bold">Email is off on this running server</span> (env:{" "}
-          <span className="font-bold">{emailEnvironment}</span>). Having{" "}
-          <span className="font-bold">RESEND_API_KEY</span> in a file is not enough until that
-          process loads it.
-          {onVercel ? (
-            <>
-              {" "}
-              You are on the deployed site — <span className="font-bold">.env.local is ignored</span>
-              . Confirm the key exists under Vercel → Project → Settings → Environment Variables for{" "}
-              <span className="font-bold">Production</span>, then redeploy.
-            </>
-          ) : (
-            <>
-              {" "}
-              Locally: stop the Next server, then start it again with{" "}
-              <span className="font-bold">npm run dev</span> from the{" "}
-              <span className="font-bold">viva-server</span> folder (or rebuild if you use{" "}
-              <span className="font-bold">npm run build && npm start</span>). Also keep a single{" "}
-              <span className="font-bold">EMAIL_FROM</span> using a Resend-verified sender such as{" "}
-              <span className="font-bold">VIVRΛNT &lt;onboarding@resend.dev&gt;</span> — a Gmail
-              address will not send until the domain is verified in Resend.
-            </>
-          )}{" "}
+          <span className="font-bold">Email is off</span> on this server ({emailEnvironment}). Set
+          free Gmail SMTP (<span className="font-bold">SMTP_HOST</span>,{" "}
+          <span className="font-bold">SMTP_USER</span>,{" "}
+          <span className="font-bold">SMTP_PASS</span> App Password)
+          {onVercel
+            ? " in Vercel → Environment Variables (Production), then redeploy."
+            : " in .env.local and restart npm run dev."}{" "}
           You can still update status and prices without sending mail.
         </p>
       )}

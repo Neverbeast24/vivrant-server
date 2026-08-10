@@ -1,5 +1,7 @@
 import "server-only";
 
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 import { Resend } from "resend";
 
 export type PriceQuoteEmailInput = {
@@ -18,29 +20,57 @@ export type InquiryAckEmailInput = {
   inquiryId: number;
 };
 
+type MailPayload = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+};
+
 /**
- * Prefer static `process.env.RESEND_API_KEY` (Next inlines it when present).
+ * Prefer static `process.env.FOO` (Next inlines it when present).
  * Also try concat access as a runtime fallback when the static slot is empty.
  */
-function resendApiKey() {
-  const staticValue = process.env.RESEND_API_KEY;
-  const concatValue = process.env[`${"RESEND"}_${"API_KEY"}`];
-  const raw = String(staticValue || concatValue || "")
-    .trim()
-    .replace(/^["']|["']$/g, "")
-    .trim();
-  // Ignore empty / placeholder values that would still look "set" in some env files.
-  if (!raw || raw.length < 8 || /^(your|changeme|todo|xxx)/i.test(raw)) return "";
-  return raw;
-}
-
-function emailFrom() {
-  const staticValue = process.env.EMAIL_FROM;
-  const concatValue = process.env[`${"EMAIL"}_${"FROM"}`];
+function envValue(...parts: string[]) {
+  const joined = parts.join("_");
+  const staticMap: Record<string, string | undefined> = {
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    SMTP_SECURE: process.env.SMTP_SECURE,
+  };
+  const staticValue = staticMap[joined];
+  const concatValue = process.env[joined];
   return String(staticValue || concatValue || "")
     .trim()
     .replace(/^["']|["']$/g, "")
     .trim();
+}
+
+function resendApiKey() {
+  const raw = envValue("RESEND", "API", "KEY");
+  if (!raw || raw.length < 8 || /^(your|changeme|todo|xxx)/i.test(raw)) return "";
+  return raw;
+}
+
+function smtpConfig() {
+  const host = envValue("SMTP", "HOST");
+  const user = envValue("SMTP", "USER");
+  // Gmail App Passwords are often copied with spaces — strip them.
+  const pass = envValue("SMTP", "PASS").replace(/\s+/g, "");
+  if (!host || !user || !pass) return null;
+  const portRaw = Number(envValue("SMTP", "PORT") || "587");
+  const port = Number.isFinite(portRaw) ? portRaw : 587;
+  const secureFlag = envValue("SMTP", "SECURE").toLowerCase();
+  const secure = secureFlag === "1" || secureFlag === "true" || port === 465;
+  return { host, port, user, pass, secure };
+}
+
+function emailFrom(fallback: string) {
+  return envValue("EMAIL", "FROM") || fallback;
 }
 
 function formatPhp(amount: number) {
@@ -57,9 +87,29 @@ function planLabel(plan: string) {
   return "VIVRΛNT";
 }
 
+function friendlySmtpError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("invalid login") ||
+    lower.includes("badcredentials") ||
+    lower.includes("username and password not accepted") ||
+    lower.includes("535") ||
+    lower.includes("eauth")
+  ) {
+    return "Gmail rejected the login. Use a Google App Password (not your normal password) in SMTP_PASS, then restart/redeploy.";
+  }
+  if (lower.includes("self signed") || lower.includes("certificate")) {
+    return "SMTP TLS failed. Keep SMTP_PORT=587 (STARTTLS) for Gmail.";
+  }
+  return message || "Could not send email via SMTP.";
+}
+
 export type EmailConfigStatus = {
   configured: boolean;
-  /** local | preview | production | unknown */
+  /** smtp | resend | none */
+  provider: "smtp" | "resend" | "none";
+  /** local | preview | production | development */
   environment: string;
 };
 
@@ -71,30 +121,105 @@ export function getEmailConfigStatus(): EmailConfigStatus {
       : process.env.VERCEL === "1"
         ? "production"
         : "local";
-  return {
-    configured: Boolean(resendApiKey()),
-    environment,
-  };
+  if (smtpConfig()) {
+    return { configured: true, provider: "smtp", environment };
+  }
+  if (resendApiKey()) {
+    return { configured: true, provider: "resend", environment };
+  }
+  return { configured: false, provider: "none", environment };
 }
 
 export function isEmailConfigured() {
   return getEmailConfigStatus().configured;
 }
 
-export async function sendInquiryAckEmail(input: InquiryAckEmailInput) {
-  const apiKey = resendApiKey();
-  if (!apiKey) {
-    return {
-      ok: false as const,
-      message: "Email is not configured.",
-    };
-  }
+let cachedTransporter: Transporter | null = null;
+let cachedTransporterKey = "";
 
-  const from = emailFrom() || "VIVRΛNT <onboarding@resend.dev>";
-  const label = planLabel(input.plan);
+function getSmtpTransporter(smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
+  const key = `${smtp.host}:${smtp.port}:${smtp.user}:${smtp.secure}`;
+  if (cachedTransporter && cachedTransporterKey === key) return cachedTransporter;
+  cachedTransporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    auth: {
+      user: smtp.user,
+      pass: smtp.pass,
+    },
+  });
+  cachedTransporterKey = key;
+  return cachedTransporter;
+}
+
+async function sendViaSmtp(payload: MailPayload, smtp: NonNullable<ReturnType<typeof smtpConfig>>) {
+  const from = emailFrom(`VIVRΛNT <${smtp.user}>`);
+  const transporter = getSmtpTransporter(smtp);
+  await transporter.sendMail({
+    from,
+    replyTo: smtp.user,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+  });
+  return { ok: true as const, message: `Email sent to ${payload.to}.` };
+}
+
+async function sendViaResend(payload: MailPayload, apiKey: string) {
+  const from = emailFrom("VIVRΛNT <onboarding@resend.dev>");
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
     from,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+  });
+
+  if (error) {
+    console.error("Resend inquiry email failed:", error);
+    return {
+      ok: false as const,
+      message: error.message || "Could not send the email.",
+    };
+  }
+
+  return { ok: true as const, message: `Email sent to ${payload.to}.` };
+}
+
+async function sendMail(payload: MailPayload) {
+  const smtp = smtpConfig();
+  const apiKey = resendApiKey();
+
+  if (smtp) {
+    try {
+      return await sendViaSmtp(payload, smtp);
+    } catch (error) {
+      console.error("SMTP inquiry email failed:", error);
+      if (apiKey) {
+        console.warn("SMTP failed; falling back to Resend.");
+        return sendViaResend(payload, apiKey);
+      }
+      return { ok: false as const, message: friendlySmtpError(error) };
+    }
+  }
+
+  if (!apiKey) {
+    return {
+      ok: false as const,
+      message:
+        "Email is not configured. Add free Gmail SMTP (SMTP_HOST/SMTP_USER/SMTP_PASS) or RESEND_API_KEY, then restart/redeploy.",
+    };
+  }
+
+  return sendViaResend(payload, apiKey);
+}
+
+export async function sendInquiryAckEmail(input: InquiryAckEmailInput) {
+  const label = planLabel(input.plan);
+  const result = await sendMail({
     to: input.to,
     subject: `We received your VIVRΛNT inquiry · #${input.inquiryId}`,
     html: `
@@ -106,7 +231,7 @@ export async function sendInquiryAckEmail(input: InquiryAckEmailInput) {
           <strong>#${input.inquiryId}</strong>
           and our team will follow up by email soon.
         </p>
-        <p style="color:#4a5c54">No extra action is needed from you right now.</p>
+        <p style="color:#4a5c54">No extra action is needed from you right now. You can reply to this email anytime.</p>
         <p style="color:#4a5c54;font-size:12px">— VIVRΛNT · Long live life</p>
       </div>
     `,
@@ -116,40 +241,25 @@ export async function sendInquiryAckEmail(input: InquiryAckEmailInput) {
       `Thanks for contacting VIVRΛNT about ${label}.`,
       `We received your message #${input.inquiryId} and our team will follow up by email soon.`,
       "",
-      "No extra action is needed from you right now.",
+      "No extra action is needed from you right now. You can reply to this email anytime.",
       "",
       "— VIVRΛNT",
     ].join("\n"),
   });
 
-  if (error) {
-    console.error("Resend inquiry ack email failed:", error);
+  if (!result.ok) {
     return {
       ok: false as const,
-      message: error.message || "Could not send the acknowledgment email.",
+      message: result.message || "Could not send the acknowledgment email.",
     };
   }
-
   return { ok: true as const, message: `Acknowledgment email sent to ${input.to}.` };
 }
 
 export async function sendInquiryPriceEmail(input: PriceQuoteEmailInput) {
-  const apiKey = resendApiKey();
-  if (!apiKey) {
-    return {
-      ok: false as const,
-      message:
-        "Email is not configured. Add RESEND_API_KEY to .env.local (local) or Vercel env (production), then restart/redeploy.",
-    };
-  }
-
-  const from = emailFrom() || "VIVRΛNT <onboarding@resend.dev>";
   const priceLabel = formatPhp(input.pricePhp);
   const label = planLabel(input.plan);
-
-  const resend = new Resend(apiKey);
-  const { error } = await resend.emails.send({
-    from,
+  const result = await sendMail({
     to: input.to,
     subject: `VIVRΛNT ${label} quote · ${priceLabel}`,
     html: `
@@ -181,14 +291,12 @@ export async function sendInquiryPriceEmail(input: PriceQuoteEmailInput) {
     ].join("\n"),
   });
 
-  if (error) {
-    console.error("Resend inquiry price email failed:", error);
+  if (!result.ok) {
     return {
       ok: false as const,
-      message: error.message || "Could not send the price email.",
+      message: result.message || "Could not send the price email.",
     };
   }
-
   return { ok: true as const, message: `Price email sent to ${input.to}.` };
 }
 

@@ -40,7 +40,16 @@ Fill in:
 3. Firebase web config from Firebase Console → Project Settings → Your apps
 4. Firebase Web Push certificate (VAPID) for Cloud Messaging
 5. Firebase Admin service account JSON for **server-side** push (`FIREBASE_SERVICE_ACCOUNT_JSON`)
-6. `RESEND_API_KEY` from [resend.com/api-keys](https://resend.com/api-keys) — sends automatic inquiry acknowledgments + admin price quotes (optional `EMAIL_FROM`). Restart the local server after adding it to `.env.local`.
+6. **Email (free Gmail SMTP recommended)** — automatic inquiry acknowledgments + admin price quotes. Prefer SMTP (no domain purchase):
+   - Enable 2-Step Verification on your Google account
+   - Create an [App Password](https://myaccount.google.com/apppasswords) (Mail → Other → “VIVRANT”)
+   - In `.env.local` set:
+     - `SMTP_HOST=smtp.gmail.com`
+     - `SMTP_PORT=587`
+     - `SMTP_USER=your@gmail.com`
+     - `SMTP_PASS=` the 16-character app password (not your normal Gmail password)
+     - `EMAIL_FROM="VIVRΛNT <your@gmail.com>"`
+   - Restart `npm run dev` after saving. Optional fallback: `RESEND_API_KEY` from [resend.com](https://resend.com/api-keys) (Resend free tier only emails your own address until you verify a domain).
 
 Full notification + mobile walkthrough: see [`NOTIFICATIONS.md`](./NOTIFICATIONS.md).
 
@@ -168,8 +177,12 @@ npm run dev
 | `SUPABASE_SECRET_KEY` | Supabase **secret** key (required — login/signup fail without it) | Production, Preview, Development |
 | `CRON_SECRET` | random secret; must match Vercel Cron `Authorization: Bearer …` | Production |
 | `NEXT_PUBLIC_APP_URL` | your Vercel URL, e.g. `https://viva-server.vercel.app` | Production |
-| `RESEND_API_KEY` | from [resend.com/api-keys](https://resend.com/api-keys) | Production, Preview, Development |
-| `EMAIL_FROM` (optional) | e.g. `VIVRΛNT <quotes@yourdomain.com>` | Production, Preview, Development |
+| `SMTP_HOST` | `smtp.gmail.com` (free Gmail SMTP) | Production, Preview, Development |
+| `SMTP_PORT` | `587` | Production, Preview, Development |
+| `SMTP_USER` | your Gmail address | Production, Preview, Development |
+| `SMTP_PASS` | Gmail [App Password](https://myaccount.google.com/apppasswords) | Production, Preview, Development |
+| `EMAIL_FROM` | e.g. `VIVRΛNT <your@gmail.com>` | Production, Preview, Development |
+| `RESEND_API_KEY` (optional) | fallback if SMTP unset — [resend.com](https://resend.com/api-keys) | Production, Preview, Development |
 | `GEMINI_API_KEY` | Google AI Studio key (AI features) | Production, Preview, Development |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account JSON string (FCM push) | Production |
 | `NEXT_PUBLIC_FIREBASE_*` | Firebase web config (apiKey, authDomain, projectId, …) | Production, Preview, Development |

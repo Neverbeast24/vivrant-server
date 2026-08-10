@@ -28,6 +28,7 @@ export default async function AdminInquiriesPage() {
       inquiries={(data ?? []) as AdminInquiry[]}
       emailConfigured={emailStatus.configured}
       emailEnvironment={emailStatus.environment}
+      emailProvider={emailStatus.provider}
     />
   );
 }

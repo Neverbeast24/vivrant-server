@@ -34,8 +34,8 @@ export function InquiryForm({ defaultPlan = "general" }: { defaultPlan?: Contact
       <p className="text-[11px] font-black tracking-[0.18em] text-accent">SEND AN INQUIRY</p>
       <h2 className="font-display mt-2 text-2xl text-ink">Tell us what you need</h2>
       <p className="mt-2 text-sm leading-6 text-ink/75">
-        Send a Plus, Campus, or general request. Our team reviews inquiries in the admin inbox and
-        follows up by email.
+        Send a Plus, Campus, or general request. You’ll get a confirmation email right away, and our
+        team follows up from the admin inbox.
       </p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
