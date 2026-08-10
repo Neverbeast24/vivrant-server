@@ -257,7 +257,7 @@ export function AuthForm({
                     minLength={8}
                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     placeholder="At least 8 characters"
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                   />
                   <button
                     type="button"

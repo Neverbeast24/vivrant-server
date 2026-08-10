@@ -269,3 +269,10 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Edge/IE native password reveal stacks on custom eye toggles. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
