@@ -28,49 +28,41 @@ type MailPayload = {
 };
 
 /**
- * Prefer static `process.env.FOO` (Next inlines it when present).
- * Also try concat access as a runtime fallback when the static slot is empty.
+ * Runtime-only env read.
+ * Vercel "Sensitive" vars are NOT available at build time. Direct
+ * `process.env.SMTP_PASS` gets inlined as empty during `next build`, which made
+ * production fall back to Resend. Computed access keeps the lookup live.
  */
-function envValue(...parts: string[]) {
-  const joined = parts.join("_");
-  const staticMap: Record<string, string | undefined> = {
-    RESEND_API_KEY: process.env.RESEND_API_KEY,
-    EMAIL_FROM: process.env.EMAIL_FROM,
-    SMTP_HOST: process.env.SMTP_HOST,
-    SMTP_PORT: process.env.SMTP_PORT,
-    SMTP_USER: process.env.SMTP_USER,
-    SMTP_PASS: process.env.SMTP_PASS,
-    SMTP_SECURE: process.env.SMTP_SECURE,
-  };
-  const staticValue = staticMap[joined];
-  const concatValue = process.env[joined];
-  return String(staticValue || concatValue || "")
+function envValue(name: string) {
+  const env = process.env;
+  const raw = env[name];
+  return String(raw ?? "")
     .trim()
     .replace(/^["']|["']$/g, "")
     .trim();
 }
 
 function resendApiKey() {
-  const raw = envValue("RESEND", "API", "KEY");
+  const raw = envValue("RESEND_API_KEY");
   if (!raw || raw.length < 8 || /^(your|changeme|todo|xxx)/i.test(raw)) return "";
   return raw;
 }
 
 function smtpConfig() {
-  const host = envValue("SMTP", "HOST");
-  const user = envValue("SMTP", "USER");
+  const host = envValue("SMTP_HOST");
+  const user = envValue("SMTP_USER");
   // Gmail App Passwords are often copied with spaces — strip them.
-  const pass = envValue("SMTP", "PASS").replace(/\s+/g, "");
+  const pass = envValue("SMTP_PASS").replace(/\s+/g, "");
   if (!host || !user || !pass) return null;
-  const portRaw = Number(envValue("SMTP", "PORT") || "587");
+  const portRaw = Number(envValue("SMTP_PORT") || "587");
   const port = Number.isFinite(portRaw) ? portRaw : 587;
-  const secureFlag = envValue("SMTP", "SECURE").toLowerCase();
+  const secureFlag = envValue("SMTP_SECURE").toLowerCase();
   const secure = secureFlag === "1" || secureFlag === "true" || port === 465;
   return { host, port, user, pass, secure };
 }
 
 function emailFrom(fallback: string) {
-  return envValue("EMAIL", "FROM") || fallback;
+  return envValue("EMAIL_FROM") || fallback;
 }
 
 function formatPhp(amount: number) {
@@ -191,21 +183,18 @@ async function sendViaResend(payload: MailPayload, apiKey: string) {
 
 async function sendMail(payload: MailPayload) {
   const smtp = smtpConfig();
-  const apiKey = resendApiKey();
-
+  // Prefer SMTP only — do not silently fall back to Resend (testing mode
+  // rejects other recipients and hides real SMTP misconfig).
   if (smtp) {
     try {
       return await sendViaSmtp(payload, smtp);
     } catch (error) {
       console.error("SMTP inquiry email failed:", error);
-      if (apiKey) {
-        console.warn("SMTP failed; falling back to Resend.");
-        return sendViaResend(payload, apiKey);
-      }
       return { ok: false as const, message: friendlySmtpError(error) };
     }
   }
 
+  const apiKey = resendApiKey();
   if (!apiKey) {
     return {
       ok: false as const,

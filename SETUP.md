@@ -177,12 +177,12 @@ npm run dev
 | `SUPABASE_SECRET_KEY` | Supabase **secret** key (required — login/signup fail without it) | Production, Preview, Development |
 | `CRON_SECRET` | random secret; must match Vercel Cron `Authorization: Bearer …` | Production |
 | `NEXT_PUBLIC_APP_URL` | your Vercel URL, e.g. `https://viva-server.vercel.app` | Production |
-| `SMTP_HOST` | `smtp.gmail.com` (free Gmail SMTP) | Production, Preview, Development |
-| `SMTP_PORT` | `587` | Production, Preview, Development |
-| `SMTP_USER` | your Gmail address | Production, Preview, Development |
-| `SMTP_PASS` | Gmail [App Password](https://myaccount.google.com/apppasswords) | Production, Preview, Development |
+| `SMTP_HOST` | `smtp.gmail.com` (free Gmail SMTP). Prefer **non-sensitive** on Vercel so builds can see it. | Production, Preview, Development |
+| `SMTP_PORT` | `587` (non-sensitive is fine) | Production, Preview, Development |
+| `SMTP_USER` | your Gmail address (non-sensitive is fine) | Production, Preview, Development |
+| `SMTP_PASS` | Gmail [App Password](https://myaccount.google.com/apppasswords) — may be Sensitive; app reads it at runtime | Production, Preview, Development |
 | `EMAIL_FROM` | e.g. `VIVRΛNT <your@gmail.com>` | Production, Preview, Development |
-| `RESEND_API_KEY` (optional) | fallback if SMTP unset — [resend.com](https://resend.com/api-keys) | Production, Preview, Development |
+| `RESEND_API_KEY` (optional) | only if you verify a domain on Resend; otherwise leave unset so Gmail SMTP is used | Production, Preview, Development |
 | `GEMINI_API_KEY` | Google AI Studio key (AI features) | Production, Preview, Development |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account JSON string (FCM push) | Production |
 | `NEXT_PUBLIC_FIREBASE_*` | Firebase web config (apiKey, authDomain, projectId, …) | Production, Preview, Development |
