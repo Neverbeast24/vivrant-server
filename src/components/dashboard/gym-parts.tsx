@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Flame,
   Play,
+  Search,
   Sparkles,
   Target,
   Trash2,
@@ -597,6 +598,8 @@ export function GymPlansView({
   const [knownCustomExercises, setKnownCustomExercises] = useState<string[]>([]);
   const [customDraft, setCustomDraft] = useState("");
   const [avoidTargets, setAvoidTargets] = useState<string[]>([]);
+  const [knownQuery, setKnownQuery] = useState("");
+  const [knownMuscle, setKnownMuscle] = useState<(typeof muscleFilters)[number]>("all");
   const machines = useMemo(
     () => exercises.filter((item) => isMachineGear(item.equipment)),
     [exercises],
@@ -604,6 +607,40 @@ export function GymPlansView({
   const freeWeights = useMemo(
     () => exercises.filter((item) => !isMachineGear(item.equipment)),
     [exercises],
+  );
+  const filteredMachines = useMemo(() => {
+    const q = knownQuery.trim().toLowerCase();
+    return machines.filter((item) => {
+      if (!matchesMuscleFilter(item.muscle_group, knownMuscle)) return false;
+      if (!q) return true;
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.muscle_group.toLowerCase().includes(q) ||
+        item.equipment.toLowerCase().includes(q)
+      );
+    });
+  }, [knownMuscle, knownQuery, machines]);
+  const filteredFreeWeights = useMemo(() => {
+    const q = knownQuery.trim().toLowerCase();
+    return freeWeights.filter((item) => {
+      if (!matchesMuscleFilter(item.muscle_group, knownMuscle)) return false;
+      if (!q) return true;
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.muscle_group.toLowerCase().includes(q) ||
+        item.equipment.toLowerCase().includes(q)
+      );
+    });
+  }, [freeWeights, knownMuscle, knownQuery]);
+  const visibleKnownSlugs = useMemo(
+    () => [...filteredMachines, ...filteredFreeWeights].map((item) => item.slug),
+    [filteredFreeWeights, filteredMachines],
+  );
+  const allVisibleKnownSelected =
+    visibleKnownSlugs.length > 0 &&
+    visibleKnownSlugs.every((slug) => knownMachineSlugs.includes(slug));
+  const someVisibleKnownSelected = visibleKnownSlugs.some((slug) =>
+    knownMachineSlugs.includes(slug),
   );
   const knownSelectedCount = knownMachineSlugs.length + knownCustomExercises.length;
 
@@ -692,6 +729,15 @@ export function GymPlansView({
       ? knownMachineSlugs.filter((item) => item !== slug)
       : [...knownMachineSlugs, slug];
     persistKnownMachines(next);
+  }
+
+  function toggleSelectAllKnownInView() {
+    if (allVisibleKnownSelected) {
+      const hide = new Set(visibleKnownSlugs);
+      persistKnownMachines(knownMachineSlugs.filter((slug) => !hide.has(slug)));
+      return;
+    }
+    persistKnownMachines([...new Set([...knownMachineSlugs, ...visibleKnownSlugs])]);
   }
 
   function addCustomExercise() {
@@ -931,13 +977,25 @@ export function GymPlansView({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Check machines and free-weight moves you already know (including stiff-leg deadlift). Type
-          anything missing under Other — AI plans will prioritize your list.
+          Search or filter by muscle, then Select all in view. Check machines and free-weight moves you
+          already know, or type anything missing under Other — AI plans prioritize your list. Choices
+          stay in this browser (same options as mobile).
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
             {knownSelectedCount} selected
           </span>
+          {visibleKnownSlugs.length > 0 && (
+            <button
+              type="button"
+              onClick={toggleSelectAllKnownInView}
+              className="rounded-full px-2.5 py-1 transition hover:bg-surface hover:text-ink"
+            >
+              {allVisibleKnownSelected
+                ? "Deselect in view"
+                : `Select all in view (${visibleKnownSlugs.length})`}
+            </button>
+          )}
           {knownSelectedCount > 0 && (
             <button
               type="button"
@@ -950,11 +1008,54 @@ export function GymPlansView({
               Clear all
             </button>
           )}
+          {(knownQuery.trim() || knownMuscle !== "all") && (
+            <span className="text-[11px] text-muted">
+              Showing {visibleKnownSlugs.length}
+              {someVisibleKnownSelected
+                ? ` · ${visibleKnownSlugs.filter((slug) => knownMachineSlugs.includes(slug)).length} checked`
+                : ""}
+            </span>
+          )}
         </div>
 
-        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">Machines</p>
+        <label className="mb-3 flex items-center gap-2 rounded-2xl border border-ink/8 bg-card px-3 py-2.5">
+          <Search size={14} className="shrink-0 text-muted" />
+          <input
+            value={knownQuery}
+            onChange={(e) => setKnownQuery(e.target.value)}
+            placeholder="Search exercises…"
+            className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+            aria-label="Search exercises you know"
+          />
+          {knownQuery && (
+            <button
+              type="button"
+              onClick={() => setKnownQuery("")}
+              className="grid size-6 place-items-center rounded-full text-muted transition hover:bg-surface hover:text-ink"
+              aria-label="Clear search"
+            >
+              <X size={12} strokeWidth={3} />
+            </button>
+          )}
+        </label>
+
+        <FilterChipRow>
+          {muscleFilters.map((item) => (
+            <FilterChip
+              key={item}
+              active={knownMuscle === item}
+              onClick={() => setKnownMuscle(item)}
+            >
+              {muscleFilterLabel(item)}
+            </FilterChip>
+          ))}
+        </FilterChipRow>
+
+        <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">
+          Machines ({filteredMachines.length})
+        </p>
         <div className="mb-4 grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-          {machines.map((machine) => {
+          {filteredMachines.map((machine) => {
             const checked = knownMachineSlugs.includes(machine.slug);
             return (
               <div
@@ -1000,14 +1101,20 @@ export function GymPlansView({
               </div>
             );
           })}
-          {!machines.length && <EmptyState>No machine demos in the catalog yet.</EmptyState>}
+          {!filteredMachines.length && (
+            <EmptyState>
+              {machines.length
+                ? "No machines match this search or muscle filter."
+                : "No machine demos in the catalog yet."}
+            </EmptyState>
+          )}
         </div>
 
         <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">
-          Free weights &amp; bodyweight
+          Free weights &amp; bodyweight ({filteredFreeWeights.length})
         </p>
         <div className="mb-4 grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-          {freeWeights.map((move) => {
+          {filteredFreeWeights.map((move) => {
             const checked = knownMachineSlugs.includes(move.slug);
             return (
               <div
@@ -1053,7 +1160,13 @@ export function GymPlansView({
               </div>
             );
           })}
-          {!freeWeights.length && <EmptyState>No free-weight demos in the catalog yet.</EmptyState>}
+          {!filteredFreeWeights.length && (
+            <EmptyState>
+              {freeWeights.length
+                ? "No free-weight moves match this search or muscle filter."
+                : "No free-weight demos in the catalog yet."}
+            </EmptyState>
+          )}
         </div>
 
         <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">Other</p>
