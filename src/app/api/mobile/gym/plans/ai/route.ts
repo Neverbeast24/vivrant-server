@@ -17,7 +17,12 @@ export async function POST(request: Request) {
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
 
-  let body: { days_per_week?: number; session_minutes?: number } = {};
+  let body: {
+    days_per_week?: number;
+    session_minutes?: number;
+    known_machine_slugs?: string[];
+    avoid_targets?: string[];
+  } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -29,7 +34,7 @@ export async function POST(request: Request) {
     const [{ data: exercises }, rawContext] = await Promise.all([
       supabase
         .from("gym_exercises")
-        .select("name, muscle_group, equipment, difficulty")
+        .select("slug, name, muscle_group, equipment, difficulty")
         .order("name"),
       buildUserContext(user.id, { supabase }),
     ]);
@@ -45,12 +50,50 @@ export async function POST(request: Request) {
       // keep raw context
     }
 
-    const catalog = (exercises ?? [])
-      .map((row) => `${row.name} (${row.muscle_group}, ${row.equipment}, ${row.difficulty})`)
-      .join("\n");
+    const avoidSet = new Set(prefs.avoid_targets);
+    const rows = (exercises ?? []).filter((row) => {
+      if (!avoidSet.size) return true;
+      return !avoidSet.has(String(row.muscle_group).toLowerCase());
+    });
+    const knownSet = new Set(prefs.known_machine_slugs);
+    const knownRows = knownSet.size
+      ? rows.filter((row) => knownSet.has(String(row.slug).toLowerCase()))
+      : [];
+    const otherRows = knownSet.size
+      ? rows.filter((row) => !knownSet.has(String(row.slug).toLowerCase()))
+      : rows;
+
+    const formatRow = (row: {
+      name: string;
+      muscle_group: string;
+      equipment: string;
+      difficulty: string;
+      slug?: string;
+    }) =>
+      `${row.name}${row.slug ? ` [${row.slug}]` : ""} (${row.muscle_group}, ${row.equipment}, ${row.difficulty})`;
+
+    const catalogParts: string[] = [];
+    if (prefs.avoid_targets.length) {
+      catalogParts.push(
+        `AVOID THESE TARGETS (do not program primary work for): ${prefs.avoid_targets.join(", ")}`,
+      );
+    }
+    if (knownRows.length) {
+      catalogParts.push(
+        "KNOWN MACHINES (user checked these — prioritize):\n" +
+          knownRows.map(formatRow).join("\n"),
+      );
+      catalogParts.push(
+        "OTHER CATALOG (use sparingly if needed):\n" + otherRows.map(formatRow).join("\n"),
+      );
+    } else {
+      catalogParts.push(otherRows.map(formatRow).join("\n"));
+    }
+
     const plan = await generateGymPlan(
       context,
-      catalog || "bodyweight squat, push-up, plank, glute bridge, leg press, lat pulldown",
+      catalogParts.join("\n\n") ||
+        "bodyweight squat, push-up, plank, glute bridge, leg press, lat pulldown",
       prefs,
     );
 
@@ -74,7 +117,12 @@ export async function POST(request: Request) {
         action: "gym_plan_created",
         entity: "gym_plans",
         entityId: data?.id != null ? String(data.id) : undefined,
-        metadata: { title: plan.title, focus: plan.focus },
+        metadata: {
+          title: plan.title,
+          focus: plan.focus,
+          known_machine_count: prefs.known_machine_slugs.length,
+          avoid_targets: prefs.avoid_targets,
+        },
       },
       supabase,
     );

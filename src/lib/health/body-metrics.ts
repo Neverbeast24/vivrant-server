@@ -24,7 +24,34 @@ export type RoutineScaling = {
 export type GymPlanPrefs = {
   days_per_week: number;
   session_minutes: number;
+  /** Catalog slugs for machines the user already knows how to use. */
+  known_machine_slugs: string[];
+  /** Muscle / focus areas the user does not want emphasized (e.g. core). */
+  avoid_targets: string[];
 };
+
+/** Areas a member can opt out of when generating AI gym plans. */
+export const GYM_AVOID_TARGETS = [
+  "core",
+  "arms",
+  "forearms",
+  "shoulders",
+  "chest",
+  "back",
+  "traps",
+  "legs",
+  "glutes",
+  "hamstrings",
+  "calves",
+  "inner_thighs",
+  "lower_back",
+  "cardio",
+  "mobility",
+] as const;
+
+export type GymAvoidTarget = (typeof GYM_AVOID_TARGETS)[number];
+
+const AVOID_TARGET_SET = new Set<string>(GYM_AVOID_TARGETS);
 
 function midpointFromRange(raw: string, fallback: number) {
   const nums = String(raw)
@@ -36,11 +63,43 @@ function midpointFromRange(raw: string, fallback: number) {
   return Math.round((nums[0] + nums[1]) / 2);
 }
 
+function sanitizeKnownMachineSlugs(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  for (const raw of input) {
+    const slug = String(raw ?? "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 80);
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    if (seen.size >= 40) break;
+  }
+  return [...seen];
+}
+
+function sanitizeAvoidTargets(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  for (const raw of input) {
+    const target = String(raw ?? "")
+      .trim()
+      .toLowerCase()
+      .replaceAll(" ", "_")
+      .slice(0, 40);
+    if (!AVOID_TARGET_SET.has(target) || seen.has(target)) continue;
+    seen.add(target);
+  }
+  return [...seen];
+}
+
 /** Turn BMI-suggested range strings into editable number defaults. */
 export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_week" | "session_minutes"> | null | undefined): GymPlanPrefs {
   return {
     days_per_week: Math.max(2, Math.min(6, midpointFromRange(scaling?.days_per_week ?? "3", 3))),
     session_minutes: Math.max(15, Math.min(120, midpointFromRange(scaling?.session_minutes ?? "45", 45))),
+    known_machine_slugs: [],
+    avoid_targets: [],
   };
 }
 
@@ -50,6 +109,8 @@ export function clampGymPlanPrefs(input: Partial<GymPlanPrefs> | null | undefine
   return {
     days_per_week: Math.max(2, Math.min(6, Number.isFinite(days) ? Math.round(days) : 3)),
     session_minutes: Math.max(15, Math.min(120, Number.isFinite(session) ? Math.round(session) : 45)),
+    known_machine_slugs: sanitizeKnownMachineSlugs(input?.known_machine_slugs),
+    avoid_targets: sanitizeAvoidTargets(input?.avoid_targets),
   };
 }
 

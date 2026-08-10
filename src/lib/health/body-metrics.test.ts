@@ -43,6 +43,8 @@ describe("parseRoutineDefaults", () => {
     expect(parseRoutineDefaults({ days_per_week: "3–4", session_minutes: "35–55" })).toEqual({
       days_per_week: 4,
       session_minutes: 45,
+      known_machine_slugs: [],
+      avoid_targets: [],
     });
   });
 
@@ -50,7 +52,25 @@ describe("parseRoutineDefaults", () => {
     expect(clampGymPlanPrefs({ days_per_week: 99, session_minutes: 5 })).toEqual({
       days_per_week: 6,
       session_minutes: 15,
+      known_machine_slugs: [],
+      avoid_targets: [],
     });
+  });
+
+  it("sanitizes known machine slugs", () => {
+    expect(
+      clampGymPlanPrefs({
+        known_machine_slugs: [" Leg-Press ", "leg-press", "", "lat-pulldown"],
+      }).known_machine_slugs,
+    ).toEqual(["leg-press", "lat-pulldown"]);
+  });
+
+  it("sanitizes avoid targets", () => {
+    expect(
+      clampGymPlanPrefs({
+        avoid_targets: ["core", "CORE", "not-a-target", "lower back", "arms"],
+      }).avoid_targets,
+    ).toEqual(["core", "lower_back", "arms"]);
   });
 
   it("applies overrides onto scaling", () => {
@@ -75,7 +95,7 @@ describe("parseRoutineDefaults", () => {
         tips: [],
         summary: "test",
       },
-      { days_per_week: 5, session_minutes: 40 },
+      { days_per_week: 5, session_minutes: 40, known_machine_slugs: [], avoid_targets: [] },
     );
     expect(scaled.days_per_week).toBe("5");
     expect(scaled.session_minutes).toBe("40");

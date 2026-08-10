@@ -676,7 +676,12 @@ export type HealthHistoryInsight = {
 export async function generateGymPlan(
   context: string,
   availableExercises: string,
-  prefs?: { days_per_week?: number; session_minutes?: number },
+  prefs?: {
+    days_per_week?: number;
+    session_minutes?: number;
+    known_machine_slugs?: string[];
+    avoid_targets?: string[];
+  },
 ): Promise<GymPlanPayload> {
   const requestedDays = prefs?.days_per_week != null
     ? Math.max(2, Math.min(6, Math.round(prefs.days_per_week)))
@@ -684,6 +689,22 @@ export async function generateGymPlan(
   const requestedSession = prefs?.session_minutes != null
     ? Math.max(15, Math.min(120, Math.round(prefs.session_minutes)))
     : null;
+  const knownMachines = (prefs?.known_machine_slugs ?? [])
+    .map((slug) => String(slug).trim())
+    .filter(Boolean)
+    .slice(0, 40);
+  const avoidTargets = (prefs?.avoid_targets ?? [])
+    .map((target) => String(target).trim().toLowerCase().replaceAll(" ", "_"))
+    .filter(Boolean)
+    .slice(0, 20);
+  const knownMachinesNote =
+    knownMachines.length > 0
+      ? `User already knows these gym machines (prefer them heavily — build the plan around this set when possible; only add unfamiliar machines if needed for balance): ${knownMachines.join(", ")}`
+      : "User has not marked known machines — prefer joint-friendly machines from the catalog and keep free-weight volume moderate.";
+  const avoidTargetsNote =
+    avoidTargets.length > 0
+      ? `User does NOT want to target these areas — do NOT schedule dedicated days or primary exercises for them (skip core-focused days, isolation work, and day titles that emphasize them): ${avoidTargets.join(", ")}. Redistribute volume to allowed muscle groups instead.`
+      : "No muscle-group exclusions were set.";
 
   const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training plan for this user.
 Use their profile, energy, goals, recent activity, and especially routine_scaling (BMI band + target-date forecast).
@@ -695,6 +716,8 @@ Scale the plan explicitly:
 - overweight / obese → joint-friendly machines first, controlled tempo, sustainable fat_loss or full_body
 - If pace_note says the forecast is aggressive, do NOT amp intensity — keep volume moderate and note sustainability in summary
 - Mention BMI band and target date (if any) in the summary
+- ${knownMachinesNote}
+- ${avoidTargetsNote}
 Prefer exercises from the available catalog when possible.
 Include a healthy mix of machines (safer for beginners) and free-weight / bodyweight moves when appropriate.
 Return JSON:
@@ -702,9 +725,10 @@ Return JSON:
 - "focus": one of full_body, strength, fat_loss, mobility, endurance
 - "level": beginner | intermediate | advanced
 - "days_per_week": 2-6
-- "summary": 2 sentences
+- "summary": 2 sentences (mention avoided targets briefly if any were set)
 - "days": array of { "day", "focus", "exercises": [{ "name", "sets", "rest", "notes" }] }
   Include 3–5 exercises per day. Name machines clearly when used (e.g. "Leg press machine").
+  For each day "focus", use a short human-readable label with spaces (e.g. "Fat loss", "Upper body", "Mobility") — never snake_case like fat_loss.
 
 AVAILABLE EXERCISES:
 ${availableExercises}
@@ -716,15 +740,23 @@ ${context}`);
   const daysPerWeek =
     requestedDays ??
     Math.max(2, Math.min(6, Math.round(Number(parsed.days_per_week ?? 3))));
+
+  const humanizeFocus = (value: string, fallback: string) =>
+    String(value ?? fallback)
+      .replaceAll("_", " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 60) || fallback;
+
   return {
     title: String(parsed.title ?? "Your VIVRΛNT gym plan").slice(0, 120),
-    focus: String(parsed.focus ?? "full_body"),
+    focus: String(parsed.focus ?? "full_body").replaceAll(" ", "_").slice(0, 40),
     level: String(parsed.level ?? "beginner"),
     days_per_week: daysPerWeek,
     summary: String(parsed.summary ?? "A gentle plan matched to your current rhythm.").slice(0, 600),
     days: days.slice(0, daysPerWeek).map((day) => ({
       day: String(day?.day ?? "Day").slice(0, 40),
-      focus: String(day?.focus ?? "Training").slice(0, 60),
+      focus: humanizeFocus(String(day?.focus ?? "Training"), "Training"),
       exercises: (Array.isArray(day?.exercises) ? day.exercises : []).slice(0, 6).map((ex) => ({
         name: String(ex?.name ?? "Movement").slice(0, 80),
         sets: String(ex?.sets ?? "3 x 10").slice(0, 40),

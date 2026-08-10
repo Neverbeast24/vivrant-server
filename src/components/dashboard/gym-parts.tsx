@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  Check,
   Clock3,
   Cog,
   Dumbbell,
+  ExternalLink,
   Flame,
   Play,
   Sparkles,
@@ -36,6 +39,8 @@ import {
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import {
+  findExerciseMatch,
+  humanizeGymLabel,
   isMachineGear,
   type GymExercise,
   type GymPlan,
@@ -43,6 +48,7 @@ import {
 } from "@/lib/gym";
 import {
   clampGymPlanPrefs,
+  GYM_AVOID_TARGETS,
   parseRoutineDefaults,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
@@ -51,6 +57,8 @@ import { trainingSubNav } from "@/lib/nav";
 export type { GymExercise, GymPlan, GymSession };
 
 const PLAN_PREFS_KEY = "vivrant.gym.planPrefs";
+const KNOWN_MACHINES_KEY = "vivrant.gym.knownMachines";
+const AVOID_TARGETS_KEY = "vivrant.gym.avoidTargets";
 
 export function GymOverviewStats({
   sessionCount,
@@ -524,7 +532,7 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
               <ListRow
                 key={session.id}
                 title={session.title}
-                meta={`${session.focus.replace("_", " ")} · ${session.duration_minutes ?? 0} min`}
+                meta={`${humanizeGymLabel(session.focus)} · ${session.duration_minutes ?? 0} min`}
                 right={
                   <span className="flex items-center gap-2">
                     <span className="text-xs font-black">{session.calories_burned ?? 0} kcal</span>
@@ -564,18 +572,84 @@ export function GymPlansView({
   const suggested = useMemo(() => parseRoutineDefaults(scaling), [scaling]);
   const [daysPerWeek, setDaysPerWeek] = useState(String(suggested.days_per_week));
   const [sessionMinutes, setSessionMinutes] = useState(String(suggested.session_minutes));
+  const [knownMachineSlugs, setKnownMachineSlugs] = useState<string[]>([]);
+  const [avoidTargets, setAvoidTargets] = useState<string[]>([]);
+  const machines = useMemo(
+    () => exercises.filter((item) => isMachineGear(item.equipment)),
+    [exercises],
+  );
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PLAN_PREFS_KEY);
-      if (!raw) return;
-      const saved = clampGymPlanPrefs(JSON.parse(raw) as { days_per_week?: number; session_minutes?: number });
-      setDaysPerWeek(String(saved.days_per_week));
-      setSessionMinutes(String(saved.session_minutes));
+      if (raw) {
+        const saved = clampGymPlanPrefs(
+          JSON.parse(raw) as {
+            days_per_week?: number;
+            session_minutes?: number;
+            known_machine_slugs?: string[];
+            avoid_targets?: string[];
+          },
+        );
+        setDaysPerWeek(String(saved.days_per_week));
+        setSessionMinutes(String(saved.session_minutes));
+        if (saved.known_machine_slugs.length) {
+          setKnownMachineSlugs(saved.known_machine_slugs);
+        }
+        if (saved.avoid_targets.length) {
+          setAvoidTargets(saved.avoid_targets);
+        }
+      }
+      const knownRaw = localStorage.getItem(KNOWN_MACHINES_KEY);
+      if (knownRaw) {
+        const parsed = JSON.parse(knownRaw) as unknown;
+        const slugs = clampGymPlanPrefs({ known_machine_slugs: parsed as string[] }).known_machine_slugs;
+        if (slugs.length) setKnownMachineSlugs(slugs);
+      }
+      const avoidRaw = localStorage.getItem(AVOID_TARGETS_KEY);
+      if (avoidRaw) {
+        const parsed = JSON.parse(avoidRaw) as unknown;
+        const targets = clampGymPlanPrefs({ avoid_targets: parsed as string[] }).avoid_targets;
+        if (targets.length) setAvoidTargets(targets);
+      }
     } catch {
       // ignore corrupt local prefs
     }
   }, []);
+
+  function persistKnownMachines(next: string[]) {
+    const slugs = clampGymPlanPrefs({ known_machine_slugs: next }).known_machine_slugs;
+    setKnownMachineSlugs(slugs);
+    try {
+      localStorage.setItem(KNOWN_MACHINES_KEY, JSON.stringify(slugs));
+    } catch {
+      // ignore quota / private mode
+    }
+  }
+
+  function persistAvoidTargets(next: string[]) {
+    const targets = clampGymPlanPrefs({ avoid_targets: next }).avoid_targets;
+    setAvoidTargets(targets);
+    try {
+      localStorage.setItem(AVOID_TARGETS_KEY, JSON.stringify(targets));
+    } catch {
+      // ignore quota / private mode
+    }
+  }
+
+  function toggleKnownMachine(slug: string) {
+    const next = knownMachineSlugs.includes(slug)
+      ? knownMachineSlugs.filter((item) => item !== slug)
+      : [...knownMachineSlugs, slug];
+    persistKnownMachines(next);
+  }
+
+  function toggleAvoidTarget(target: string) {
+    const next = avoidTargets.includes(target)
+      ? avoidTargets.filter((item) => item !== target)
+      : [...avoidTargets, target];
+    persistAvoidTargets(next);
+  }
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -589,9 +663,13 @@ export function GymPlansView({
     const prefs = clampGymPlanPrefs({
       days_per_week: Number(daysPerWeek),
       session_minutes: Number(sessionMinutes),
+      known_machine_slugs: knownMachineSlugs,
+      avoid_targets: avoidTargets,
     });
     setDaysPerWeek(String(prefs.days_per_week));
     setSessionMinutes(String(prefs.session_minutes));
+    persistKnownMachines(prefs.known_machine_slugs);
+    persistAvoidTargets(prefs.avoid_targets);
     try {
       localStorage.setItem(PLAN_PREFS_KEY, JSON.stringify(prefs));
     } catch {
@@ -641,7 +719,9 @@ export function GymPlansView({
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
                 <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Focus</p>
-                <p className="mt-1 text-sm font-bold text-ink">{scaling.focus}</p>
+                <p className="mt-1 text-sm font-bold capitalize text-ink">
+                  {humanizeGymLabel(scaling.focus)}
+                </p>
               </div>
               <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
                 <label className="text-[10px] font-black uppercase tracking-wider text-[#948e99]" htmlFor="plan-days">
@@ -682,7 +762,8 @@ export function GymPlansView({
             </div>
 
             <p className="text-xs font-semibold text-muted">
-              Edit days / week and session length, then click Generate AI plan — the AI will match those inputs.
+              Edit days / week and session length, mark areas to avoid and machines you know, then Generate
+              AI plan — suggestions will respect those choices.
             </p>
 
             {(scaling.kg_to_goal != null || scaling.target_date) && (
@@ -730,6 +811,132 @@ export function GymPlansView({
         </Panel>
       )}
 
+      <Panel title="Avoid targeting" className="mb-4">
+        <p className="mb-3 text-sm leading-6 text-muted">
+          Select areas you do not want the AI to emphasize (for example core). Plans will skip dedicated
+          work and day focuses for these.
+        </p>
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
+          <span className="rounded-full bg-ember/15 px-2.5 py-1 font-black text-ember">
+            {avoidTargets.length} avoided
+          </span>
+          {avoidTargets.length > 0 && (
+            <button
+              type="button"
+              onClick={() => persistAvoidTargets([])}
+              className="rounded-full px-2.5 py-1 transition hover:bg-surface hover:text-ink"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {GYM_AVOID_TARGETS.map((target) => {
+            const checked = avoidTargets.includes(target);
+            return (
+              <button
+                key={target}
+                type="button"
+                onClick={() => toggleAvoidTarget(target)}
+                aria-pressed={checked}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-black capitalize transition ${
+                  checked
+                    ? "border-ember/35 bg-ember/15 text-ember"
+                    : "border-ink/10 bg-card text-muted hover:border-ink/20 hover:text-ink"
+                }`}
+              >
+                {checked && <Check size={12} strokeWidth={3} />}
+                {humanizeGymLabel(target)}
+              </button>
+            );
+          })}
+        </div>
+      </Panel>
+
+      <Panel
+        title="Machines you know"
+        className="mb-4"
+        right={
+          <Link
+            href="/dashboard/gym/machines"
+            className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-black text-accent transition hover:bg-accent-soft"
+          >
+            <ExternalLink size={12} />
+            Machine demos
+          </Link>
+        }
+      >
+        <p className="mb-3 text-sm leading-6 text-muted">
+          Check machines you already know how to use. AI plans will build around these first. Use Demo to
+          watch form cues anytime.
+        </p>
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
+          <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
+            {knownMachineSlugs.length} selected
+          </span>
+          {knownMachineSlugs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => persistKnownMachines([])}
+              className="rounded-full px-2.5 py-1 transition hover:bg-surface hover:text-ink"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+        <div className="grid max-h-80 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+          {machines.map((machine) => {
+            const checked = knownMachineSlugs.includes(machine.slug);
+            return (
+              <div
+                key={machine.id}
+                className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${
+                  checked
+                    ? "border-accent/30 bg-accent-soft/50"
+                    : "border-ink/8 bg-card hover:border-ink/15"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleKnownMachine(machine.slug)}
+                  className={`grid size-6 shrink-0 place-items-center rounded-md border transition ${
+                    checked
+                      ? "border-accent bg-accent text-inverse-fg"
+                      : "border-ink/15 bg-panel text-transparent"
+                  }`}
+                  aria-pressed={checked}
+                  aria-label={`${checked ? "Unmark" : "Mark"} ${machine.name} as known`}
+                >
+                  <Check size={14} strokeWidth={3} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleKnownMachine(machine.slug)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <p className="truncate text-sm font-bold text-ink">{machine.name}</p>
+                  <p className="truncate text-[10px] capitalize text-muted">
+                    {humanizeGymLabel(machine.muscle_group)} · {humanizeGymLabel(machine.equipment)}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDemo(machine)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-inverse px-2.5 py-1.5 text-[10px] font-black text-inverse-fg transition hover:bg-accent"
+                  aria-label={`Watch ${machine.name} demo`}
+                >
+                  <Play size={10} fill="currentColor" />
+                  Demo
+                </button>
+              </div>
+            );
+          })}
+          {!machines.length && (
+            <EmptyState>No machine demos in the catalog yet.</EmptyState>
+          )}
+        </div>
+      </Panel>
+
       <Panel title="Saved AI gym plans">
         <div className="space-y-4">
           {plans.map((plan) => (
@@ -738,7 +945,7 @@ export function GymPlansView({
                 <div>
                   <p className="text-sm font-black">{plan.title}</p>
                   <p className="mt-1 text-xs capitalize text-muted">
-                    {plan.focus.replace("_", " ")} · {plan.level} · {plan.days_per_week} days/week
+                    {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
                   </p>
                   {plan.summary && <p className="mt-2 text-sm leading-6 text-muted">{plan.summary}</p>}
                 </div>
@@ -755,26 +962,32 @@ export function GymPlansView({
                 {(plan.days ?? []).map((day) => (
                   <div key={`${plan.id}-${day.day}`} className="rounded-2xl border border-ink/5 bg-panel/80 p-3">
                     <p className="text-xs font-black text-accent">{day.day}</p>
-                    <p className="mt-1 text-sm font-bold">{day.focus}</p>
-                    <ul className="mt-2 space-y-1.5">
+                    <p className="mt-1 text-sm font-bold capitalize">{humanizeGymLabel(day.focus)}</p>
+                    <ul className="mt-2 space-y-2">
                       {(day.exercises ?? []).map((ex) => {
-                        const linked = exercises.find(
-                          (item) => item.name.toLowerCase() === ex.name.toLowerCase(),
-                        );
+                        const linked = findExerciseMatch(ex.name, exercises);
                         return (
                           <li key={`${day.day}-${ex.name}`} className="text-xs text-muted">
-                            {linked ? (
-                              <button
-                                type="button"
-                                onClick={() => setActiveDemo(linked)}
-                                className="font-bold text-accent underline-offset-2 hover:underline"
-                              >
-                                {ex.name}
-                              </button>
-                            ) : (
-                              <span className="font-bold text-ink">{ex.name}</span>
-                            )}{" "}
-                            · {ex.sets} · rest {ex.rest}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="font-bold text-ink">{ex.name}</span>
+                                <span>
+                                  {" "}
+                                  · {ex.sets} · rest {ex.rest}
+                                </span>
+                              </div>
+                              {linked && (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveDemo(linked)}
+                                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-1 text-[10px] font-black text-accent transition hover:bg-accent hover:text-inverse-fg"
+                                  aria-label={`Watch ${ex.name} demo`}
+                                >
+                                  <Play size={10} fill="currentColor" />
+                                  Demo
+                                </button>
+                              )}
+                            </div>
                           </li>
                         );
                       })}

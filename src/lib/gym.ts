@@ -40,3 +40,34 @@ export type GymPlan = {
 export function isMachineGear(equipment: string) {
   return equipment === "machine" || equipment === "cable" || equipment === "cardio_machine";
 }
+
+/** Turn slug-style labels (fat_loss) into readable text for UI. */
+export function humanizeGymLabel(value: string) {
+  return String(value ?? "")
+    .replaceAll("_", " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Match an AI/plan exercise name to a catalog demo (exact, then loose contains). */
+export function findExerciseMatch(name: string, exercises: GymExercise[]) {
+  const needle = name.toLowerCase().trim();
+  if (!needle) return undefined;
+  const exact = exercises.find((item) => item.name.toLowerCase() === needle);
+  if (exact) return exact;
+  const contained = exercises.find((item) => {
+    const catalog = item.name.toLowerCase();
+    return needle.includes(catalog) || catalog.includes(needle);
+  });
+  if (contained) return contained;
+  // Strip common suffixes the model adds (" machine", " trainer") and retry.
+  const stripped = needle
+    .replace(/\b(machine|trainer|bike|climber)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!stripped || stripped === needle) return undefined;
+  return exercises.find((item) => {
+    const catalog = item.name.toLowerCase();
+    return catalog.includes(stripped) || stripped.includes(catalog.replace(/\b(machine|trainer)\b/g, "").trim());
+  });
+}
