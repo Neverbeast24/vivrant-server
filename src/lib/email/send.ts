@@ -99,29 +99,23 @@ function appBaseUrl() {
 }
 
 function brandLogoUrl() {
-  return `${appBaseUrl()}/vivrant-logo.png`;
+  return `${appBaseUrl()}/vivrant-mark.png`;
 }
 
 function emailFooterHtml() {
   const logo = brandLogoUrl();
   return `
     <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4ebe7;text-align:center">
-      <img src="${escapeHtml(logo)}" alt="${BRAND_NAME}" width="140" style="display:block;margin:0 auto 12px;width:140px;max-width:60%;height:auto;border:0" />
-      <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#0E7C66">— ${escapeHtml(BRAND_TAGLINE)} —</p>
-      <p style="margin:10px 0 0;font-size:12px;color:#4a5c54">
+      <img src="${escapeHtml(logo)}" alt="${BRAND_NAME}" width="72" height="72" style="display:block;margin:0 auto;width:72px;height:72px;border:0;border-radius:14px;background:#000" />
+      <p style="margin:12px 0 0;font-size:12px;color:#4a5c54">
         <a href="mailto:${BRAND_CONTACT_EMAIL}" style="color:#0E7C66;text-decoration:none;font-weight:600">${BRAND_CONTACT_EMAIL}</a>
       </p>
-      <p style="margin:8px 0 0;font-size:12px;color:#4a5c54">— ${BRAND_NAME} · ${escapeHtml(BRAND_TAGLINE)}</p>
     </div>
   `;
 }
 
 function emailFooterText() {
-  return [
-    "",
-    `— ${BRAND_NAME} · ${BRAND_TAGLINE}`,
-    BRAND_CONTACT_EMAIL,
-  ].join("\n");
+  return ["", BRAND_CONTACT_EMAIL].join("\n");
 }
 
 function formatPhp(amount: number) {
