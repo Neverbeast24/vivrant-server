@@ -110,7 +110,17 @@ VIVRΛNT wellness principles (use as soft guidance, not medical advice):
 - Health spending is an investment when it supports food quality, movement, sleep, or recovery.
 - Never diagnose disease. Suggest gentle next actions the user can do today.
 - Currency for spending advice is Philippine pesos (₱) unless the logs say otherwise.
+
+BMI PERSONALIZATION (required for every response):
+- ALWAYS read bmi_details and routine_scaling from USER CONTEXT when present.
+- When bmi_details.available is true, tailor advice to their BMI number, band (underweight/normal/overweight/obese), goal weight, and pace_note — do NOT give one-size-fits-all tips.
+- underweight → favor surplus-friendly protein, strength, shorter hard cardio; normal → maintain balance; overweight/obese → joint-friendly movement, sustainable deficit, protein retention.
+- When BMI is missing, say briefly that height/weight in Settings unlocks better personalization, then give a gentle starter tip.
+- Never invent BMI values. Never diagnose disease from BMI alone.
 `.trim();
+
+/** Short reminder injected into every generate prompt so models do not ignore body metrics. */
+const BMI_CONTEXT_HINT = `Personalize using bmi_details / routine_scaling from USER CONTEXT (BMI, band, goal weight, pace). Do not give generic advice when BMI is available.`;
 
 const FALLBACK_MODELS = [
   "gemini-3.1-flash-lite",
@@ -240,7 +250,11 @@ function parseJsonLoose<T>(raw: string): T {
 }
 
 async function generateJson<T>(prompt: string, image?: MealImageInput): Promise<T> {
-  const text = await generateContentWithFallback(prompt, true, image);
+  const text = await generateContentWithFallback(
+    `${BMI_CONTEXT_HINT}\n\n${prompt}`,
+    true,
+    image,
+  );
   return parseJsonLoose<T>(text);
 }
 
@@ -251,6 +265,7 @@ Using ONLY the user's recent logs below, return ONE actionable insight as JSON w
 - "body": 2–3 sentences with a concrete next action for today/tomorrow
 - "score": integer 0–100 reflecting how confident/useful this recommendation is for this user right now
 
+Tailor the insight to bmi_details / routine_scaling (BMI band, goal weight, pace) when available — do not give a generic habit tip if BMI is known.
 If data is sparse, still give a helpful starter habit suggestion and lower the score.
 Do not invent medical diagnoses. Do not mention that you are an AI model.
 
@@ -269,6 +284,7 @@ ${context}`);
 
 export async function askViva(context: string, question: string): Promise<ChatAnswer> {
   const parsed = await generateJson<Partial<ChatAnswer>>(`You are VIVRΛNT. Answer the user's question using ONLY their logs and profile.
+Always factor in bmi_details / routine_scaling when relevant (meals, workouts, goals, recovery).
 Return JSON:
 - "answer": 2–5 calm sentences, practical, no diagnosis
 - "follow_up": one short suggested next question they could ask
@@ -313,6 +329,7 @@ Keys:
 
 ${portionHint}
 If the photo is unclear, estimate conservatively and say so in tip.
+When bmi_details is available, nudge the tip toward their band/goal (e.g. protein-forward if underweight or cutting; portion awareness if overweight) without changing honest calorie math.
 Do not invent medical advice.
 
 MEAL DESCRIPTION:
@@ -345,10 +362,12 @@ ${context}`,
 
 export async function suggestMeal(context: string): Promise<MealSuggestion> {
   const parsed = await generateJson<Partial<MealSuggestion>>(`Suggest ONE practical next meal the user could eat soon.
-Use pantry_items and meals_today when present:
+Use pantry_items, meals_today, and especially bmi_details / routine_scaling when present:
 - Prefer ingredients they already have when possible
 - If protein today looks low, lean protein-forward
+- Match calories/macros vibe to BMI band + goal (underweight → surplus-friendly; overweight/obese → satisfying lower-calorie; normal → maintain)
 - Keep it realistic for home cooking or a simple store / canteen option (Philippines-friendly when relevant)
+- Mention BMI band or goal pace briefly in "reason" when available
 - No medical or therapeutic claims
 Return ONLY one valid JSON object:
 - "meal_name": short name (max 8 words)
@@ -357,7 +376,7 @@ Return ONLY one valid JSON object:
 - "protein_g": number
 - "carbs_g": number
 - "fat_g": number
-- "reason": 1–2 sentences why this fits today (mention pantry or protein gap when used)
+- "reason": 1–2 sentences why this fits today (mention pantry, protein gap, or BMI/goal when used)
 - "tip": one short logging tip (numbers are estimates)
 
 USER CONTEXT:
@@ -494,13 +513,14 @@ export async function planGroceriesFromPantry(context: string): Promise<GroceryP
     Partial<GroceryPlan> & { items?: Partial<GroceryPlanItem>[] }
   >(`Create a practical grocery + meal plan from pantry stock and open list.
 Stay inside the user's remaining monthly health budget (see health_profile.monthly_health_budget, recent_expenses, and budget_for_groceries when present).
+Personalize food choices with bmi_details / routine_scaling: underweight → calorie-dense protein staples; overweight/obese → high-satiety produce + lean protein; honor goal_weight pace without extreme restriction.
 Every item MUST include a realistic Philippine peso estimated_price for the stated quantity.
 Use grocery_price_market / ph_calendar for the CURRENT Asia/Manila year and month — prices shift with seasonality and year (do not use outdated static prices).
 Prefer affordable staples when budget is tight.
 The sum of item estimated_price values must not exceed remaining grocery budget when provided; if budget is very tight, suggest fewer cheaper items.
 Return JSON:
 - "title": short plan name
-- "summary": 2 sentences (mention budget fit)
+- "summary": 2 sentences (mention budget fit and BMI/goal fit when available)
 - "meals": array of 3 dinner/lunch ideas using what they have when possible
 - "items": array of { "name", "category", "quantity", "estimated_price" }
   category must be one of: produce, protein, dairy, grains, pantry, snacks, drinks, household, other
@@ -547,7 +567,7 @@ ${context}`);
 }
 
 export async function suggestWorkout(context: string): Promise<WorkoutSuggestion> {
-  const parsed = await generateJson<Partial<WorkoutSuggestion>>(`Suggest ONE workout for today based on energy, mood, steps, goals, and routine_scaling.
+  const parsed = await generateJson<Partial<WorkoutSuggestion>>(`Suggest ONE workout for today based on energy, mood, steps, goals, bmi_details, and routine_scaling.
 Honor BMI band and pace forecast when present:
 - underweight: prefer strength / short walks; avoid long hard cardio
 - overweight / obese: prefer low-impact walk, cycle, yoga, or light strength; keep duration in session_minutes
@@ -576,6 +596,7 @@ ${context}`);
 
 export async function coachSpending(context: string): Promise<SpendingAdvice> {
   const parsed = await generateJson<Partial<SpendingAdvice>>(`Give one health-budget coaching tip from recent expenses and monthly budget.
+Factor bmi_details when suggesting food/wellness swaps (e.g. prioritize protein staples if underweight; prioritize produce + lean protein if overweight).
 Return JSON:
 - "title"
 - "body": 2–3 sentences
@@ -595,6 +616,7 @@ ${context}`);
 
 export async function writeWeeklyStory(context: string): Promise<WeeklyStory> {
   const parsed = await generateJson<Partial<WeeklyStory>>(`Write a short weekly wellbeing story from the user's logs.
+Weave in bmi_details / routine_scaling when available (BMI band, goal pace) so focuses feel personal, not generic.
 Return JSON:
 - "title"
 - "story": 3–5 sentences, warm and specific
@@ -615,6 +637,7 @@ ${context}`);
 
 export async function suggestGoals(context: string): Promise<GoalSuggestion[]> {
   const parsed = await generateJson<{ goals?: Partial<GoalSuggestion>[] }>(`Suggest up to 3 measurable health goals for this user.
+Anchor suggestions to bmi_details / routine_scaling when available (BMI band, kg_to_goal, target_date, pace_note) so goals are personalized, not generic.
 Return JSON: { "goals": [ { "title", "category", "target_value", "unit", "why" } ] }
 category one of: nutrition, movement, sleep, mindfulness, spending, other
 
@@ -633,6 +656,7 @@ ${context}`);
 
 export async function summarizeMemberWeek(context: string): Promise<MemberSummary> {
   const parsed = await generateJson<Partial<MemberSummary>>(`Summarize this member's last week for a Super Admin support view.
+Include BMI band / goal pace from bmi_details or routine_scaling when present.
 Return JSON:
 - "title"
 - "summary": 3–5 sentences
@@ -715,7 +739,7 @@ export async function generateGymPlan(
       : "No muscle-group exclusions were set.";
 
   const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training plan for this user.
-Use their profile, energy, goals, recent activity, and especially routine_scaling (BMI band + target-date forecast).
+Use their profile, energy, goals, recent activity, and especially bmi_details + routine_scaling (BMI band + target-date forecast).
 Scale the plan explicitly:
 - ${requestedDays != null ? `User chose EXACTLY ${requestedDays} training days/week — set days_per_week to ${requestedDays} and return exactly ${requestedDays} day entries` : "Match days_per_week to routine_scaling.days_per_week"}
 - ${requestedSession != null ? `User chose ~${requestedSession} minute sessions — size each day so it fits about ${requestedSession} minutes` : "Match session length to routine_scaling.session_minutes"}
@@ -777,6 +801,7 @@ ${context}`);
 
 export async function analyzeHealthHistory(context: string): Promise<HealthHistoryInsight> {
   const parsed = await generateJson<Partial<HealthHistoryInsight>>(`Analyze this user's health history (weight/height trend) and profile.
+Always use current bmi_details / routine_scaling (BMI, band, goal weight, pace_note) together with health_history trends.
 Return JSON:
 - "title"
 - "body": 2–3 calm sentences (no diagnosis)
@@ -816,7 +841,7 @@ export async function recommendGymMachines(
   context: string,
   machineCatalog: string,
 ): Promise<MachineRecommendationPayload> {
-  const parsed = await generateJson<Partial<MachineRecommendationPayload>>(`Recommend gym machines for this user based on their profile, goals, energy, recent training, and routine_scaling (BMI + target-date pace).
+  const parsed = await generateJson<Partial<MachineRecommendationPayload>>(`Recommend gym machines for this user based on their profile, goals, energy, recent training, and bmi_details / routine_scaling (BMI + target-date pace).
 For higher BMI bands prefer seated / supported machines and low-impact cardio machines. For underweight prefer strength machines that support progressive overload.
 Prefer machines from the catalog. Mix strength machines and cardio machines when useful.
 Return JSON:
@@ -855,6 +880,7 @@ ${context}`);
 
 export async function draftReminder(context: string): Promise<InsightPayload> {
   const parsed = await generateJson<Partial<InsightPayload>>(`Draft ONE short push-notification style reminder for this user today.
+Personalize with bmi_details / routine_scaling when useful (e.g. protein check-in, gentle walk, strength day) — avoid generic copy.
 Return JSON:
 - "title": max 6 words
 - "body": one sentence, friendly, actionable
@@ -872,6 +898,7 @@ ${context}`);
 
 export async function generateSleepCoach(context: string): Promise<InsightPayload> {
   const parsed = await generateJson<Partial<InsightPayload>>(`You are VIVRΛNT sleep coach. Give ONE calm bedtime recommendation.
+Factor bmi_details when relevant (recovery needs with training focus / pace) without diagnosing.
 Return JSON: "title" (max 6 words), "body" (2 short sentences), "score" (0-100 rest readiness).
 USER CONTEXT:
 ${context}`);
@@ -886,6 +913,7 @@ ${context}`);
 
 export async function generateMindfulnessTip(context: string): Promise<InsightPayload> {
   const parsed = await generateJson<Partial<InsightPayload>>(`You are VIVRΛNT mindfulness coach. Suggest ONE short calm practice for today.
+If bmi_details shows an ambitious pace or high training load, prefer grounding / recovery-friendly practices.
 Return JSON: "title" (max 6 words), "body" (2 calm sentences), "score" (0-100).
 USER CONTEXT:
 ${context}`);
@@ -904,6 +932,7 @@ export async function generateHabitSuggestions(
   const parsed = await generateJson<{
     habits?: { title?: string; category?: string; reason?: string }[];
   }>(`Suggest 3 small daily habits for this member.
+Customize using bmi_details / routine_scaling (BMI band, focus, goal pace) — do not suggest generic habits when BMI is known.
 Return JSON: "habits": array of { "title", "category" (nutrition|movement|sleep|mindfulness|hydration|other), "reason" }.
 USER CONTEXT:
 ${context}`);
@@ -922,6 +951,7 @@ export async function generateJournalReflection(
   entries: string,
 ): Promise<InsightPayload> {
   const parsed = await generateJson<Partial<InsightPayload>>(`Reflect on these journal entries with warmth. No diagnosis.
+If bmi_details / goals appear relevant to the writing, acknowledge gently without body-shaming.
 Return JSON: "title", "body" (3 short sentences), "score" (0-100 emotional clarity).
 USER CONTEXT:
 ${context}

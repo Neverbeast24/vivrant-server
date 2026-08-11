@@ -137,6 +137,25 @@ export async function buildUserContext(
     target_date: pickGoalTargetDate(goalsData),
   });
 
+  // Explicit BMI block so every AI generate path can personalize (never ignore body metrics).
+  const bmi_details = {
+    bmi: routine_scaling.bmi,
+    band: routine_scaling.band,
+    band_label: routine_scaling.band_label,
+    height_cm: routine_scaling.height_cm,
+    weight_kg: routine_scaling.weight_kg,
+    goal_weight_kg: routine_scaling.goal_weight_kg,
+    kg_to_goal: routine_scaling.kg_to_goal,
+    target_date: routine_scaling.target_date,
+    weeks_remaining: routine_scaling.weeks_remaining,
+    suggested_kg_per_week: routine_scaling.suggested_kg_per_week,
+    pace_note: routine_scaling.pace_note,
+    focus: routine_scaling.focus,
+    intensity: routine_scaling.intensity,
+    summary: routine_scaling.summary,
+    available: routine_scaling.bmi != null,
+  };
+
   // Compact JSON (no pretty-print) keeps Gemini prompt tokens smaller/faster.
   return JSON.stringify({
     today: ph.isoDate,
@@ -149,6 +168,7 @@ export async function buildUserContext(
     },
     grocery_price_market: market,
     health_profile: profileData,
+    bmi_details,
     routine_scaling,
     budget_for_groceries: {
       currency: "PHP",
