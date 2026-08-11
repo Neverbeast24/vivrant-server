@@ -7,7 +7,6 @@ import {
   BRAND_CONTACT_EMAIL,
   BRAND_FROM,
   BRAND_NAME,
-  BRAND_TAGLINE,
 } from "@/lib/brand";
 
 export type PriceQuoteEmailInput = {
