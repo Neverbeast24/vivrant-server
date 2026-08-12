@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { IdleSessionGuard } from "@/components/idle-session-guard";
 import { signOut } from "@/app/dashboard/actions";
 import {
   Notifications,
@@ -99,6 +100,7 @@ export function DashboardShell({
 
   return (
     <main className="h-dvh overflow-hidden p-2 sm:p-3">
+      <IdleSessionGuard />
       <ThemeSync theme={theme} />
       <PushEnrollment enabled={pushEnabled} />
       <div className="glass mx-auto flex h-full w-full overflow-hidden rounded-[1.6rem] border border-panel/65 shadow-[0_30px_90px_rgba(var(--shadow-color),.14)]">
@@ -130,7 +132,7 @@ export function DashboardShell({
           <div className="mt-3 shrink-0 space-y-2 pt-2">
             {expanded && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl bg-gradient-to-br from-solid to-accent-deep p-4 text-solid-fg">
-                <p className="text-sm font-bold">Your weekly story is ready.</p>
+                <p className="text-sm font-bold">Your weekly summary is ready.</p>
                 <Link href="/dashboard/reports" className="mt-3 flex items-center gap-1 text-xs font-bold text-white/60 transition hover:text-white">
                   Open report <ChevronRight size={13} />
                 </Link>

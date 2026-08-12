@@ -17,10 +17,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const safeNext = next && next.startsWith("/") ? next : "/dashboard";
   const planNotice =
     plan === "plus"
-      ? "After you create your account, open Contact → Get Plus access to request activation."
+      ? "After you create your account, open Contact and ask us to turn on Plus."
       : plan === "campus"
-        ? "Campus access is arranged through Contact → Campus inquiry after you sign in."
+        ? "After you sign in, open Contact and ask about Campus access."
         : null;
+  const idleNotice =
+    notice === "idle"
+      ? "You were signed out after 10 minutes without activity. Please sign in again."
+      : notice;
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_.95fr]">
@@ -43,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               {planNotice}
             </div>
           ) : null}
-          <AuthForm next={safeNext} initialError={error} initialNotice={notice} />
+          <AuthForm next={safeNext} initialError={error} initialNotice={idleNotice} />
 
           <div className="my-7 flex items-center gap-3">
             <span className="h-px flex-1 bg-ink/10" />

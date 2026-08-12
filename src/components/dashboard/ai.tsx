@@ -110,7 +110,7 @@ export function AiView({
   return (
     <>
       <PageHeader
-        eyebrow="AI DECISION ENGINE"
+        eyebrow="Ask for help"
         title={
           section === "insights"
             ? "Saved"

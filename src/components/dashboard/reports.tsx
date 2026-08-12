@@ -48,7 +48,7 @@ export type ReportsData = {
 function buildSummary(data: ReportsData) {
   const parts: string[] = [];
   if (data.checkins === 0) {
-    return "No check-ins yet this month. Start with a daily check-in so VIVRΛNT can build your weekly story.";
+    return "No check-ins yet this month. Start with a daily check-in so VIVRΛNT can build your weekly summary.";
   }
   parts.push(`You checked in ${data.checkins} time${data.checkins === 1 ? "" : "s"} this month`);
   if (data.avgEnergy != null) parts.push(`with an average energy of ${data.avgEnergy}/100`);
@@ -88,11 +88,11 @@ export function ReportsView({ data }: { data: ReportsData }) {
       <PageHeader
         eyebrow="REPORTS"
         title="Your weekly"
-        highlight="story."
+        highlight="summary."
         action={
           <PrimaryButton disabled={writing} onClick={writeStory} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
-            {writing ? "Writing…" : "AI weekly story"}
+            {writing ? "Writing…" : "AI weekly summary"}
           </PrimaryButton>
         }
       />

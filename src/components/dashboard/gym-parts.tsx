@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   Cog,
   Dumbbell,
@@ -243,6 +245,20 @@ function ExerciseGrid({
   );
 }
 
+function KnownExerciseThumb({ exercise }: { exercise: GymExercise }) {
+  return (
+    <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-surface-soft ring-1 ring-ink/8">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={exercise.demo_thumbnail_url ?? "/vivrant-mark.png"}
+        alt=""
+        className="size-full object-cover"
+        loading="lazy"
+      />
+    </span>
+  );
+}
+
 const muscleFilters = [
   "all",
   "legs",
@@ -261,6 +277,15 @@ const muscleFilters = [
   "full_body",
   "cardio",
   "mobility",
+] as const;
+
+const muscleFiltersPrimary = [
+  "all",
+  "legs",
+  "chest",
+  "back",
+  "arms",
+  "core",
 ] as const;
 
 /** Legs filter also surfaces posterior-chain free-weight demos (RDL, etc.). */
@@ -321,6 +346,40 @@ function FilterChip({
   );
 }
 
+function MuscleFilterChips({
+  muscle,
+  onChange,
+}: {
+  muscle: (typeof muscleFilters)[number];
+  onChange: (next: (typeof muscleFilters)[number]) => void;
+}) {
+  const [showMore, setShowMore] = useState(false);
+  const options = showMore
+    ? muscleFilters
+    : muscleFiltersPrimary.includes(muscle as (typeof muscleFiltersPrimary)[number])
+      ? muscleFiltersPrimary
+      : ([...muscleFiltersPrimary, muscle] as const);
+
+  return (
+    <>
+      <FilterChipRow>
+        {options.map((item) => (
+          <FilterChip key={item} active={muscle === item} onClick={() => onChange(item)}>
+            {muscleFilterLabel(item)}
+          </FilterChip>
+        ))}
+      </FilterChipRow>
+      <button
+        type="button"
+        onClick={() => setShowMore((v) => !v)}
+        className="mb-4 text-xs font-black text-accent transition hover:underline"
+      >
+        {showMore ? "Show fewer muscles" : "More muscles"}
+      </button>
+    </>
+  );
+}
+
 export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
   const [muscle, setMuscle] = useState<(typeof muscleFilters)[number]>("all");
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
@@ -332,16 +391,17 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
 
   return (
     <>
-      <PageHeader eyebrow="GYM · DEMOS" title="Form first," highlight="then load." />
+      <PageHeader
+        eyebrow="EXERCISE VIDEOS"
+        title="Watch a"
+        highlight="demo."
+      />
+      <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
+        Short videos that show how to do each move with good form.
+      </p>
       <ModuleSubNav items={trainingSubNav} />
       <Panel title="Free-weight & bodyweight demos" right={<Play size={16} className="text-accent" />}>
-        <FilterChipRow>
-          {muscleFilters.map((item) => (
-            <FilterChip key={item} active={muscle === item} onClick={() => setMuscle(item)}>
-              {muscleFilterLabel(item)}
-            </FilterChip>
-          ))}
-        </FilterChipRow>
+        <MuscleFilterChips muscle={muscle} onChange={setMuscle} />
         <ExerciseGrid exercises={filtered} onSelect={setActiveDemo} />
       </Panel>
       <AnimatePresence>
@@ -393,9 +453,9 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
   return (
     <>
       <PageHeader
-        eyebrow="GYM · MACHINES"
-        title="Know the"
-        highlight="equipment."
+        eyebrow="GYM MACHINES"
+        title="Learn the"
+        highlight="machines."
         action={
           <PrimaryButton
             disabled={recommending}
@@ -403,10 +463,13 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
             className="rounded-full bg-accent px-5"
           >
             <Cog size={14} className="shrink-0" />
-            {recommending ? "Matching…" : "AI machine picks"}
+            {recommending ? "Finding matches…" : "Suggest machines for me"}
           </PrimaryButton>
         }
       />
+      <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
+        Watch demos for gym machines, or get a short list picked for you.
+      </p>
       <ModuleSubNav items={trainingSubNav} />
 
       {machineRecs && (
@@ -431,11 +494,14 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
                     className="rounded-[1.3rem] border border-ink/8 bg-card p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] font-black tracking-wide text-accent">
-                          PICK #{item.priority}
-                        </p>
-                        <p className="mt-1 text-sm font-black">{item.machine}</p>
+                      <div className="flex min-w-0 items-start gap-3">
+                        {demo && <KnownExerciseThumb exercise={demo} />}
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black tracking-wide text-accent">
+                            PICK #{item.priority}
+                          </p>
+                          <p className="mt-1 text-sm font-black">{item.machine}</p>
+                        </div>
                       </div>
                       <span className="rounded-full bg-surface px-2.5 py-1 text-[10px] font-black text-muted">
                         {item.sets}
@@ -474,13 +540,7 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
             </FilterChip>
           ))}
         </FilterChipRow>
-        <FilterChipRow>
-          {muscleFilters.map((item) => (
-            <FilterChip key={item} active={muscle === item} onClick={() => setMuscle(item)}>
-              {muscleFilterLabel(item)}
-            </FilterChip>
-          ))}
-        </FilterChipRow>
+        <MuscleFilterChips muscle={muscle} onChange={setMuscle} />
         <ExerciseGrid exercises={filtered} onSelect={setActiveDemo} />
       </Panel>
 
@@ -505,13 +565,16 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
 
   return (
     <>
-      <PageHeader eyebrow="GYM · SESSIONS" title="Log what you" highlight="trained." />
+      <PageHeader eyebrow="GYM WORKOUTS" title="Log what you" highlight="trained." />
+      <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
+        Save a gym session so you can look back at your progress.
+      </p>
       <ModuleSubNav items={trainingSubNav} />
       <div className="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
-        <Panel title="Log a gym session">
+        <Panel title="Log a gym workout">
           <form action={submit} className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Session title" hint="Required" className="sm:col-span-2">
-              <input name="title" required placeholder="e.g. Machine circuit + cardio" className={fieldClass} />
+            <FormField label="Workout name" hint="Required" className="sm:col-span-2">
+              <input name="title" required placeholder="e.g. Leg day" className={fieldClass} />
             </FormField>
             <FormField label="Focus">
               <select name="focus" defaultValue="full_body" className={fieldClass}>
@@ -543,12 +606,12 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
               <input name="notes" placeholder="Seat settings / weight used" className={fieldClass} />
             </FormField>
             <PrimaryButton disabled={pending} className="sm:col-span-2">
-              {pending ? "Saving…" : "Log session"}
+              {pending ? "Saving…" : "Save workout"}
             </PrimaryButton>
           </form>
         </Panel>
 
-        <Panel title="Recent sessions" right={<Target size={16} className="text-accent" />}>
+        <Panel title="Recent workouts" right={<Target size={16} className="text-accent" />}>
           <div className="space-y-2">
             {sessions.map((session) => (
               <ListRow
@@ -571,7 +634,9 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
                 }
               />
             ))}
-            {!sessions.length && <EmptyState>No gym sessions yet. Log your first training block.</EmptyState>}
+            {!sessions.length && (
+              <EmptyState>No workouts yet. Log your first gym session on the left.</EmptyState>
+            )}
           </div>
         </Panel>
       </div>
@@ -600,6 +665,7 @@ export function GymPlansView({
   const [avoidTargets, setAvoidTargets] = useState<string[]>([]);
   const [knownQuery, setKnownQuery] = useState("");
   const [knownMuscle, setKnownMuscle] = useState<(typeof muscleFilters)[number]>("all");
+  const [showCustomize, setShowCustomize] = useState(false);
   const machines = useMemo(
     () => exercises.filter((item) => isMachineGear(item.equipment)),
     [exercises],
@@ -796,20 +862,84 @@ export function GymPlansView({
   return (
     <>
       <PageHeader
-        eyebrow="GYM · AI PLANS"
-        title="Programs that"
-        highlight="fit you."
+        eyebrow="TRAINING PLANS"
+        title="A plan that"
+        highlight="fits you."
         action={
           <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
-            {planning ? "Building plan…" : "Generate AI plan"}
+            {planning ? "Creating your plan…" : "Create my plan"}
           </PrimaryButton>
         }
       />
+      <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
+        Choose how often you train, then create a weekly plan. Extra options are optional.
+      </p>
       <ModuleSubNav items={trainingSubNav} />
 
-      {scaling && (
-        <Panel title="BMI · target forecast" className="mb-4">
+      <Panel title="How often do you train?" className="mb-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+            <label
+              className="text-[10px] font-black uppercase tracking-wider text-[#948e99]"
+              htmlFor="plan-days"
+            >
+              Days per week
+            </label>
+            <input
+              id="plan-days"
+              type="number"
+              min={2}
+              max={6}
+              step={1}
+              value={daysPerWeek}
+              onChange={(e) => setDaysPerWeek(e.target.value)}
+              className={`${fieldClass} mt-1 py-2`}
+            />
+            {scaling && (
+              <p className="mt-1 text-[10px] text-muted">Suggested {scaling.days_per_week}</p>
+            )}
+          </div>
+          <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+            <label
+              className="text-[10px] font-black uppercase tracking-wider text-[#948e99]"
+              htmlFor="plan-session"
+            >
+              Minutes per workout
+            </label>
+            <input
+              id="plan-session"
+              type="number"
+              min={15}
+              max={120}
+              step={5}
+              value={sessionMinutes}
+              onChange={(e) => setSessionMinutes(e.target.value)}
+              className={`${fieldClass} mt-1 py-2`}
+            />
+            {scaling && (
+              <p className="mt-1 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
+            <Sparkles size={14} className="shrink-0" />
+            {planning ? "Creating your plan…" : "Create my plan"}
+          </PrimaryButton>
+          <button
+            type="button"
+            onClick={() => setShowCustomize((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-black text-accent transition hover:bg-accent-soft"
+          >
+            {showCustomize ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {showCustomize ? "Hide optional settings" : "Customize (optional)"}
+          </button>
+        </div>
+      </Panel>
+
+      {showCustomize && scaling && (
+        <Panel title="Your goals & fitness level" className="mb-4">
           <div className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -821,12 +951,12 @@ export function GymPlansView({
               {scaling.band_label && (
                 <span className="rounded-full border border-accent/20 bg-accent-soft/70 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-accent">
                   {scaling.band_label}
-                  {scaling.bmi != null ? ` · ${scaling.bmi}` : ""}
+                  {scaling.bmi != null ? ` · BMI ${scaling.bmi}` : ""}
                 </span>
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
                 <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Focus</p>
                 <p className="mt-1 text-sm font-bold capitalize text-ink">
@@ -834,47 +964,12 @@ export function GymPlansView({
                 </p>
               </div>
               <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#948e99]" htmlFor="plan-days">
-                  Days / week
-                </label>
-                <input
-                  id="plan-days"
-                  type="number"
-                  min={2}
-                  max={6}
-                  step={1}
-                  value={daysPerWeek}
-                  onChange={(e) => setDaysPerWeek(e.target.value)}
-                  className={`${fieldClass} mt-1 py-2`}
-                />
-                <p className="mt-1 text-[10px] text-muted">Suggested {scaling.days_per_week}</p>
-              </div>
-              <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#948e99]" htmlFor="plan-session">
-                  Session (min)
-                </label>
-                <input
-                  id="plan-session"
-                  type="number"
-                  min={15}
-                  max={120}
-                  step={5}
-                  value={sessionMinutes}
-                  onChange={(e) => setSessionMinutes(e.target.value)}
-                  className={`${fieldClass} mt-1 py-2`}
-                />
-                <p className="mt-1 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
-              </div>
-              <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Intensity</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">
+                  Intensity
+                </p>
                 <p className="mt-1 text-sm font-bold text-ink">{scaling.intensity}</p>
               </div>
             </div>
-
-            <p className="text-xs font-semibold text-muted">
-              Edit days / week and session length, mark areas to avoid and exercises you know, then
-              Generate AI plan — suggestions will respect those choices.
-            </p>
 
             {(scaling.kg_to_goal != null || scaling.target_date) && (
               <p className="text-xs font-semibold text-muted">
@@ -913,18 +1008,18 @@ export function GymPlansView({
 
             {!scaling.bmi && (
               <p className="text-xs font-semibold text-[#8a6a4a]">
-                Add height, weight, and a goal target date in Settings / Goals so plans scale to your BMI
-                forecast.
+                Add height, weight, and a goal date in Profile → Goals so plans can match your level.
               </p>
             )}
           </div>
         </Panel>
       )}
 
-      <Panel title="Avoid targeting" className="mb-4">
+      {showCustomize && (
+      <>
+      <Panel title="Skip these body areas" className="mb-4">
         <p className="mb-3 text-sm leading-6 text-muted">
-          Select areas you do not want the AI to emphasize (for example core). Plans will skip dedicated
-          work and day focuses for these.
+          Optional: pick areas you want to skip for now (for example core). Your plan will avoid them.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-ember/15 px-2.5 py-1 font-black text-ember">
@@ -964,7 +1059,7 @@ export function GymPlansView({
       </Panel>
 
       <Panel
-        title="Exercises you know"
+        title="Moves you already know"
         className="mb-4"
         right={
           <Link
@@ -977,9 +1072,8 @@ export function GymPlansView({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Search or filter by muscle, then Select all in view. Check machines and free-weight moves you
-          already know, or type anything missing under Other — AI plans prioritize your list. Choices
-          stay in this browser (same options as mobile).
+          Optional: mark machines and moves you know so your plan can prefer them. Choices stay in this
+          browser.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
@@ -992,8 +1086,8 @@ export function GymPlansView({
               className="rounded-full px-2.5 py-1 transition hover:bg-surface hover:text-ink"
             >
               {allVisibleKnownSelected
-                ? "Deselect in view"
-                : `Select all in view (${visibleKnownSlugs.length})`}
+                ? "Clear these"
+                : `Select these (${visibleKnownSlugs.length})`}
             </button>
           )}
           {knownSelectedCount > 0 && (
@@ -1082,12 +1176,15 @@ export function GymPlansView({
                 <button
                   type="button"
                   onClick={() => toggleKnownMachine(machine.slug)}
-                  className="min-w-0 flex-1 text-left"
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
-                  <p className="truncate text-sm font-bold text-ink">{machine.name}</p>
-                  <p className="truncate text-[10px] capitalize text-muted">
-                    {humanizeGymLabel(machine.muscle_group)} · {humanizeGymLabel(machine.equipment)}
-                  </p>
+                  <KnownExerciseThumb exercise={machine} />
+                  <span className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-ink">{machine.name}</p>
+                    <p className="truncate text-[10px] capitalize text-muted">
+                      {humanizeGymLabel(machine.muscle_group)} · {humanizeGymLabel(machine.equipment)}
+                    </p>
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -1104,8 +1201,8 @@ export function GymPlansView({
           {!filteredMachines.length && (
             <EmptyState>
               {machines.length
-                ? "No machines match this search or muscle filter."
-                : "No machine demos in the catalog yet."}
+                ? "No machines match this search."
+                : "No machines listed yet."}
             </EmptyState>
           )}
         </div>
@@ -1141,12 +1238,15 @@ export function GymPlansView({
                 <button
                   type="button"
                   onClick={() => toggleKnownMachine(move.slug)}
-                  className="min-w-0 flex-1 text-left"
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
-                  <p className="truncate text-sm font-bold text-ink">{move.name}</p>
-                  <p className="truncate text-[10px] capitalize text-muted">
-                    {humanizeGymLabel(move.muscle_group)} · {humanizeGymLabel(move.equipment)}
-                  </p>
+                  <KnownExerciseThumb exercise={move} />
+                  <span className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-ink">{move.name}</p>
+                    <p className="truncate text-[10px] capitalize text-muted">
+                      {humanizeGymLabel(move.muscle_group)} · {humanizeGymLabel(move.equipment)}
+                    </p>
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -1163,8 +1263,8 @@ export function GymPlansView({
           {!filteredFreeWeights.length && (
             <EmptyState>
               {freeWeights.length
-                ? "No free-weight moves match this search or muscle filter."
-                : "No free-weight demos in the catalog yet."}
+                ? "No free-weight moves match this search."
+                : "No free-weight moves listed yet."}
             </EmptyState>
           )}
         </div>
@@ -1217,8 +1317,10 @@ export function GymPlansView({
           </div>
         )}
       </Panel>
+      </>
+      )}
 
-      <Panel title="Saved AI gym plans">
+      <Panel title="Your saved plans">
         <div className="space-y-4">
           {plans.map((plan) => (
             <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-4">
@@ -1250,12 +1352,25 @@ export function GymPlansView({
                         return (
                           <li key={`${day.day}-${ex.name}`} className="text-xs text-muted">
                             <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <span className="font-bold text-ink">{ex.name}</span>
-                                <span>
-                                  {" "}
-                                  · {ex.sets} · rest {ex.rest}
-                                </span>
+                              <div className="flex min-w-0 items-center gap-2">
+                                {linked && (
+                                  <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-soft ring-1 ring-ink/8">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={linked.demo_thumbnail_url ?? "/vivrant-mark.png"}
+                                      alt=""
+                                      className="size-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </span>
+                                )}
+                                <div className="min-w-0">
+                                  <span className="font-bold text-ink">{ex.name}</span>
+                                  <span>
+                                    {" "}
+                                    · {ex.sets} · rest {ex.rest}
+                                  </span>
+                                </div>
                               </div>
                               {linked && (
                                 <button
@@ -1280,7 +1395,7 @@ export function GymPlansView({
           ))}
           {!plans.length && (
             <EmptyState>
-              Generate an AI gym plan scaled to your BMI band and target-date forecast.
+              No plan yet — choose how often you train above, then tap Create my plan.
             </EmptyState>
           )}
         </div>

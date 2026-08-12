@@ -12,6 +12,23 @@ import {
   rateLimitResponse,
 } from "@/lib/security/rate-limit";
 
+/** List saved AI insights (newest first). */
+export async function GET(request: Request) {
+  const auth = await requireMobileUser(request);
+  if (isMobileAuthError(auth)) return auth;
+  const { supabase, user } = auth;
+
+  const { data, error } = await supabase
+    .from("ai_recommendations")
+    .select("id, title, body, score, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) return jsonError(error.message, 500);
+  return jsonOk({ insights: data ?? [] });
+}
+
 /** Generate + save a fresh AI health insight, and notify the member. */
 export async function POST(request: Request) {
   const auth = await requireMobileUser(request);

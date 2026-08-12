@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { IdleSessionGuard } from "@/components/idle-session-guard";
 import { signOut } from "@/app/dashboard/actions";
 import {
   Notifications,
@@ -31,11 +32,11 @@ import { ThemeSync } from "@/components/theme-sync";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 
 const baseNav = [
-  { href: "/admin", label: "Overview", caption: "Platform pulse", icon: LayoutDashboard },
+  { href: "/admin", label: "Overview", caption: "What’s happening", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", caption: "Roles and access", icon: Users },
   { href: "/admin/tickets", label: "Tickets", caption: "Bugs & support", icon: LifeBuoy },
-  { href: "/admin/roles", label: "Permissions", caption: "Access model", icon: Shield },
-  { href: "/admin/audit", label: "Audit logs", caption: "Admin changes", icon: ClipboardList },
+  { href: "/admin/roles", label: "Permissions", caption: "Who can do what", icon: Shield },
+  { href: "/admin/audit", label: "Audit logs", caption: "Change history", icon: ClipboardList },
   { href: "/admin/settings", label: "System", caption: "Service health", icon: Settings2 },
 ];
 
@@ -160,6 +161,7 @@ export function AdminShell({
 
   return (
     <main className="h-dvh overflow-hidden p-2 sm:p-3">
+      <IdleSessionGuard />
       <ThemeSync theme={theme} />
       <PushEnrollment enabled={pushEnabled} />
       <div className="glass mx-auto flex h-full w-full overflow-hidden rounded-[1.6rem] border border-panel/65 shadow-[0_30px_90px_rgba(var(--shadow-color),.14)]">

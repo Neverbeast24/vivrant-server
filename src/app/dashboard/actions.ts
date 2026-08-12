@@ -11,6 +11,13 @@ export async function signOut() {
   redirect("/login");
 }
 
+/** Idle timeout sign-out with a plain-language login notice. */
+export async function signOutIdle() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login?notice=idle");
+}
+
 export type CheckinState = { ok: boolean; message: string } | null;
 
 function toIntOrNull(formData: FormData, key: string) {

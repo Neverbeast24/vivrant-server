@@ -52,7 +52,7 @@ export const dashboardNav: NavItem[] = [
   {
     icon: Apple,
     label: "Nutrition",
-    caption: "Meals and macros",
+    caption: "Meals and calories",
     href: "/dashboard/nutrition",
     children: [
       { label: "Overview", href: "/dashboard/nutrition", caption: "Today’s meals" },
@@ -65,12 +65,9 @@ export const dashboardNav: NavItem[] = [
     caption: "Activity and gym",
     href: "/dashboard/training",
     children: [
-      { label: "Overview", href: "/dashboard/training", caption: "Daily + gym pulse" },
+      { label: "Overview", href: "/dashboard/training", caption: "Daily activity & gym" },
       { label: "Log workout", href: "/dashboard/movement/log", caption: "Walk, run, yoga…" },
-      { label: "Exercise demos", href: "/dashboard/gym/demos", caption: "Free weights & bodyweight" },
-      { label: "Machines", href: "/dashboard/gym/machines", caption: "Machine demos & AI picks" },
-      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Log gym training" },
-      { label: "Training plans", href: "/dashboard/gym/plans", caption: "Saved programs" },
+      { label: "Gym", href: "/dashboard/gym", caption: "Videos, machines, plans" },
     ],
   },
   {
@@ -124,7 +121,7 @@ export const dashboardNav: NavItem[] = [
     children: [
       { label: "Overview", href: "/dashboard/spending", caption: "This month" },
       { label: "Log expense", href: "/dashboard/spending/log", caption: "Add a purchase" },
-      { label: "Sheet view", href: "/dashboard/spending/sheet", caption: "Excel-style ledger" },
+      { label: "Sheet view", href: "/dashboard/spending/sheet", caption: "Expense table" },
       { label: "Monthly budget", href: "/dashboard/spending/budget", caption: "Edit monthly amount" },
     ],
   },
