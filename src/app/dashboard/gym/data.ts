@@ -4,7 +4,7 @@ import {
   pickGoalTargetDate,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
-import { hydrateGymPlan, isMachineGear, type GymExercise, type GymPlan, type GymSession } from "@/lib/gym";
+import { enrichGymPlanDays, hydrateGymPlan, isMachineGear, type GymExercise, type GymPlan, type GymSession } from "@/lib/gym";
 
 const emptyGymData = {
   exercises: [] as GymExercise[],
@@ -68,7 +68,10 @@ export async function loadGymData() {
       ...row,
       exercises: Array.isArray(row.exercises) ? row.exercises : [],
     }));
-    const planRows = ((plans.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row));
+    const planRows = ((plans.data ?? []) as GymPlan[]).map((row) => {
+      const hydrated = hydrateGymPlan(row);
+      return { ...hydrated, days: enrichGymPlanDays(hydrated.days, exerciseRows) };
+    });
 
     const scaling = buildRoutineScaling({
       height_cm: profile.data?.height_cm ?? null,

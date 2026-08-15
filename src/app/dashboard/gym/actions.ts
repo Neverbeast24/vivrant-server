@@ -11,7 +11,7 @@ import {
   type GymPlanPrefs,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
-import { hydrateGymPlan, serializeGymPlanDays } from "@/lib/gym";
+import { hydrateGymPlan, enrichGymPlanDays, serializeGymPlanDays } from "@/lib/gym";
 import { createClient } from "@/lib/supabase/server";
 
 function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
@@ -174,6 +174,16 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
       prefs,
     );
 
+    const days = enrichGymPlanDays(
+      plan.days,
+      (exercises ?? []).map((row) => ({
+        name: String(row.name),
+        muscle_group: String(row.muscle_group),
+        equipment: String(row.equipment),
+      })),
+      prefs.avoid_targets,
+    );
+
     const { data, error } = await supabase
       .from("gym_plans")
       .insert({
@@ -183,7 +193,7 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
         level: plan.level,
         days_per_week: plan.days_per_week,
         summary: plan.summary,
-        days: serializeGymPlanDays(plan.days, plan.recommendations),
+        days: serializeGymPlanDays(days, plan.recommendations),
       })
       .select("id, title, focus, level, days_per_week, summary, days, created_at")
       .single();

@@ -224,8 +224,99 @@ export function formatGymExerciseLine(
   return `${ex.name} · ${parts.join(" · ")}`;
 }
 
+type GymCatalogItem = Pick<GymExercise, "name" | "muscle_group" | "equipment">;
+
+const ADDON_COMPLEMENT: Record<string, string[]> = {
+  back: ["shoulders", "arms", "core"],
+  chest: ["arms", "shoulders", "core"],
+  shoulders: ["arms", "core"],
+  traps: ["back", "shoulders"],
+  arms: ["shoulders", "core"],
+  forearms: ["arms"],
+  legs: ["calves", "hamstrings", "core", "inner_thighs"],
+  hamstrings: ["calves", "core", "legs"],
+  inner_thighs: ["calves", "core", "legs"],
+  glutes: ["hamstrings", "core"],
+  calves: ["core", "legs"],
+  core: ["cardio"],
+  cardio: ["core", "mobility"],
+  lower_back: ["core", "hamstrings"],
+  full_body: ["core", "cardio"],
+  mobility: ["core"],
+};
+
+function addonSetsFor(item: GymCatalogItem) {
+  if (item.equipment === "cardio_machine" || item.muscle_group === "cardio") return "8–12 mins easy";
+  if (item.muscle_group === "core" || item.muscle_group === "mobility") return "2 x 12-15";
+  return "2–3 x 12-15";
+}
+
+/** Fill missing alternatives / add-ons from the demo catalog so saved Gemini programs still show extras. */
+export function enrichGymPlanDays(
+  days: GymPlanDay[],
+  catalog: GymCatalogItem[],
+  avoidTargets: string[] = [],
+): GymPlanDay[] {
+  if (!days.length || !catalog.length) return days;
+  const avoid = new Set(avoidTargets.map((item) => item.toLowerCase()));
+  const usable = catalog.filter((item) => !avoid.has(item.muscle_group.toLowerCase()));
+
+  return days.map((day) => {
+    const used = new Set(
+      [
+        ...day.exercises.map((ex) => ex.name),
+        ...(day.alternatives ?? []).map((swap) => swap.use),
+        ...(day.additionals ?? []).map((addon) => addon.name),
+      ].map((name) => name.toLowerCase()),
+    );
+    const alternatives = [...(day.alternatives ?? [])];
+    for (const ex of day.exercises) {
+      if (alternatives.length >= 3) break;
+      const match = findExerciseMatch(ex.name, usable);
+      if (!match) continue;
+      const pool = usable.filter((item) => {
+        const key = item.name.toLowerCase();
+        return (
+          item.muscle_group === match.muscle_group &&
+          key !== match.name.toLowerCase() &&
+          !used.has(key)
+        );
+      });
+      const swappedGear = pool.filter((item) => item.equipment !== match.equipment);
+      const pick = swappedGear[0] ?? pool[0];
+      if (!pick) continue;
+      used.add(pick.name.toLowerCase());
+      alternatives.push({ instead_of: ex.name, use: pick.name });
+    }
+
+    const additionals = [...(day.additionals ?? [])];
+    const dayMuscles = day.exercises
+      .map((ex) => findExerciseMatch(ex.name, usable)?.muscle_group)
+      .filter((group): group is string => Boolean(group));
+    const targets: string[] = [];
+    for (const muscle of dayMuscles) {
+      for (const next of ADDON_COMPLEMENT[muscle] ?? []) {
+        if (!avoid.has(next) && !targets.includes(next)) targets.push(next);
+      }
+    }
+    for (const muscle of targets) {
+      if (additionals.length >= 2) break;
+      const pick = usable.find((item) => item.muscle_group === muscle && !used.has(item.name.toLowerCase()));
+      if (!pick) continue;
+      used.add(pick.name.toLowerCase());
+      additionals.push({ name: pick.name, sets: addonSetsFor(pick) });
+    }
+
+    return {
+      ...day,
+      ...(alternatives.length ? { alternatives } : {}),
+      ...(additionals.length ? { additionals } : {}),
+    };
+  });
+}
+
 /** Match an AI/program exercise name to a catalog demo (exact, then loose contains). */
-export function findExerciseMatch(name: string, exercises: GymExercise[]) {
+export function findExerciseMatch<T extends { name: string }>(name: string, exercises: T[]) {
   const needle = name.toLowerCase().trim();
   if (!needle) return undefined;
   const exact = exercises.find((item) => item.name.toLowerCase() === needle);

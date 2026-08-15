@@ -47,6 +47,7 @@ import {
 import { gymPlanDoc, gymPlansDoc, gymSessionsDoc } from "@/lib/share-export";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import {
+  enrichGymPlanDays,
   findExerciseMatch,
   humanizeGymLabel,
   isMachineGear,
@@ -722,6 +723,14 @@ export function GymPlansView({
     knownMachineSlugs.includes(slug),
   );
   const knownSelectedCount = knownMachineSlugs.length + knownCustomExercises.length;
+  const displayPlans = useMemo(
+    () =>
+      plans.map((plan) => ({
+        ...plan,
+        days: enrichGymPlanDays(plan.days ?? [], exercises, avoidTargets),
+      })),
+    [avoidTargets, exercises, plans],
+  );
 
   useEffect(() => {
     try {
@@ -1335,10 +1344,10 @@ export function GymPlansView({
 
       <Panel
         title="Your saved programs"
-        right={plans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(plans)} /> : undefined}
+        right={displayPlans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(displayPlans)} /> : undefined}
       >
         <div className="space-y-4">
-          {plans.map((plan) => (
+          {displayPlans.map((plan) => (
             <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-4">
               <div>
                 <p className="text-sm font-black">{plan.title}</p>
@@ -1449,7 +1458,7 @@ export function GymPlansView({
                     {(day.additionals ?? []).length > 0 && (
                       <div className="mt-2">
                         <p className="text-[10px] font-black uppercase tracking-wider text-accent">
-                          Add-ons
+                          Add to this workout
                         </p>
                         <ul className="mt-1.5 space-y-1">
                           {day.additionals?.map((addon) => (
@@ -1470,6 +1479,34 @@ export function GymPlansView({
                   </div>
                 ))}
               </div>
+              {(plan.days ?? []).some(
+                (day) => (day.alternatives ?? []).length > 0 || (day.additionals ?? []).length > 0,
+              ) && (
+                <div className="mt-4 rounded-2xl border border-accent/15 bg-accent-soft/40 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-accent">
+                    Suggestions to add
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted">
+                    If a machine is busy or you have extra minutes, use these swaps and extras.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {(plan.days ?? []).map((day) => {
+                      const swaps = day.alternatives ?? [];
+                      const extras = day.additionals ?? [];
+                      if (!swaps.length && !extras.length) return null;
+                      return (
+                        <li key={`${plan.id}-suggest-${day.day}`} className="text-sm leading-5 text-muted">
+                          <span className="font-black text-ink">{day.day}:</span>{" "}
+                          {[
+                            ...swaps.map((swap) => `${swap.use} instead of ${swap.instead_of}`),
+                            ...extras.map((addon) => `add ${addon.name}${addon.sets ? ` (${addon.sets})` : ""}`),
+                          ].join(" · ")}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </article>
           ))}
           {!plans.length && (

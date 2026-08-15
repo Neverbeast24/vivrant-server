@@ -4,6 +4,7 @@ import {
   hydrateGymPlan,
   parseGymPlanDays,
   serializeGymPlanDays,
+  enrichGymPlanDays,
 } from "./gym";
 
 describe("parseGymPlanDays", () => {
@@ -71,6 +72,34 @@ describe("hydrateGymPlan", () => {
     });
     expect(plan.recommendations).toEqual(["From top"]);
     expect(plan.days[0]).not.toHaveProperty("recommendations");
+  });
+});
+
+describe("enrichGymPlanDays", () => {
+  const catalog = [
+    { name: "Lat pulldown machine", muscle_group: "back", equipment: "machine" },
+    { name: "Seated cable row", muscle_group: "back", equipment: "cable" },
+    { name: "Dumbbell row", muscle_group: "back", equipment: "dumbbell" },
+    { name: "Cable face pull", muscle_group: "shoulders", equipment: "cable" },
+    { name: "Forearm plank", muscle_group: "core", equipment: "bodyweight" },
+  ];
+
+  it("fills swaps and extras when Gemini omitted them", () => {
+    const days = enrichGymPlanDays(
+      [
+        {
+          day: "Day 1",
+          focus: "Pull",
+          exercises: [{ name: "Lat pulldown machine", sets: "4 x 10", rest: "90s" }],
+        },
+      ],
+      catalog,
+    );
+    expect(days[0].alternatives?.[0]).toMatchObject({
+      instead_of: "Lat pulldown machine",
+      use: "Seated cable row",
+    });
+    expect(days[0].additionals?.some((item) => item.name === "Cable face pull")).toBe(true);
   });
 });
 
