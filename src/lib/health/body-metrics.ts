@@ -32,7 +32,7 @@ export type GymPlanPrefs = {
   avoid_targets: string[];
 };
 
-/** Areas a member can opt out of when generating AI gym plans. */
+/** Areas a member can opt out of when generating an AI gym program. */
 export const GYM_AVOID_TARGETS = [
   "core",
   "arms",

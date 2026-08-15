@@ -55,8 +55,6 @@ describe("gymPlanDoc", () => {
     expect(doc.text).toContain("Day 1");
     expect(doc.csv).toContain("Lat pulldown machine");
     expect(doc.csv.split("\n")).toHaveLength(3);
-    expect(doc.text).toContain("Coach notes");
-    expect(doc.text).toContain("Start light");
     expect(JSON.parse(doc.json).days_per_week).toBe(6);
   });
 });

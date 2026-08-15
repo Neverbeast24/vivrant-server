@@ -46,7 +46,6 @@ import { gymPlanDoc, gymPlansDoc, gymSessionsDoc } from "@/lib/share-export";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import {
   findExerciseMatch,
-  formatGymExerciseLine,
   humanizeGymLabel,
   isMachineGear,
   type GymExercise,
@@ -1399,7 +1398,9 @@ export function GymPlansView({
                                 <div className="min-w-0">
                                   <p className="font-bold text-ink">{ex.name}</p>
                                   <p>
-                                    {formatGymExerciseLine(ex).replace(`${ex.name} · `, "")}
+                                    {[ex.sets, ex.weight, `rest ${ex.rest}`]
+                                      .filter(Boolean)
+                                      .join(" · ")}
                                   </p>
                                   {ex.notes && (
                                     <p className="mt-0.5 text-[11px] leading-4 text-muted/90">{ex.notes}</p>
