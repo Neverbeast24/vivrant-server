@@ -42,7 +42,7 @@ export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
     plan.title,
     `${focus} · ${plan.level} · ${plan.days_per_week} days/week`,
     plan.summary ? `\n${plan.summary}` : "",
-    recs.length ? `\nRecommendations\n${recs.map((rec) => `• ${rec}`).join("\n")}` : "",
+    recs.length ? `\nCoach notes\n${recs.map((rec) => `• ${rec}`).join("\n")}` : "",
     "",
     ...(plan.days ?? []).flatMap((day) => [
       `${day.day} — ${humanizeGymLabel(day.focus)}`,
@@ -50,6 +50,12 @@ export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
         const notes = ex.notes ? ` · ${ex.notes}` : "";
         return `• ${formatGymExerciseLine(ex)}${notes}`;
       }),
+      ...(day.alternatives ?? []).map(
+        (swap) => `  Alternative: ${swap.use} instead of ${swap.instead_of}`,
+      ),
+      ...(day.additionals ?? []).map(
+        (addon) => `  Add-on: ${addon.name}${addon.sets ? ` · ${addon.sets}` : ""}`,
+      ),
       "",
     ]),
   ];

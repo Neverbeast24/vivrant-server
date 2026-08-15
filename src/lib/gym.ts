@@ -30,10 +30,24 @@ export type GymPlanExercise = {
   notes?: string;
 };
 
+/** Swap a programmed move for a same-pattern substitute. */
+export type GymPlanSwap = {
+  instead_of: string;
+  use: string;
+};
+
+/** Optional extra move if the session still has time. */
+export type GymPlanAddon = {
+  name: string;
+  sets?: string;
+};
+
 export type GymPlanDay = {
   day: string;
   focus: string;
   exercises: GymPlanExercise[];
+  alternatives?: GymPlanSwap[];
+  additionals?: GymPlanAddon[];
 };
 
 export type GymPlan = {
@@ -79,6 +93,66 @@ export function clampGymPlanRecommendations(value: unknown, max = 8) {
   return out;
 }
 
+export function parseGymPlanSwaps(raw: unknown): GymPlanSwap[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GymPlanSwap[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    let insteadOf = "";
+    let use = "";
+    if (typeof item === "string") {
+      const text = item.replace(/\s+/g, " ").trim();
+      const instead = text.match(/^(.+?)\s+instead of\s+(.+)$/i);
+      const arrow = text.match(/^(.+?)\s*(?:→|->)\s*(.+)$/);
+      if (instead) {
+        use = instead[1].trim();
+        insteadOf = instead[2].trim();
+      } else if (arrow) {
+        insteadOf = arrow[1].trim();
+        use = arrow[2].trim();
+      }
+    } else if (item && typeof item === "object") {
+      const row = item as Record<string, unknown>;
+      insteadOf = String(row.instead_of ?? row.from ?? "").replace(/\s+/g, " ").trim();
+      use = String(row.use ?? row.to ?? row.name ?? "").replace(/\s+/g, " ").trim();
+    }
+    insteadOf = insteadOf.slice(0, 80);
+    use = use.slice(0, 80);
+    if (insteadOf.length < 2 || use.length < 2) continue;
+    const key = `${insteadOf.toLowerCase()}=>${use.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ instead_of: insteadOf, use });
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+export function parseGymPlanAddons(raw: unknown): GymPlanAddon[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GymPlanAddon[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    let name = "";
+    let sets = "";
+    if (typeof item === "string") {
+      name = item.replace(/\s+/g, " ").trim();
+    } else if (item && typeof item === "object") {
+      const row = item as Record<string, unknown>;
+      name = String(row.name ?? row.use ?? "").replace(/\s+/g, " ").trim();
+      sets = String(row.sets ?? "").replace(/\s+/g, " ").trim().slice(0, 40);
+    }
+    name = name.slice(0, 80);
+    if (name.length < 2) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name, ...(sets ? { sets } : {}) });
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
 export function parseGymPlanExercise(raw: unknown): GymPlanExercise {
   const ex = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const weight = String(ex.weight ?? "")
@@ -110,10 +184,14 @@ export function parseGymPlanDays(raw: unknown): { days: GymPlanDay[]; recommenda
       seen.add(key);
       recommendations.push(rec);
     }
+    const alternatives = parseGymPlanSwaps(day.alternatives);
+    const additionals = parseGymPlanAddons(day.additionals);
     return {
       day: String(day.day ?? "Day").slice(0, 40),
       focus: String(day.focus ?? "Training").slice(0, 60),
       exercises: (Array.isArray(day.exercises) ? day.exercises : []).slice(0, 6).map(parseGymPlanExercise),
+      ...(alternatives.length ? { alternatives } : {}),
+      ...(additionals.length ? { additionals } : {}),
     };
   });
   return { days, recommendations };

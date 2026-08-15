@@ -760,8 +760,13 @@ Return JSON:
 - "level": beginner | intermediate | advanced
 - "days_per_week": 2-6
 - "summary": 2 sentences (mention avoided targets briefly if any were set)
-- "recommendations": 3–5 short coaching bullets for THIS program (starting loads, when to add weight, form, rest days). No diagnosis.
-- "days": array of { "day", "focus", "exercises": [{ "name", "sets", "rest", "weight", "notes" }] }
+- "days": array of {
+    "day",
+    "focus",
+    "exercises": [{ "name", "sets", "rest", "weight", "notes" }],
+    "alternatives": 1–3 swaps for THAT day's programmed moves: [{ "instead_of": exercise already in that day's list, "use": catalog substitute }]. Same muscle pattern. Use when a machine is busy, joints feel unhappy, or they want a simpler option. Respect avoid_targets.
+    "additionals": 1–2 optional extras if they still have time: [{ "name", "sets" }]. Must NOT duplicate that day's main list. Keep them short (e.g. face pulls, calf raise, easy bike finish).
+  }
   Include 3–5 exercises per day. Name machines clearly when used (e.g. "Leg press machine").
   For each day "focus", use a short human-readable label with spaces (e.g. "Fat loss", "Upper body", "Mobility") — never snake_case like fat_loss.
   For each exercise "weight": conservative working load using profile weight_kg and level, e.g. "12–16 kg", "bodyweight", or "easy pace" for cardio. Never a 1RM. Isolation machines ~15–35% bodyweight; compound machines like leg press ~40–70% bodyweight for beginners. Cardio = "easy pace" or "—".

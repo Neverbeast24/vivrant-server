@@ -7,17 +7,38 @@ import {
 } from "./gym";
 
 describe("parseGymPlanDays", () => {
-  it("reads weight, notes, and recommendations from day 1", () => {
+  it("reads weight, notes, alternatives, and add-ons", () => {
     const parsed = parseGymPlanDays([
       {
         day: "Day 1",
         focus: "Upper body",
         recommendations: ["Start at the light end of each range."],
         exercises: [{ name: "Lat pulldown", sets: "4 x 10-12", rest: "90s", weight: "15–20 kg" }],
+        alternatives: [{ instead_of: "Lat pulldown", use: "Assisted pull-up" }],
+        additionals: [{ name: "Face pulls", sets: "3 x 15" }],
       },
     ]);
     expect(parsed.recommendations).toEqual(["Start at the light end of each range."]);
     expect(parsed.days[0].exercises[0].weight).toBe("15–20 kg");
+    expect(parsed.days[0].alternatives).toEqual([
+      { instead_of: "Lat pulldown", use: "Assisted pull-up" },
+    ]);
+    expect(parsed.days[0].additionals).toEqual([{ name: "Face pulls", sets: "3 x 15" }]);
+  });
+
+  it("parses string swaps", () => {
+    const parsed = parseGymPlanDays([
+      {
+        day: "Day 1",
+        focus: "Push",
+        exercises: [],
+        alternatives: ["Seated row instead of lat pulldown", "Leg press → goblet squat"],
+      },
+    ]);
+    expect(parsed.days[0].alternatives).toEqual([
+      { instead_of: "lat pulldown", use: "Seated row" },
+      { instead_of: "Leg press", use: "goblet squat" },
+    ]);
   });
 });
 

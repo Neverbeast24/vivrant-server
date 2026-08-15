@@ -25,6 +25,8 @@ const samplePlan = {
         { name: "Lat pulldown machine", sets: "4 sets of 10-12 reps", rest: "90s", weight: "15–20 kg" },
         { name: "Treadmill steady incline walk", sets: "1 set of 35-40 mins", rest: "0s", weight: "easy pace" },
       ],
+      alternatives: [{ instead_of: "Lat pulldown machine", use: "Assisted pull-up machine" }],
+      additionals: [{ name: "Face pulls", sets: "3 x 15" }],
     },
   ],
 };
@@ -50,6 +52,8 @@ describe("gymPlanDoc", () => {
     expect(doc.title).toContain("Fat Loss");
     expect(doc.text).toContain("Lat pulldown machine");
     expect(doc.text).toContain("15–20 kg");
+    expect(doc.text).toContain("Assisted pull-up machine");
+    expect(doc.text).toContain("Face pulls");
     expect(doc.text).toContain("Start at the light end");
     expect(doc.csv).toContain("Weight");
     expect(doc.text).toContain("Day 1");

@@ -14,6 +14,8 @@ import {
   Flame,
   Lightbulb,
   Play,
+  Plus,
+  Repeat2,
   Search,
   Sparkles,
   Target,
@@ -1347,7 +1349,7 @@ export function GymPlansView({
                 {(plan.recommendations ?? []).length > 0 && (
                   <div className="mt-3 rounded-2xl border border-accent/15 bg-accent-soft/40 p-3">
                     <p className="text-[10px] font-black uppercase tracking-wider text-accent">
-                      Recommendations
+                      Coach notes
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       {(plan.recommendations ?? []).map((rec) => (
@@ -1423,6 +1425,48 @@ export function GymPlansView({
                         );
                       })}
                     </ul>
+                    {(day.alternatives ?? []).length > 0 && (
+                      <div className="mt-3 border-t border-ink/8 pt-2">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-accent">
+                          Alternatives
+                        </p>
+                        <ul className="mt-1.5 space-y-1">
+                          {day.alternatives?.map((swap) => (
+                            <li
+                              key={`${day.day}-alt-${swap.instead_of}-${swap.use}`}
+                              className="flex gap-1.5 text-[11px] leading-4 text-muted"
+                            >
+                              <Repeat2 size={12} className="mt-0.5 shrink-0 text-accent" />
+                              <span>
+                                <span className="font-bold text-ink">{swap.use}</span>
+                                {" "}instead of {swap.instead_of}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(day.additionals ?? []).length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-accent">
+                          Add-ons
+                        </p>
+                        <ul className="mt-1.5 space-y-1">
+                          {day.additionals?.map((addon) => (
+                            <li
+                              key={`${day.day}-add-${addon.name}`}
+                              className="flex gap-1.5 text-[11px] leading-4 text-muted"
+                            >
+                              <Plus size={12} className="mt-0.5 shrink-0 text-accent" />
+                              <span>
+                                <span className="font-bold text-ink">{addon.name}</span>
+                                {addon.sets ? ` · ${addon.sets}` : ""}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
