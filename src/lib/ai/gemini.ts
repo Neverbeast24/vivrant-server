@@ -5,6 +5,11 @@ import {
   estimateGroceryPriceDetailed,
   suggestGroceryCategory,
 } from "@/lib/groceries/ph-price-catalog";
+import {
+  clampGymPlanRecommendations,
+  parseGymPlanDays,
+  type GymPlanDay,
+} from "@/lib/gym";
 
 export type InsightPayload = {
   title: string;
@@ -674,11 +679,7 @@ ${context}`);
   };
 }
 
-export type GymPlanDay = {
-  day: string;
-  focus: string;
-  exercises: { name: string; sets: string; rest: string; notes?: string }[];
-};
+export type { GymPlanDay };
 
 export type GymPlanPayload = {
   title: string;
@@ -686,6 +687,7 @@ export type GymPlanPayload = {
   level: string;
   days_per_week: number;
   summary: string;
+  recommendations: string[];
   days: GymPlanDay[];
 };
 
@@ -731,16 +733,16 @@ export async function generateGymPlan(
   if (knownCustom.length) knownParts.push(`custom typed: ${knownCustom.join(", ")}`);
   const knownMachinesNote =
     knownParts.length > 0
-      ? `User already knows these exercises (prefer them heavily — build the plan around this set when possible; only add unfamiliar moves if needed for balance): ${knownParts.join(" · ")}`
+      ? `User already knows these exercises (prefer them heavily — build the program around this set when possible; only add unfamiliar moves if needed for balance): ${knownParts.join(" · ")}`
       : "User has not marked known exercises — prefer joint-friendly machines from the catalog and keep free-weight volume moderate.";
   const avoidTargetsNote =
     avoidTargets.length > 0
       ? `User does NOT want to target these areas — do NOT schedule dedicated days or primary exercises for them (skip core-focused days, isolation work, and day titles that emphasize them): ${avoidTargets.join(", ")}. Redistribute volume to allowed muscle groups instead.`
       : "No muscle-group exclusions were set.";
 
-  const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training plan for this user.
+  const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training program for this user.
 Use their profile, energy, goals, recent activity, and especially bmi_details + routine_scaling (BMI band + target-date forecast).
-Scale the plan explicitly:
+Scale the program explicitly:
 - ${requestedDays != null ? `User chose EXACTLY ${requestedDays} training days/week — set days_per_week to ${requestedDays} and return exactly ${requestedDays} day entries` : "Match days_per_week to routine_scaling.days_per_week"}
 - ${requestedSession != null ? `User chose ~${requestedSession} minute sessions — size each day so it fits about ${requestedSession} minutes` : "Match session length to routine_scaling.session_minutes"}
 - Match focus to routine_scaling.focus (map to full_body, strength, fat_loss, mobility, or endurance)
@@ -758,9 +760,11 @@ Return JSON:
 - "level": beginner | intermediate | advanced
 - "days_per_week": 2-6
 - "summary": 2 sentences (mention avoided targets briefly if any were set)
-- "days": array of { "day", "focus", "exercises": [{ "name", "sets", "rest", "notes" }] }
+- "recommendations": 3–5 short coaching bullets for THIS program (starting loads, when to add weight, form, rest days). No diagnosis.
+- "days": array of { "day", "focus", "exercises": [{ "name", "sets", "rest", "weight", "notes" }] }
   Include 3–5 exercises per day. Name machines clearly when used (e.g. "Leg press machine").
   For each day "focus", use a short human-readable label with spaces (e.g. "Fat loss", "Upper body", "Mobility") — never snake_case like fat_loss.
+  For each exercise "weight": conservative working load using profile weight_kg and level, e.g. "12–16 kg", "bodyweight", or "easy pace" for cardio. Never a 1RM. Isolation machines ~15–35% bodyweight; compound machines like leg press ~40–70% bodyweight for beginners. Cardio = "easy pace" or "—".
 
 AVAILABLE EXERCISES:
 ${availableExercises}
@@ -768,10 +772,12 @@ ${availableExercises}
 USER CONTEXT:
 ${context}`);
 
-  const days = Array.isArray(parsed.days) ? parsed.days : [];
+  const parsedDays = parseGymPlanDays(parsed.days);
   const daysPerWeek =
     requestedDays ??
     Math.max(2, Math.min(6, Math.round(Number(parsed.days_per_week ?? 3))));
+  const topRecs = clampGymPlanRecommendations(parsed.recommendations);
+  const recommendations = topRecs.length ? topRecs : parsedDays.recommendations;
 
   const humanizeFocus = (value: string, fallback: string) =>
     String(value ?? fallback)
@@ -781,20 +787,15 @@ ${context}`);
       .slice(0, 60) || fallback;
 
   return {
-    title: String(parsed.title ?? "Your VIVRΛNT gym plan").slice(0, 120),
+    title: String(parsed.title ?? "Your VIVRΛNT gym program").slice(0, 120),
     focus: String(parsed.focus ?? "full_body").replaceAll(" ", "_").slice(0, 40),
     level: String(parsed.level ?? "beginner"),
     days_per_week: daysPerWeek,
-    summary: String(parsed.summary ?? "A gentle plan matched to your current rhythm.").slice(0, 600),
-    days: days.slice(0, daysPerWeek).map((day) => ({
-      day: String(day?.day ?? "Day").slice(0, 40),
-      focus: humanizeFocus(String(day?.focus ?? "Training"), "Training"),
-      exercises: (Array.isArray(day?.exercises) ? day.exercises : []).slice(0, 6).map((ex) => ({
-        name: String(ex?.name ?? "Movement").slice(0, 80),
-        sets: String(ex?.sets ?? "3 x 10").slice(0, 40),
-        rest: String(ex?.rest ?? "60s").slice(0, 20),
-        notes: ex?.notes ? String(ex.notes).slice(0, 120) : undefined,
-      })),
+    summary: String(parsed.summary ?? "A gentle program matched to your current rhythm.").slice(0, 600),
+    recommendations,
+    days: parsedDays.days.slice(0, daysPerWeek).map((day) => ({
+      ...day,
+      focus: humanizeFocus(day.focus, "Training"),
     })),
   };
 }

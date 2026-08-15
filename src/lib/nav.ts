@@ -169,7 +169,7 @@ export const trainingSubNav = [
   { href: "/dashboard/gym/demos", label: "Demos", icon: Play },
   { href: "/dashboard/gym/machines", label: "Machines", icon: Cog },
   { href: "/dashboard/gym/sessions", label: "Sessions", icon: ClipboardList },
-  { href: "/dashboard/gym/plans", label: "Plans", icon: Sparkles },
+  { href: "/dashboard/gym/plans", label: "Program", icon: Sparkles },
 ] as const;
 
 /** @deprecated Use trainingSubNav */

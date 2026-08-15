@@ -147,7 +147,7 @@ export function Panel({
       className={`rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)] sm:p-6 ${className}`}
     >
       {(title || right) && (
-        <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           {title && <h2 className="font-display text-xl tracking-tight">{title}</h2>}
           {right}
         </div>

@@ -41,7 +41,7 @@ const dashboardDestinations = [
   { label: "Gym demos", detail: "Free-weight and bodyweight videos", href: "/dashboard/gym/demos", icon: Weight, keywords: "demo video form gym" },
   { label: "Gym machines", detail: "Machine demos and AI picks", href: "/dashboard/gym/machines", icon: Weight, keywords: "machine cable cardio equipment gym" },
   { label: "Gym sessions", detail: "Log and review gym training", href: "/dashboard/gym/sessions", icon: Weight, keywords: "session log history gym" },
-  { label: "Gym plans", detail: "AI training programs", href: "/dashboard/gym/plans", icon: Weight, keywords: "plan program ai gym" },
+  { label: "Gym program", detail: "AI training programs", href: "/dashboard/gym/plans", icon: Weight, keywords: "plan program ai gym" },
   { label: "Wellness", detail: "Sleep, hydration, and mood", href: "/dashboard/wellness", icon: HeartPulse, keywords: "wellness sleep water mood hydration mindfulness" },
   { label: "Sleep", detail: "Rest tracking and bedtime coach", href: "/dashboard/sleep", icon: Moon, keywords: "sleep rest recovery bedtime" },
   { label: "Hydration", detail: "Water intake and reminders", href: "/dashboard/hydration", icon: Droplets, keywords: "water drink hydration bottle" },

@@ -24,6 +24,7 @@ import {
 } from "@/app/dashboard/spending/actions";
 import { coachSpendingWithAi } from "@/app/dashboard/spending/ai-actions";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   EmptyState,
   FormField,
@@ -37,6 +38,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { expensesDoc } from "@/lib/share-export";
 import { spendingSubNav } from "@/lib/nav";
 
 export type Expense = {
@@ -189,10 +191,13 @@ export function SpendingOverview({
         title="Monthly"
         highlight="budget."
         action={
-          <PrimaryButton disabled={coaching} onClick={coach} className="rounded-full px-5">
-            <Sparkles size={14} className="shrink-0" />
-            {coaching ? "Coaching…" : "Budget coach"}
-          </PrimaryButton>
+          <div className="flex flex-wrap items-center gap-2">
+            {expenses.length > 0 && <ShareExportMenu compact doc={expensesDoc(expenses)} />}
+            <PrimaryButton disabled={coaching} onClick={coach} className="rounded-full px-5">
+              <Sparkles size={14} className="shrink-0" />
+              {coaching ? "Coaching…" : "Budget coach"}
+            </PrimaryButton>
+          </div>
         }
       />
 
@@ -566,12 +571,15 @@ export function SpendingSheet({
         title="Sheet"
         highlight="ledger."
         action={
-          <Link href="/dashboard/spending/log" className="inline-flex">
-            <PrimaryButton className="rounded-full px-5">
-              <Plus size={14} />
-              Log expense
-            </PrimaryButton>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {rows.length > 0 && <ShareExportMenu compact doc={expensesDoc(rows)} />}
+            <Link href="/dashboard/spending/log" className="inline-flex">
+              <PrimaryButton className="rounded-full px-5">
+                <Plus size={14} />
+                Log expense
+              </PrimaryButton>
+            </Link>
+          </div>
         }
       />
 
@@ -600,9 +608,12 @@ export function SpendingSheet({
         <Panel
           title="Excel-style expense sheet"
           right={
-            <span className="hidden text-[10px] font-bold text-muted sm:inline">
-              Click a cell row to edit · Enter to save
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {rows.length > 0 && <ShareExportMenu compact doc={expensesDoc(rows)} />}
+              <span className="hidden text-[10px] font-bold text-muted sm:inline">
+                Click a cell row to edit · Enter to save
+              </span>
+            </div>
           }
         >
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">

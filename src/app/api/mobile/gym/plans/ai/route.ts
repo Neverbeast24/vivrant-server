@@ -8,6 +8,7 @@ import {
   clampGymPlanPrefs,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
+import { hydrateGymPlan, serializeGymPlanDays } from "@/lib/gym";
 
 export const runtime = "nodejs";
 
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
         level: plan.level,
         days_per_week: plan.days_per_week,
         summary: plan.summary,
-        days: plan.days,
+        days: serializeGymPlanDays(plan.days, plan.recommendations),
       })
       .select("id, title, focus, level, days_per_week, summary, days, created_at")
       .single();
@@ -136,9 +137,9 @@ export async function POST(request: Request) {
       supabase,
     );
 
-    return jsonOk({ plan: data });
+    return jsonOk({ plan: data ? hydrateGymPlan(data) : data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not create a gym plan.";
+    const message = error instanceof Error ? error.message : "Could not create a gym program.";
     return jsonError(message, 500);
   }
 }

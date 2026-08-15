@@ -31,7 +31,9 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { mealsDoc } from "@/lib/share-export";
 
 type Meal = {
   id: number;
@@ -322,25 +324,28 @@ export function NutritionView({
         title={mode === "log" ? "Log with" : "Eat with"}
         highlight="intention."
         action={
-          mode === "log" ? (
-            <PrimaryButton
-              type="button"
-              disabled={suggesting}
-              onClick={suggestMealIdea}
-              className="rounded-full px-5"
-            >
-              <Sparkles size={14} className="shrink-0" />
-              {suggesting ? "Planning…" : "Suggest meal"}
-            </PrimaryButton>
-          ) : (
-            <Link
-              href="/dashboard/nutrition/log?suggest=1"
-              className="focus-ring inline-flex items-center gap-1.5 rounded-full bg-inverse px-4 py-2.5 text-xs font-black text-inverse-fg shadow-[0_8px_18px_rgba(var(--shadow-color),.16)] transition hover:-translate-y-0.5 hover:bg-accent"
-            >
-              <Sparkles size={14} className="shrink-0" />
-              Suggest meal
-            </Link>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            {meals.length > 0 && <ShareExportMenu compact doc={mealsDoc(meals)} />}
+            {mode === "log" ? (
+              <PrimaryButton
+                type="button"
+                disabled={suggesting}
+                onClick={suggestMealIdea}
+                className="rounded-full px-5"
+              >
+                <Sparkles size={14} className="shrink-0" />
+                {suggesting ? "Planning…" : "Suggest meal"}
+              </PrimaryButton>
+            ) : (
+              <Link
+                href="/dashboard/nutrition/log?suggest=1"
+                className="focus-ring inline-flex items-center gap-1.5 rounded-full bg-inverse px-4 py-2.5 text-xs font-black text-inverse-fg shadow-[0_8px_18px_rgba(var(--shadow-color),.16)] transition hover:-translate-y-0.5 hover:bg-accent"
+              >
+                <Sparkles size={14} className="shrink-0" />
+                Suggest meal
+              </Link>
+            )}
+          </div>
         }
       />
       <ModuleSubNav items={nutritionSubNav} />
@@ -660,7 +665,11 @@ export function NutritionView({
             </div>
           </Panel>
 
-          <Panel title="Logged meals" className="mt-4">
+          <Panel
+            title="Logged meals"
+            className="mt-4"
+            right={meals.length > 0 ? <ShareExportMenu compact doc={mealsDoc(meals)} /> : undefined}
+          >
             <div className="space-y-2">
               {meals.map((meal) => (
                 <ListRow

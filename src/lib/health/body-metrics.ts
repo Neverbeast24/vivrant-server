@@ -20,7 +20,7 @@ export type RoutineScaling = {
   summary: string;
 };
 
-/** Editable plan prefs used by Training plans + AI generation. */
+/** Editable program prefs used by Training program + AI generation. */
 export type GymPlanPrefs = {
   days_per_week: number;
   session_minutes: number;

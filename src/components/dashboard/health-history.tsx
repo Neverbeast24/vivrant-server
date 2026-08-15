@@ -15,7 +15,9 @@ import {
   PrimaryButton,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { healthHistoryDoc } from "@/lib/share-export";
 
 export type HealthHistoryEntry = {
   id: number;
@@ -70,15 +72,18 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
       title="Health history"
       className="mt-4"
       right={
-        <button
-          type="button"
-          disabled={analyzing}
-          onClick={analyze}
-          className="inline-flex items-center gap-1 text-xs font-black text-accent transition hover:opacity-70"
-        >
-          <Sparkles size={13} />
-          {analyzing ? "Reading…" : "AI trend"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {entries.length > 0 && <ShareExportMenu compact doc={healthHistoryDoc(entries)} />}
+          <button
+            type="button"
+            disabled={analyzing}
+            onClick={analyze}
+            className="inline-flex items-center gap-1 text-xs font-black text-accent transition hover:opacity-70"
+          >
+            <Sparkles size={13} />
+            {analyzing ? "Reading…" : "AI trend"}
+          </button>
+        </div>
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-3">

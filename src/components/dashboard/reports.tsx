@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateWeeklyStory } from "@/app/dashboard/reports/ai-actions";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   Bars,
   EmptyState,
@@ -27,6 +28,7 @@ import {
   Stagger,
   StatCard,
 } from "@/components/dashboard/ui";
+import { reportsDoc } from "@/lib/share-export";
 
 export type ReportsData = {
   checkins: number;
@@ -90,10 +92,20 @@ export function ReportsView({ data }: { data: ReportsData }) {
         title="Your weekly"
         highlight="summary."
         action={
-          <PrimaryButton disabled={writing} onClick={writeStory} className="rounded-full px-5">
-            <Sparkles size={14} className="shrink-0" />
-            {writing ? "Writing…" : "AI weekly summary"}
-          </PrimaryButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <ShareExportMenu
+              compact
+              doc={reportsDoc({
+                ...data,
+                story,
+                summary: buildSummary(data),
+              })}
+            />
+            <PrimaryButton disabled={writing} onClick={writeStory} className="rounded-full px-5">
+              <Sparkles size={14} className="shrink-0" />
+              {writing ? "Writing…" : "AI weekly summary"}
+            </PrimaryButton>
+          </div>
         }
       />
       <Stagger>

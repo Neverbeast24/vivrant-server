@@ -23,6 +23,7 @@ import {
   generateSmartGroceryPlan,
 } from "@/app/dashboard/groceries/ai-actions";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   Bars,
   EmptyState,
@@ -35,6 +36,7 @@ import {
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { groceryListDoc, groceryPlanDoc } from "@/lib/share-export";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import {
   formatPhp,
@@ -238,6 +240,7 @@ export function GroceriesView({
         highlight="smarter."
         action={
           <div className="flex flex-wrap gap-2">
+            {items.length > 0 && <ShareExportMenu compact doc={groceryListDoc(items)} />}
             <PrimaryButton
               disabled={togglePending}
               onClick={() => runAction(async () => {
@@ -259,7 +262,16 @@ export function GroceriesView({
       <ModuleSubNav items={kitchenSubNav} />
 
       {plan && (
-        <Panel title={plan.title} className="mb-4" right={<Sparkles size={16} className="text-accent" />}>
+        <Panel
+          title={plan.title}
+          className="mb-4"
+          right={
+            <div className="flex flex-wrap items-center gap-2">
+              <ShareExportMenu compact doc={groceryPlanDoc(plan)} />
+              <Sparkles size={16} className="text-accent" />
+            </div>
+          }
+        >
           <p className="text-sm leading-6 text-muted">{plan.summary}</p>
           <p className="mt-2 text-xs font-bold text-accent">
             {plan.budget_note} · plan total {formatPhp(plan.estimated_total)}
@@ -486,16 +498,19 @@ export function GroceriesView({
           title="Shopping list"
           className="mt-4"
           right={
-            done > 0 ? (
-              <button
-                type="button"
-                disabled={togglePending}
-                onClick={() => runAction(clearCompletedGroceries)}
-                className="text-xs font-black text-accent transition hover:opacity-70"
-              >
-                Clear {done} completed
-              </button>
-            ) : null
+            <div className="flex flex-wrap items-center gap-2">
+              {items.length > 0 && <ShareExportMenu compact doc={groceryListDoc(items)} />}
+              {done > 0 ? (
+                <button
+                  type="button"
+                  disabled={togglePending}
+                  onClick={() => runAction(clearCompletedGroceries)}
+                  className="text-xs font-black text-accent transition hover:opacity-70"
+                >
+                  Clear {done} completed
+                </button>
+              ) : null}
+            </div>
           }
         >
           <div className="space-y-5">

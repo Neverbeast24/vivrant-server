@@ -1,5 +1,6 @@
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError } from "@/lib/mobile/http";
+import { hydrateGymPlan } from "@/lib/gym";
 
 export const runtime = "nodejs";
 
@@ -17,5 +18,5 @@ export async function GET(request: Request) {
     .limit(12);
 
   if (error) return jsonError(error.message, 500);
-  return jsonOk({ plans: data ?? [] });
+  return jsonOk({ plans: (data ?? []).map((row) => hydrateGymPlan(row)) });
 }

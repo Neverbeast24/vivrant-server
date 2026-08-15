@@ -19,7 +19,9 @@ import {
   Progress,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { goalsDoc } from "@/lib/share-export";
 
 export type HealthGoal = {
   id: number;
@@ -71,7 +73,8 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
       title="Health goals"
       className="mt-4"
       right={
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {goals.length > 0 && <ShareExportMenu compact doc={goalsDoc(goals)} />}
           <button
             type="button"
             disabled={busy}

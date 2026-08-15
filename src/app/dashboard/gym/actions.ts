@@ -11,6 +11,7 @@ import {
   type GymPlanPrefs,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
+import { hydrateGymPlan, serializeGymPlanDays } from "@/lib/gym";
 import { createClient } from "@/lib/supabase/server";
 
 function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
@@ -182,7 +183,7 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
         level: plan.level,
         days_per_week: plan.days_per_week,
         summary: plan.summary,
-        days: plan.days,
+        days: serializeGymPlanDays(plan.days, plan.recommendations),
       })
       .select("id, title, focus, level, days_per_week, summary, days, created_at")
       .single();
@@ -202,10 +203,10 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
     });
 
     revalidatePath("/dashboard/gym");
-    return { ok: true, message: "AI gym plan saved.", plan: data };
+    return { ok: true, message: "AI gym program saved.", plan: data ? hydrateGymPlan(data) : data };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Could not create a gym plan.";
+      error instanceof Error ? error.message : "Could not create a gym program.";
     return { ok: false, message };
   }
 }
@@ -278,5 +279,5 @@ export async function deleteGymPlan(id: number) {
   });
 
   revalidatePath("/dashboard/gym");
-  return { ok: true, message: "Plan removed." };
+  return { ok: true, message: "Program removed." };
 }

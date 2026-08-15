@@ -18,7 +18,9 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { movementWorkoutsDoc } from "@/lib/share-export";
 import { trainingSubNav } from "@/lib/nav";
 
 type Workout = {
@@ -81,11 +83,16 @@ export function MovementView({
         title={mode === "log" ? "Log your" : "Move a little"}
         highlight={mode === "log" ? "workout." : "today."}
         action={
-          mode === "log" ? (
-            <PrimaryButton disabled={suggesting} onClick={suggest} className="rounded-full px-5">
-              <Sparkles size={14} className="shrink-0" />
-              {suggesting ? "Planning…" : "Suggest workout"}
-            </PrimaryButton>
+          workouts.length > 0 || mode === "log" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {workouts.length > 0 && <ShareExportMenu compact doc={movementWorkoutsDoc(workouts)} />}
+              {mode === "log" ? (
+                <PrimaryButton disabled={suggesting} onClick={suggest} className="rounded-full px-5">
+                  <Sparkles size={14} className="shrink-0" />
+                  {suggesting ? "Planning…" : "Suggest workout"}
+                </PrimaryButton>
+              ) : null}
+            </div>
           ) : undefined
         }
       />
@@ -191,7 +198,11 @@ export function MovementView({
           />
         </div>
 
-        <Panel title="Sessions" className="mt-4">
+        <Panel
+          title="Sessions"
+          className="mt-4"
+          right={workouts.length > 0 ? <ShareExportMenu compact doc={movementWorkoutsDoc(workouts)} /> : undefined}
+        >
           <div className="space-y-2">
             {workouts.map((workout) => (
               <ListRow

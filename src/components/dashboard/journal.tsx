@@ -17,6 +17,8 @@ import {
   updateJournalEntry,
 } from "@/app/dashboard/journal/actions";
 import { PageHeader, PrimaryButton } from "@/components/dashboard/ui";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
+import { journalEntriesDoc, journalNoteDoc } from "@/lib/share-export";
 
 type Entry = {
   id: number;
@@ -191,6 +193,7 @@ export function JournalView({ entries }: { entries: Entry[] }) {
         highlight="ground you."
         action={
           <div className="flex flex-wrap gap-2">
+            {entries.length > 0 && <ShareExportMenu compact doc={journalEntriesDoc(entries)} />}
             <PrimaryButton
               disabled={reflectPending}
               onClick={() =>
@@ -347,10 +350,25 @@ export function JournalView({ entries }: { entries: Entry[] }) {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
+                    {body.trim() && (
+                      <ShareExportMenu
+                        compact
+                        doc={journalNoteDoc({
+                          title,
+                          body,
+                          entry_date: entryDate,
+                          mood: mood ? Number(mood) : null,
+                          tags: tags
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean),
+                        })}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={removeNote}
-                      className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-surface hover:text-ink"
+                      className="grid size-10 place-items-center rounded-xl text-muted transition hover:bg-surface hover:text-ink"
                       title="Delete note"
                     >
                       <Trash2 size={16} />

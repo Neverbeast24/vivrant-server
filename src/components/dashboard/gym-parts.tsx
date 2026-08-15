@@ -12,6 +12,7 @@ import {
   Dumbbell,
   ExternalLink,
   Flame,
+  Lightbulb,
   Play,
   Search,
   Sparkles,
@@ -29,6 +30,7 @@ import {
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   EmptyState,
   FormField,
@@ -40,9 +42,11 @@ import {
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { gymPlanDoc, gymPlansDoc, gymSessionsDoc } from "@/lib/share-export";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import {
   findExerciseMatch,
+  formatGymExerciseLine,
   humanizeGymLabel,
   isMachineGear,
   type GymExercise,
@@ -611,7 +615,15 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
           </form>
         </Panel>
 
-        <Panel title="Recent workouts" right={<Target size={16} className="text-accent" />}>
+        <Panel
+          title="Recent workouts"
+          right={
+            <div className="flex flex-wrap items-center gap-2">
+              {sessions.length > 0 && <ShareExportMenu compact doc={gymSessionsDoc(sessions)} />}
+              <Target size={16} className="text-accent" />
+            </div>
+          }
+        >
           <div className="space-y-2">
             {sessions.map((session) => (
               <ListRow
@@ -862,18 +874,18 @@ export function GymPlansView({
   return (
     <>
       <PageHeader
-        eyebrow="TRAINING PLANS"
-        title="A plan that"
+        eyebrow="TRAINING PROGRAM"
+        title="A program that"
         highlight="fits you."
         action={
           <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
-            {planning ? "Creating your plan…" : "Create my plan"}
+            {planning ? "Creating your program…" : "Create my program"}
           </PrimaryButton>
         }
       />
       <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Choose how often you train, then create a weekly plan. Extra options are optional.
+        Choose how often you train, then create a weekly program. Extra options are optional.
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
@@ -925,7 +937,7 @@ export function GymPlansView({
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
-            {planning ? "Creating your plan…" : "Create my plan"}
+            {planning ? "Creating your program…" : "Create my program"}
           </PrimaryButton>
           <button
             type="button"
@@ -1008,7 +1020,7 @@ export function GymPlansView({
 
             {!scaling.bmi && (
               <p className="text-xs font-semibold text-[#8a6a4a]">
-                Add height, weight, and a goal date in Profile → Goals so plans can match your level.
+                Add height, weight, and a goal date in Profile → Goals so programs can match your level.
               </p>
             )}
           </div>
@@ -1019,7 +1031,7 @@ export function GymPlansView({
       <>
       <Panel title="Skip these body areas" className="mb-4">
         <p className="mb-3 text-sm leading-6 text-muted">
-          Optional: pick areas you want to skip for now (for example core). Your plan will avoid them.
+          Optional: pick areas you want to skip for now (for example core). Your program will avoid them.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-ember/15 px-2.5 py-1 font-black text-ember">
@@ -1072,7 +1084,7 @@ export function GymPlansView({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Optional: mark machines and moves you know so your plan can prefer them. Choices stay in this
+          Optional: mark machines and moves you know so your program can prefer them. Choices stay in this
           browser.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
@@ -1320,26 +1332,46 @@ export function GymPlansView({
       </>
       )}
 
-      <Panel title="Your saved plans">
+      <Panel
+        title="Your saved programs"
+        right={plans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(plans)} /> : undefined}
+      >
         <div className="space-y-4">
           {plans.map((plan) => (
             <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black">{plan.title}</p>
-                  <p className="mt-1 text-xs capitalize text-muted">
-                    {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
-                  </p>
-                  {plan.summary && <p className="mt-2 text-sm leading-6 text-muted">{plan.summary}</p>}
+              <div>
+                <p className="text-sm font-black">{plan.title}</p>
+                <p className="mt-1 text-xs capitalize text-muted">
+                  {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
+                </p>
+                {plan.summary && <p className="mt-2 text-sm leading-6 text-muted">{plan.summary}</p>}
+                {(plan.recommendations ?? []).length > 0 && (
+                  <div className="mt-3 rounded-2xl border border-accent/15 bg-accent-soft/40 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-accent">
+                      Recommendations
+                    </p>
+                    <ul className="mt-2 space-y-1.5">
+                      {(plan.recommendations ?? []).map((rec) => (
+                        <li key={rec} className="flex gap-2 text-sm leading-5 text-muted">
+                          <Lightbulb size={14} className="mt-0.5 shrink-0 text-accent" />
+                          <span>{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <ShareExportMenu compact doc={gymPlanDoc(plan)} />
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(() => deleteGymPlan(plan.id))}
+                    aria-label={`Delete ${plan.title}`}
+                    className="grid size-10 place-items-center rounded-full text-muted transition hover:bg-ember/15 hover:text-ember"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => run(() => deleteGymPlan(plan.id))}
-                  className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
-                >
-                  <Trash2 size={14} />
-                </button>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {(plan.days ?? []).map((day) => (
@@ -1365,11 +1397,13 @@ export function GymPlansView({
                                   </span>
                                 )}
                                 <div className="min-w-0">
-                                  <span className="font-bold text-ink">{ex.name}</span>
-                                  <span>
-                                    {" "}
-                                    · {ex.sets} · rest {ex.rest}
-                                  </span>
+                                  <p className="font-bold text-ink">{ex.name}</p>
+                                  <p>
+                                    {formatGymExerciseLine(ex).replace(`${ex.name} · `, "")}
+                                  </p>
+                                  {ex.notes && (
+                                    <p className="mt-0.5 text-[11px] leading-4 text-muted/90">{ex.notes}</p>
+                                  )}
                                 </div>
                               </div>
                               {linked && (
@@ -1395,7 +1429,7 @@ export function GymPlansView({
           ))}
           {!plans.length && (
             <EmptyState>
-              No plan yet — choose how often you train above, then tap Create my plan.
+              No program yet — choose how often you train above, then tap Create my program.
             </EmptyState>
           )}
         </div>

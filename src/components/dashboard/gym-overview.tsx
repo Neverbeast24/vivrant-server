@@ -64,7 +64,7 @@ export function GymOverview({
             },
             {
               href: "/dashboard/gym/plans",
-              title: "Training plans",
+              title: "Training program",
               detail: `${planCount} saved program${planCount === 1 ? "" : "s"}`,
               icon: Sparkles,
             },

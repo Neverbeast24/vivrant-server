@@ -27,6 +27,7 @@ import {
   type PantryItem,
 } from "@/app/dashboard/pantry/shared";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   EmptyState,
   FormField,
@@ -39,6 +40,7 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { pantryDoc } from "@/lib/share-export";
 import { kitchenSubNav } from "@/lib/nav";
 
 export type PantryMode = "overview" | "items" | "categories" | "low-stock" | "add";
@@ -163,7 +165,12 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
 
   return (
     <>
-      <PageHeader eyebrow="KITCHEN · PANTRY" title="Know what you" highlight="have." />
+      <PageHeader
+        eyebrow="KITCHEN · PANTRY"
+        title="Know what you"
+        highlight="have."
+        action={items.length > 0 ? <ShareExportMenu compact doc={pantryDoc(items)} /> : undefined}
+      />
       <ModuleSubNav items={kitchenSubNav} />
 
       <Stagger>
@@ -308,14 +315,20 @@ function PantryItems({ items }: { items: PantryItem[] }) {
         title="Full"
         highlight="inventory."
         action={
-          <Link href="/dashboard/pantry/add" className="inline-flex">
-            <PrimaryButton className="rounded-full px-5">Add item</PrimaryButton>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {items.length > 0 && <ShareExportMenu compact doc={pantryDoc(items)} />}
+            <Link href="/dashboard/pantry/add" className="inline-flex">
+              <PrimaryButton className="rounded-full px-5">Add item</PrimaryButton>
+            </Link>
+          </div>
         }
       />
       <ModuleSubNav items={kitchenSubNav} />
 
-      <Panel title="Stock levels">
+      <Panel
+        title="Stock levels"
+        right={items.length > 0 ? <ShareExportMenu compact doc={pantryDoc(items)} /> : undefined}
+      >
         <div className="space-y-4">
           {items.map((item) => (
             <StockRow key={item.id} item={item} updating={updating} runAction={runAction} />
