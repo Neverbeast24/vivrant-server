@@ -3,8 +3,10 @@ import {
   formatGymExerciseLine,
   hydrateGymPlan,
   parseGymPlanDays,
+  pickTodaysPlanDay,
   serializeGymPlanDays,
   enrichGymPlanDays,
+  summarizeTodaysProgram,
 } from "./gym";
 
 describe("parseGymPlanDays", () => {
@@ -108,5 +110,60 @@ describe("formatGymExerciseLine", () => {
     expect(
       formatGymExerciseLine({ name: "Lat pulldown", sets: "4 x 10", rest: "90s", weight: "18 kg" }),
     ).toBe("Lat pulldown · 4 x 10 · 18 kg · rest 90s");
+  });
+});
+
+describe("pickTodaysPlanDay", () => {
+  const days = [
+    { day: "Day 1", focus: "Pull", exercises: [{ name: "Row", sets: "3 x 10", rest: "60s" }] },
+    { day: "Day 2", focus: "Push", exercises: [{ name: "Press", sets: "3 x 10", rest: "60s" }] },
+    { day: "Day 3", focus: "Legs", exercises: [{ name: "Squat", sets: "3 x 8", rest: "90s" }] },
+  ];
+
+  it("matches a weekday name on the session label", () => {
+    const named = [
+      { day: "Monday · Pull", focus: "Pull", exercises: [] },
+      { day: "Wednesday", focus: "Push", exercises: [] },
+    ];
+    expect(pickTodaysPlanDay(named, new Date("2026-08-17T12:00:00"))?.focus).toBe("Pull");
+    expect(pickTodaysPlanDay(named, new Date("2026-08-19T12:00:00"))?.focus).toBe("Push");
+  });
+
+  it("rotates unnamed days from Monday", () => {
+    // 2026-08-17 is a Monday → Day 1
+    expect(pickTodaysPlanDay(days, new Date("2026-08-17T12:00:00"))?.focus).toBe("Pull");
+    expect(pickTodaysPlanDay(days, new Date("2026-08-18T12:00:00"))?.focus).toBe("Push");
+  });
+});
+
+describe("summarizeTodaysProgram", () => {
+  it("returns the latest plan and a short today list", () => {
+    const summary = summarizeTodaysProgram(
+      [
+        {
+          title: "Upper/Lower",
+          focus: "strength",
+          days_per_week: 4,
+          days: [
+            {
+              day: "Day 1",
+              focus: "Upper",
+              exercises: [
+                { name: "Press", sets: "4 x 8", rest: "90s" },
+                { name: "Row", sets: "4 x 10", rest: "90s" },
+              ],
+            },
+          ],
+        },
+      ],
+      new Date("2026-08-17T12:00:00"),
+    );
+    expect(summary?.title).toBe("Upper/Lower");
+    expect(summary?.planCount).toBe(1);
+    expect(summary?.today?.exercises.map((ex) => ex.name)).toEqual(["Press", "Row"]);
+  });
+
+  it("returns null when there are no plans", () => {
+    expect(summarizeTodaysProgram([])).toBeNull();
   });
 });

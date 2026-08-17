@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { dayStartIso, jsonOk, todayDate } from "@/lib/mobile/http";
 import { processDueReminders } from "@/lib/reminders/process";
+import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan } from "@/lib/gym";
 
 export async function GET(request: Request) {
   const auth = await requireMobileUser(request);
@@ -18,8 +19,16 @@ export async function GET(request: Request) {
     () => undefined,
   );
 
-  const [checkinRes, nutritionRes, workoutRes, goalsRes, notificationsRes] =
-    await Promise.all([
+  const [
+    checkinRes,
+    nutritionRes,
+    workoutRes,
+    goalsRes,
+    notificationsRes,
+    plansRes,
+    habitsRes,
+    habitLogsRes,
+  ] = await Promise.all([
       supabase
         .from("daily_checkins")
         .select("*")
@@ -46,6 +55,18 @@ export async function GET(request: Request) {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("is_read", false),
+      supabase
+        .from("gym_plans")
+        .select("id, title, focus, level, days_per_week, summary, days, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabase.from("habits").select("id").eq("user_id", user.id).eq("active", true),
+      supabase
+        .from("habit_logs")
+        .select("habit_id")
+        .eq("user_id", user.id)
+        .eq("logged_on", today),
     ]);
 
   const checkin = checkinRes.data ?? null;
@@ -58,6 +79,12 @@ export async function GET(request: Request) {
     (sum, row) => sum + Number(row.duration_minutes ?? 0),
     0,
   );
+  const habits = habitsRes.data ?? [];
+  const habitLogs = habitLogsRes.data ?? [];
+  const habits_total = habits.length;
+  const habits_done_today = habits.filter((habit) =>
+    habitLogs.some((log) => log.habit_id === habit.id),
+  ).length;
 
   return jsonOk({
     checkin,
@@ -70,5 +97,10 @@ export async function GET(request: Request) {
     unread_notifications: notificationsRes.count ?? 0,
     meals_today: nutritionRows.length,
     workouts_today: workoutRows.length,
+    habits_done_today,
+    habits_total,
+    program: summarizeTodaysProgram(
+      ((plansRes.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row)),
+    ),
   });
 }

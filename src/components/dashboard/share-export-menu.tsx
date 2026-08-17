@@ -158,7 +158,7 @@ export function ShareExportMenu({
       <button
         type="button"
         className={optionClass}
-        onClick={() => closeAfter(() => printDocument(doc.title, doc.text), "Opening print dialog")}
+        onClick={() => closeAfter(() => printDocument(doc.title, doc.text, doc.html), "Opening print dialog")}
       >
         <Printer size={16} className="shrink-0 text-accent" />
         Print / Save PDF

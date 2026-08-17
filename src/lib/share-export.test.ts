@@ -3,6 +3,7 @@ import {
   csvEscape,
   filenameSlug,
   gymPlanDoc,
+  gymPlansDoc,
   groceryListDoc,
   mealsDoc,
   toCsv,
@@ -22,7 +23,7 @@ const samplePlan = {
       day: "Day 1",
       focus: "upper_body_pull_and_cardio",
       exercises: [
-        { name: "Lat pulldown machine", sets: "4 sets of 10-12 reps", rest: "90s", weight: "15–20 kg" },
+        { name: "Lat pulldown machine", sets: "4 sets of 10-12 reps", rest: "90s", weight: "15–20 kg", notes: "Keep the chest tall." },
         { name: "Treadmill steady incline walk", sets: "1 set of 35-40 mins", rest: "0s", weight: "easy pace" },
       ],
       alternatives: [{ instead_of: "Lat pulldown machine", use: "Assisted pull-up machine" }],
@@ -60,6 +61,34 @@ describe("gymPlanDoc", () => {
     expect(doc.csv).toContain("Lat pulldown machine");
     expect(doc.csv.split("\n")).toHaveLength(3);
     expect(JSON.parse(doc.json).days_per_week).toBe(6);
+  });
+
+  it("builds print-only html with emphasis and color-coded chips", () => {
+    const doc = gymPlanDoc(samplePlan);
+    expect(doc.html).toContain('class="move-name">Lat pulldown machine');
+    expect(doc.html).toContain('class="chip sets">4 sets of 10-12 reps');
+    expect(doc.html).toContain('class="chip weight">15–20 kg');
+    expect(doc.html).toContain('class="chip rest">rest 90s');
+    expect(doc.html).toContain("<em>Fat Loss</em>");
+    expect(doc.html).toContain("<strong>Beginner</strong>");
+    expect(doc.html).toContain("<strong>Assisted pull-up machine</strong>");
+    expect(doc.html).toContain("<em>instead of</em>");
+    expect(doc.html).toContain("<strong>Face pulls</strong>");
+    expect(doc.html).toContain('class="summary">Built for an overweight BMI band.');
+    expect(doc.html).toContain('class="move-notes">Keep the chest tall.');
+    expect(doc.text).not.toContain("class=");
+  });
+});
+
+describe("gymPlansDoc", () => {
+  it("wraps multiple programs for print without changing csv shape", () => {
+    const second = { ...samplePlan, id: 2, title: "Push strength block" };
+    const doc = gymPlansDoc([samplePlan, second]);
+    expect(doc.title).toBe("Saved training programs");
+    expect(doc.html).toContain("Saved training programs");
+    expect(doc.html).toContain("Push strength block");
+    expect(doc.html).toContain("page-break");
+    expect(doc.csv.startsWith("Program,Day,Focus")).toBe(true);
   });
 });
 

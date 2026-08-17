@@ -224,6 +224,62 @@ export function formatGymExerciseLine(
   return `${ex.name} · ${parts.join(" · ")}`;
 }
 
+const WEEKDAY_FULL = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+const WEEKDAY_SHORT = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+/** Pick the session that should show on Today — weekday name first, else Mon-based rotation. */
+export function pickTodaysPlanDay(days: GymPlanDay[], date = new Date()): GymPlanDay | null {
+  if (!days.length) return null;
+  const dow = date.getDay();
+  const full = WEEKDAY_FULL[dow];
+  const short = WEEKDAY_SHORT[dow];
+  const named = days.find((day) => {
+    const label = String(day.day ?? "").toLowerCase();
+    const tokens = label.split(/[\s,/:.-]+/).filter(Boolean);
+    return label.includes(full) || tokens.includes(short);
+  });
+  if (named) return named;
+  const mondayIndex = dow === 0 ? 6 : dow - 1;
+  return days[mondayIndex % days.length] ?? days[0];
+}
+
+export type TodaysProgramSummary = {
+  title: string;
+  focus: string;
+  daysPerWeek: number;
+  planCount: number;
+  today: {
+    day: string;
+    focus: string;
+    exercises: { name: string; sets: string }[];
+  } | null;
+};
+
+export function summarizeTodaysProgram(
+  plans: Array<Pick<GymPlan, "title" | "focus" | "days_per_week" | "days">>,
+  date = new Date(),
+): TodaysProgramSummary | null {
+  if (!plans.length) return null;
+  const plan = plans[0];
+  const day = pickTodaysPlanDay(plan.days ?? [], date);
+  return {
+    title: plan.title,
+    focus: plan.focus,
+    daysPerWeek: plan.days_per_week,
+    planCount: plans.length,
+    today: day
+      ? {
+          day: day.day,
+          focus: day.focus,
+          exercises: (day.exercises ?? []).slice(0, 4).map((ex) => ({
+            name: ex.name,
+            sets: ex.sets,
+          })),
+        }
+      : null,
+  };
+}
+
 type GymCatalogItem = Pick<GymExercise, "name" | "muscle_group" | "equipment">;
 
 const ADDON_COMPLEMENT: Record<string, string[]> = {

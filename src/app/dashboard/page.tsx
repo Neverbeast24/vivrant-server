@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { TodayView, type TodayData } from "@/components/dashboard/today";
 import { requireUser } from "@/lib/auth/roles";
+import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan } from "@/lib/gym";
 
 export const metadata: Metadata = {
   title: "Today",
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
     reminderRes,
     allCheckinsRes,
     allMealsRes,
+    plansRes,
   ] = await Promise.all([
     supabase
       .from("daily_checkins")
@@ -112,6 +114,12 @@ export default async function DashboardPage() {
       .from("nutrition_logs")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
+    supabase
+      .from("gym_plans")
+      .select("id, title, focus, level, days_per_week, summary, days, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
 
   const energyByDate = new Map(
@@ -160,6 +168,9 @@ export default async function DashboardPage() {
   );
   const isNewMember =
     (allCheckinsRes.count ?? 0) < 3 && (allMealsRes.count ?? 0) < 2;
+  const program = summarizeTodaysProgram(
+    ((plansRes.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row)),
+  );
 
   return (
     <TodayView
@@ -183,6 +194,7 @@ export default async function DashboardPage() {
         habitsTotal: habits.length,
         profileComplete,
         isNewMember,
+        program,
         nextReminder: next
           ? {
               title: next.title,

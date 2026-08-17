@@ -5,11 +5,14 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import {
   Activity,
+  BrainCircuit,
   ChevronRight,
   Dumbbell,
+  HeartPulse,
   Leaf,
   ListChecks,
   Moon,
+  Refrigerator,
   Sparkles,
   Target,
   UserRound,
@@ -20,6 +23,7 @@ import {
 } from "lucide-react";
 import { QuickCheckin } from "@/components/dashboard/quick-checkin";
 import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
+import { humanizeGymLabel, type TodaysProgramSummary } from "@/lib/gym";
 
 export type TodayData = {
   energy: number | null;
@@ -41,6 +45,7 @@ export type TodayData = {
   habitsTotal: number;
   profileComplete: boolean;
   isNewMember: boolean;
+  program: TodaysProgramSummary | null;
   nextReminder: { title: string; when: string } | null;
   latestInsight: {
     title: string;
@@ -154,6 +159,17 @@ export function TodayView({ data }: { data: TodayData }) {
       done: data.workoutsToday > 0,
       href: "/dashboard/movement/log",
     },
+    {
+      icon: Sparkles,
+      label: data.program?.today
+        ? `${data.program.today.day}: ${humanizeGymLabel(data.program.today.focus)}`
+        : data.program
+          ? data.program.title
+          : "Create a training program",
+      time: "Program",
+      done: data.gymToday > 0,
+      href: "/dashboard/gym/plans",
+    },
   ] as const;
 
   const suggestion =
@@ -181,7 +197,7 @@ export function TodayView({ data }: { data: TodayData }) {
       <p className="-mt-5 mb-6 max-w-xl text-sm text-muted">
         {data.isNewMember
           ? "New here? Start with a 30-second check-in — then log one meal."
-          : "Your daily hub for check-ins, meals, movement, and gentle nudges."}
+          : "Your daily hub — programs, meals, movement, and the rest of your tools in one place."}
       </p>
 
       {!data.profileComplete && (
@@ -302,6 +318,124 @@ export function TodayView({ data }: { data: TodayData }) {
             <p className="mt-0.5 text-[11px] text-muted">{data.nextReminder.when}</p>
           )}
         </Link>
+      </div>
+
+      <Link
+        href="/dashboard/gym/plans"
+        className="mb-4 flex items-start gap-4 rounded-[1.4rem] border border-ink/8 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md"
+      >
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent">
+          <Sparkles size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black tracking-wider text-accent">TRAINING PROGRAM</p>
+          {data.program ? (
+            <>
+              <p className="mt-1 text-lg font-black">{data.program.title}</p>
+              <p className="mt-0.5 text-xs capitalize text-muted">
+                {humanizeGymLabel(data.program.focus)} · {data.program.daysPerWeek} days/week
+                {data.program.planCount > 1 ? ` · ${data.program.planCount} saved` : ""}
+              </p>
+              {data.program.today && (
+                <div className="mt-3 rounded-2xl border border-ink/6 bg-surface/60 px-3 py-2.5">
+                  <p className="text-[11px] font-black text-accent">
+                    Today · {data.program.today.day} · {humanizeGymLabel(data.program.today.focus)}
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {data.program.today.exercises.map((ex) => (
+                      <li key={ex.name} className="text-xs text-muted">
+                        <span className="font-bold text-ink">{ex.name}</span>
+                        {ex.sets ? ` · ${ex.sets}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-lg font-black">No program yet</p>
+              <p className="mt-1 text-sm text-muted">
+                Create a weekly plan in a couple of taps — it will show up here every day.
+              </p>
+            </>
+          )}
+        </div>
+        <ChevronRight size={16} className="mt-1 shrink-0 text-accent" />
+      </Link>
+
+      <div className="mb-4">
+        <p className="mb-2 text-[10px] font-black tracking-wider text-muted">JUMP IN</p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              href: "/dashboard/nutrition",
+              label: "Nutrition",
+              detail: data.mealsToday ? `${data.mealsToday} meal${data.mealsToday === 1 ? "" : "s"} today` : "Log a meal",
+              icon: Utensils,
+            },
+            {
+              href: "/dashboard/training",
+              label: "Training",
+              detail: data.workoutsToday || data.gymToday ? "Activity logged today" : "Demos, machines, sessions",
+              icon: Dumbbell,
+            },
+            {
+              href: "/dashboard/gym/plans",
+              label: "Program",
+              detail: data.program
+                ? `${data.program.planCount} saved program${data.program.planCount === 1 ? "" : "s"}`
+                : "Create an AI plan",
+              icon: Sparkles,
+            },
+            {
+              href: "/dashboard/wellness",
+              label: "Wellness",
+              detail: "Sleep, water, mood",
+              icon: HeartPulse,
+            },
+            {
+              href: "/dashboard/kitchen",
+              label: "Kitchen",
+              detail: "Shopping and pantry",
+              icon: Refrigerator,
+            },
+            {
+              href: "/dashboard/habits",
+              label: "Habits",
+              detail: data.habitsTotal
+                ? `${data.habitsDoneToday}/${data.habitsTotal} today`
+                : "Start a streak",
+              icon: Target,
+            },
+            {
+              href: "/dashboard/spending",
+              label: "Spending",
+              detail: data.spendToday ? `₱${data.spendToday.toLocaleString()} today` : "Monthly budget",
+              icon: WalletCards,
+            },
+            {
+              href: "/dashboard/ai",
+              label: "Ask VIVRΛNT",
+              detail: "Chat coach & reminders",
+              icon: BrainCircuit,
+            },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center gap-3 rounded-2xl border border-ink/8 bg-card px-3.5 py-3 transition hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-sm"
+            >
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+                <item.icon size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black">{item.label}</span>
+                <span className="block truncate text-[11px] font-semibold text-muted">{item.detail}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.55fr_.85fr]">

@@ -1,4 +1,10 @@
-import { formatGymExerciseLine, humanizeGymLabel, type GymPlan, type GymSession } from "@/lib/gym";
+import {
+  formatGymExerciseLine,
+  humanizeGymLabel,
+  type GymPlan,
+  type GymPlanDay,
+  type GymSession,
+} from "@/lib/gym";
 
 export type ShareExportDoc = {
   title: string;
@@ -6,6 +12,8 @@ export type ShareExportDoc = {
   text: string;
   csv: string;
   json: string;
+  /** Formatted markup used only by Print / Save PDF. */
+  html?: string;
 };
 
 export function csvEscape(value: unknown) {
@@ -33,6 +41,135 @@ function jsonPretty(value: unknown) {
 
 function heading(title: string, lines: string[]) {
   return [`VIVRΛNT`, title, "", ...lines].join("\n").trimEnd() + "\n";
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function printLabel(value: string) {
+  return humanizeGymLabel(value).replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function printChip(kind: "sets" | "weight" | "rest", label: string) {
+  const text = String(label ?? "").trim();
+  if (!text) return "";
+  return `<span class="chip ${kind}">${escapeHtml(text)}</span>`;
+}
+
+function gymCoachNotesHtml(recs: string[]) {
+  if (!recs.length) return "";
+  return `<section class="coach">
+    <p class="callout-label">Coach notes</p>
+    <ul>${recs.map((rec) => `<li>${escapeHtml(rec)}</li>`).join("")}</ul>
+  </section>`;
+}
+
+function gymDayPrintHtml(day: GymPlanDay) {
+  const exercises = day.exercises ?? [];
+  const alts = day.alternatives ?? [];
+  const addons = day.additionals ?? [];
+  const moves = exercises
+    .map((ex, index) => {
+      const notes = ex.notes
+        ? `<p class="move-notes">${escapeHtml(ex.notes)}</p>`
+        : "";
+      return `<li>
+        <span class="n">${index + 1}</span>
+        <div>
+          <p class="move-name">${escapeHtml(ex.name)}</p>
+          <p class="move-meta">
+            ${printChip("sets", ex.sets)}
+            ${ex.weight ? printChip("weight", ex.weight) : ""}
+            ${printChip("rest", `rest ${ex.rest}`)}
+          </p>
+          ${notes}
+        </div>
+      </li>`;
+    })
+    .join("");
+  const altBlock = alts.length
+    ? `<div class="callout alts">
+        <p class="callout-label">Alternatives</p>
+        <ul>${alts
+          .map(
+            (swap) =>
+              `<li><strong>${escapeHtml(swap.use)}</strong> <em>instead of</em> ${escapeHtml(swap.instead_of)}</li>`,
+          )
+          .join("")}</ul>
+      </div>`
+    : "";
+  const addonBlock = addons.length
+    ? `<div class="callout addons">
+        <p class="callout-label">Add to this workout</p>
+        <ul>${addons
+          .map(
+            (addon) =>
+              `<li><strong>${escapeHtml(addon.name)}</strong>${addon.sets ? ` <em>· ${escapeHtml(addon.sets)}</em>` : ""}</li>`,
+          )
+          .join("")}</ul>
+      </div>`
+    : "";
+  return `<section class="day">
+    <div class="day-head">
+      <h3>${escapeHtml(day.day)}</h3>
+      <p class="focus">${escapeHtml(printLabel(day.focus))}</p>
+    </div>
+    <ol class="moves">${moves}</ol>
+    ${altBlock}
+    ${addonBlock}
+  </section>`;
+}
+
+function gymPlanArticleHtml(plan: GymPlan, headingTag: "h1" | "h2" = "h1") {
+  const recs = plan.recommendations ?? [];
+  const days = (plan.days ?? []).map(gymDayPrintHtml).join("");
+  return `<header class="sheet-head">
+      ${headingTag === "h1" ? `<p class="brand">VIVRΛNT</p><p class="kind">Training program</p>` : `<p class="kind">Program</p>`}
+      <${headingTag}>${escapeHtml(plan.title)}</${headingTag}>
+      <p class="meta"><em>${escapeHtml(printLabel(plan.focus))}</em> · <strong>${escapeHtml(plan.level)}</strong> · ${escapeHtml(String(plan.days_per_week))} days/week</p>
+      ${plan.summary ? `<p class="summary">${escapeHtml(plan.summary)}</p>` : ""}
+    </header>
+    ${gymCoachNotesHtml(recs)}
+    ${days}`;
+}
+
+function gymPlanPrintHtml(plan: GymPlan) {
+  return `<article class="program">${gymPlanArticleHtml(plan)}</article>`;
+}
+
+function gymPlansPrintHtml(plans: GymPlan[]) {
+  const articles = plans
+    .map(
+      (plan, index) =>
+        `<article class="program${index < plans.length - 1 ? " page-break" : ""}">${gymPlanArticleHtml(plan, "h2")}</article>`,
+    )
+    .join("");
+  return `<header class="sheet-head">
+      <p class="brand">VIVRΛNT</p>
+      <p class="kind">Export</p>
+      <h1>Saved training programs</h1>
+      <p class="meta"><em>${plans.length} program${plans.length === 1 ? "" : "s"}</em></p>
+    </header>
+    ${articles}`;
+}
+
+function brandedPlainPrintHtml(title: string, text: string) {
+  const withoutBrand = text.replace(/^\s*VIVRΛNT\s*\r?\n/, "");
+  const withoutTitle = withoutBrand.replace(
+    new RegExp(`^\\s*${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\r?\\n+`),
+    "",
+  );
+  return `<header class="sheet-head">
+      <p class="brand">VIVRΛNT</p>
+      <h1>${escapeHtml(title)}</h1>
+    </header>
+    <pre class="plain">${escapeHtml(withoutTitle.trim())}</pre>`;
 }
 
 export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
@@ -87,6 +224,7 @@ export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
       recommendations: recs,
       days: plan.days,
     }),
+    html: gymPlanPrintHtml(plan),
   };
 }
 
@@ -116,6 +254,7 @@ export function gymPlansDoc(plans: GymPlan[]): ShareExportDoc {
     text: heading("Saved training programs", [text]),
     csv,
     json: jsonPretty(plans.map((plan) => JSON.parse(gymPlanDoc(plan).json))),
+    html: gymPlansPrintHtml(plans),
   };
 }
 
@@ -576,7 +715,123 @@ export async function nativeShare(doc: ShareExportDoc, kind: "text" | "csv" | "j
   await copyText(body);
 }
 
-export function printDocument(title: string, text: string) {
+const PRINT_DOCUMENT_STYLES = `
+  @page { margin: 12mm 11mm; size: A4; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    padding: 8px 4px 16px;
+    color: #14221b;
+    background: #fff;
+    font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .brand {
+    margin: 0;
+    color: #0e7c66;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+  }
+  .kind {
+    margin: 6px 0 0;
+    color: #0e7c66;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+  h1 { margin-top: 8px; font-size: 22px; font-weight: 900; }
+  h2 { margin-top: 6px; font-size: 18px; font-weight: 900; }
+  h3 { font-size: 14px; font-weight: 900; }
+  .meta { margin: 6px 0 0; color: #4a5c54; }
+  .meta em { color: #0e7c66; font-style: italic; font-weight: 700; }
+  .meta strong { color: #0a5c4c; }
+  .summary { margin: 10px 0 0; color: #4a5c54; font-style: italic; line-height: 1.55; }
+  .coach {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #d7efe6;
+    border-left: 4px solid #0e7c66;
+    border-radius: 10px;
+  }
+  .coach ul, .callout ul { margin: 8px 0 0; padding: 0 0 0 1.1rem; }
+  .coach li { margin: 0 0 4px; }
+  .day {
+    margin-top: 16px;
+    overflow: hidden;
+    border: 1px solid #dce8e1;
+    border-radius: 12px;
+    break-inside: avoid;
+  }
+  .day-head { padding: 10px 14px; background: #0e7c66; color: #fff; }
+  .day-head .focus { margin: 2px 0 0; font-size: 12px; font-style: italic; opacity: 0.92; }
+  .moves { margin: 0; padding: 4px 0; list-style: none; }
+  .moves li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid #e7eee9;
+  }
+  .n {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    margin-top: 1px;
+    border-radius: 999px;
+    background: #d7efe6;
+    color: #0a5c4c;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .move-name { margin: 0; font-size: 13.5px; font-weight: 800; }
+  .move-meta { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .chip.sets { background: #d7efe6; color: #0a5c4c; }
+  .chip.weight { background: #0e7c66; color: #fff; font-weight: 800; }
+  .chip.rest { background: #e8efe9; color: #4a5c54; font-style: italic; font-weight: 600; }
+  .move-notes { margin: 6px 0 0; color: #4a5c54; font-size: 11.5px; font-style: italic; }
+  .callout { padding: 10px 14px 12px; border-top: 1px dashed #b7d4c8; background: #f6faf7; }
+  .callout-label {
+    margin: 0;
+    color: #0e7c66;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .callout li { margin: 0 0 4px; color: #4a5c54; }
+  .callout strong { color: #14221b; }
+  .callout em { color: #0e7c66; }
+  .program { margin-top: 8px; }
+  .program.page-break { page-break-after: always; break-after: page; padding-bottom: 8px; }
+  .plain {
+    margin: 16px 0 0;
+    white-space: pre-wrap;
+    font: 13px/1.55 ui-sans-serif, system-ui, sans-serif;
+    color: #14221b;
+  }
+  .sheet-foot {
+    margin: 22px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid #dce8e1;
+    color: #4a5c54;
+    font-size: 10px;
+    font-style: italic;
+  }
+`;
+
+export function printDocument(title: string, text: string, html?: string) {
   const frame = document.createElement("iframe");
   frame.setAttribute("aria-hidden", "true");
   frame.style.position = "fixed";
@@ -591,17 +846,16 @@ export function printDocument(title: string, text: string) {
     frame.remove();
     throw new Error("Print window unavailable");
   }
-  const safeTitle = title.replace(/[<>&]/g, "");
+  const safeTitle = escapeHtml(title);
+  const printedOn = new Date().toLocaleDateString(undefined, { dateStyle: "medium" });
+  const body = html?.trim() || brandedPlainPrintHtml(title, text);
   doc.open();
-  doc.write(`<!doctype html><html><head><title>${safeTitle}</title>
-<style>
-  body { font-family: ui-sans-serif, system-ui, sans-serif; padding: 24px; color: #111; }
-  h1 { font-size: 20px; margin: 0 0 16px; }
-  pre { white-space: pre-wrap; font: 14px/1.55 ui-sans-serif, system-ui, sans-serif; margin: 0; }
-</style></head><body><h1>${safeTitle}</h1><pre></pre></body></html>`);
+  doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title>
+<style>${PRINT_DOCUMENT_STYLES}</style></head><body>
+${body}
+<p class="sheet-foot">Generated by VIVRΛNT · ${escapeHtml(printedOn)}</p>
+</body></html>`);
   doc.close();
-  const pre = doc.querySelector("pre");
-  if (pre) pre.textContent = text;
   const cleanup = () => frame.remove();
   frame.contentWindow?.addEventListener("afterprint", cleanup);
   frame.contentWindow?.focus();

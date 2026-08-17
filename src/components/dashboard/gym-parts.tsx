@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   Clock3,
   Cog,
   Dumbbell,
@@ -51,6 +52,7 @@ import {
   findExerciseMatch,
   humanizeGymLabel,
   isMachineGear,
+  pickTodaysPlanDay,
   type GymExercise,
   type GymPlan,
   type GymSession,
@@ -112,6 +114,67 @@ export function GymOverviewStats({
           icon={Cog}
           tone="soft"
         />
+      </div>
+    </Stagger>
+  );
+}
+
+export function GymJumpCards({
+  demoCount,
+  machineCount,
+  sessionCount,
+  planCount,
+}: {
+  demoCount: number;
+  machineCount: number;
+  sessionCount: number;
+  planCount: number;
+}) {
+  const cards = [
+    {
+      href: "/dashboard/gym/demos",
+      title: "Exercise demos",
+      detail: demoCount ? `${demoCount} form clips` : "Free-weight & bodyweight videos",
+      icon: Play,
+    },
+    {
+      href: "/dashboard/gym/machines",
+      title: "Machines",
+      detail: machineCount ? `${machineCount} machine demos + AI picks` : "Equipment walkthroughs",
+      icon: Cog,
+    },
+    {
+      href: "/dashboard/gym/sessions",
+      title: "Sessions",
+      detail: sessionCount ? `${sessionCount} logged recently` : "Log training and review history",
+      icon: ClipboardList,
+    },
+    {
+      href: "/dashboard/gym/plans",
+      title: "Training program",
+      detail: planCount
+        ? `${planCount} saved program${planCount === 1 ? "" : "s"}`
+        : "Create an AI weekly program",
+      icon: Sparkles,
+    },
+  ] as const;
+
+  return (
+    <Stagger>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="rounded-[1.3rem] border border-ink/8 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/25 hover:shadow-md"
+          >
+            <span className="grid size-10 place-items-center rounded-2xl bg-accent-soft text-accent">
+              <card.icon size={18} />
+            </span>
+            <p className="mt-3 text-sm font-black">{card.title}</p>
+            <p className="mt-1 text-xs leading-5 text-muted">{card.detail}</p>
+          </Link>
+        ))}
       </div>
     </Stagger>
   );
@@ -899,6 +962,33 @@ export function GymPlansView({
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
+      {displayPlans.length > 0 && (
+        <div className="mb-4 grid gap-2 sm:grid-cols-2">
+          {displayPlans.slice(0, 4).map((plan) => {
+            const today = pickTodaysPlanDay(plan.days ?? []);
+            return (
+              <a
+                key={plan.id}
+                href="#saved-programs"
+                className="rounded-[1.3rem] border border-ink/8 bg-card p-4 transition hover:border-accent/30"
+              >
+                <p className="text-[10px] font-black tracking-wider text-accent">SAVED PROGRAM</p>
+                <p className="mt-1 text-sm font-black">{plan.title}</p>
+                <p className="mt-0.5 text-xs capitalize text-muted">
+                  {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
+                </p>
+                {today && (
+                  <p className="mt-2 text-xs text-muted">
+                    Today · {today.day} · {humanizeGymLabel(today.focus)}
+                    {today.exercises[0] ? ` · ${today.exercises[0].name}` : ""}
+                  </p>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      )}
+
       <Panel title="How often do you train?" className="mb-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
@@ -1343,6 +1433,7 @@ export function GymPlansView({
       )}
 
       <Panel
+        id="saved-programs"
         title="Your saved programs"
         right={displayPlans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(displayPlans)} /> : undefined}
       >

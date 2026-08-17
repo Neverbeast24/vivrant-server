@@ -67,7 +67,11 @@ export const dashboardNav: NavItem[] = [
     children: [
       { label: "Overview", href: "/dashboard/training", caption: "Daily activity & gym" },
       { label: "Log workout", href: "/dashboard/movement/log", caption: "Walk, run, yoga…" },
-      { label: "Gym", href: "/dashboard/gym", caption: "Videos, machines, plans" },
+      { label: "Program", href: "/dashboard/gym/plans", caption: "Saved AI programs" },
+      { label: "Demos", href: "/dashboard/gym/demos", caption: "Form videos" },
+      { label: "Machines", href: "/dashboard/gym/machines", caption: "Equipment guides" },
+      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Log gym work" },
+      { label: "Gym", href: "/dashboard/gym", caption: "Training hub" },
     ],
   },
   {
@@ -226,6 +230,7 @@ export function pathMatches(pathname: string, href: string) {
   if (href === "/dashboard/training") return pathname === "/dashboard/training";
   if (href === "/dashboard/wellness") return pathname === "/dashboard/wellness";
   if (href === "/dashboard/kitchen") return pathname === "/dashboard/kitchen";
+  if (href === "/dashboard/gym") return pathname === "/dashboard/gym";
   if (href === "/dashboard/pantry") return pathname === "/dashboard/pantry";
   if (href === "/dashboard/spending") return pathname === "/dashboard/spending";
   if (href === "/dashboard/ai") return pathname === "/dashboard/ai";

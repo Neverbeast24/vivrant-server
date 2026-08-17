@@ -132,14 +132,17 @@ export function Panel({
   right,
   children,
   className = "",
+  id,
 }: {
   title?: string;
   right?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
     <motion.section
+      id={id}
       variants={{
         hidden: { opacity: 0, y: 18 },
         show: { opacity: 1, y: 0 },

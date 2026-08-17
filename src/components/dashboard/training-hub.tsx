@@ -1,15 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ClipboardList,
-  Cog,
-  Dumbbell,
-  Footprints,
-  Play,
-  Sparkles,
-} from "lucide-react";
-import { GymOverviewStats } from "@/components/dashboard/gym-parts";
+import { ClipboardList, Dumbbell, Footprints } from "lucide-react";
+import { GymJumpCards, GymOverviewStats } from "@/components/dashboard/gym-parts";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { PageHeader, Panel, PrimaryButton, Stagger, StatCard } from "@/components/dashboard/ui";
 import { trainingSubNav } from "@/lib/nav";
@@ -94,48 +87,12 @@ export function TrainingHub({
         />
       </div>
 
-      <Stagger>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            {
-              href: "/dashboard/gym/demos",
-              title: "Exercise demos",
-              detail: `${demoCount} free-weight & bodyweight clips`,
-              icon: Play,
-            },
-            {
-              href: "/dashboard/gym/machines",
-              title: "Machines",
-              detail: `${machineCount} machine demos + AI picks`,
-              icon: Cog,
-            },
-            {
-              href: "/dashboard/gym/sessions",
-              title: "Sessions",
-              detail: "Log training and review history",
-              icon: ClipboardList,
-            },
-            {
-              href: "/dashboard/gym/plans",
-              title: "Training program",
-              detail: `${planCount} saved program${planCount === 1 ? "" : "s"}`,
-              icon: Sparkles,
-            },
-          ].map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              title={card.detail}
-              className="inline-flex items-center gap-2.5 rounded-full border border-ink/8 bg-card px-4 py-2.5 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:border-accent/25 hover:shadow-md"
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
-                <card.icon size={15} />
-              </span>
-              <span className="truncate">{card.title}</span>
-            </Link>
-          ))}
-        </div>
-      </Stagger>
+      <GymJumpCards
+        demoCount={demoCount}
+        machineCount={machineCount}
+        sessionCount={sessionCount}
+        planCount={planCount}
+      />
     </>
   );
 }
