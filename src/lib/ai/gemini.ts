@@ -10,6 +10,11 @@ import {
   parseGymPlanDays,
   type GymPlanDay,
 } from "@/lib/gym";
+import {
+  clampGymPlanLevel,
+  MAX_KNOWN_MACHINE_SLUGS,
+  type GymPlanLevel,
+} from "@/lib/health/body-metrics";
 
 export type InsightPayload = {
   title: string;
@@ -699,12 +704,23 @@ export type HealthHistoryInsight = {
   score: number;
 };
 
+function gymPlanLevelLoadNote(level: GymPlanLevel) {
+  if (level === "advanced") {
+    return `User selected ADVANCED. Set "level" to "advanced" (do not downgrade). Working loads using profile weight_kg — never a 1RM, leave ~2–3 reps in reserve: isolation machines ~35–55% bodyweight; compound machines like leg press ~80–140% bodyweight; free weights can be heavier. Mix machines and free weights. Mention this level in the summary.`;
+  }
+  if (level === "intermediate") {
+    return `User selected INTERMEDIATE. Set "level" to "intermediate" (do not upgrade or downgrade). Working loads using profile weight_kg — never a 1RM: isolation machines ~25–45% bodyweight; compound machines like leg press ~60–100% bodyweight; moderate free-weight volume. Mention this level in the summary.`;
+  }
+  return `User selected BEGINNER. Set "level" to "beginner" (do not upgrade). Conservative working loads using profile weight_kg — never a 1RM: isolation machines ~15–35% bodyweight; compound machines like leg press ~40–70% bodyweight; prefer machines and light free weights; technique first. Mention this level in the summary.`;
+}
+
 export async function generateGymPlan(
   context: string,
   availableExercises: string,
   prefs?: {
     days_per_week?: number;
     session_minutes?: number;
+    level?: GymPlanLevel;
     known_machine_slugs?: string[];
     known_custom_exercises?: string[];
     avoid_targets?: string[];
@@ -716,10 +732,11 @@ export async function generateGymPlan(
   const requestedSession = prefs?.session_minutes != null
     ? Math.max(15, Math.min(120, Math.round(prefs.session_minutes)))
     : null;
+  const requestedLevel = clampGymPlanLevel(prefs?.level);
   const knownMachines = (prefs?.known_machine_slugs ?? [])
     .map((slug) => String(slug).trim())
     .filter(Boolean)
-    .slice(0, 60);
+    .slice(0, MAX_KNOWN_MACHINE_SLUGS);
   const knownCustom = (prefs?.known_custom_exercises ?? [])
     .map((name) => String(name).replace(/\s+/g, " ").trim())
     .filter((name) => name.length >= 2)
@@ -746,6 +763,7 @@ Scale the program explicitly:
 - ${requestedDays != null ? `User chose EXACTLY ${requestedDays} training days/week — set days_per_week to ${requestedDays} and return exactly ${requestedDays} day entries` : "Match days_per_week to routine_scaling.days_per_week"}
 - ${requestedSession != null ? `User chose ~${requestedSession} minute sessions — size each day so it fits about ${requestedSession} minutes` : "Match session length to routine_scaling.session_minutes"}
 - Match focus to routine_scaling.focus (map to full_body, strength, fat_loss, mobility, or endurance)
+- ${gymPlanLevelLoadNote(requestedLevel)}
 - underweight → strength / muscle gain, fewer long cardio blocks
 - overweight / obese → joint-friendly machines first, controlled tempo, sustainable fat_loss or full_body
 - If pace_note says the forecast is aggressive, do NOT amp intensity — keep volume moderate and note sustainability in summary
@@ -753,11 +771,10 @@ Scale the program explicitly:
 - ${knownMachinesNote}
 - ${avoidTargetsNote}
 Prefer exercises from the available catalog when possible.
-Include a healthy mix of machines (safer for beginners) and free-weight / bodyweight moves when appropriate.
 Return JSON:
 - "title"
 - "focus": one of full_body, strength, fat_loss, mobility, endurance
-- "level": beginner | intermediate | advanced
+- "level": must be exactly "${requestedLevel}"
 - "days_per_week": 2-6
 - "summary": 2 sentences (mention avoided targets briefly if any were set)
 - "days": array of {
@@ -769,7 +786,7 @@ Return JSON:
   }
   Include 3–5 exercises per day. Name machines clearly when used (e.g. "Leg press machine").
   For each day "focus", use a short human-readable label with spaces (e.g. "Fat loss", "Upper body", "Mobility") — never snake_case like fat_loss.
-  For each exercise "weight": conservative working load using profile weight_kg and level, e.g. "12–16 kg", "bodyweight", or "easy pace" for cardio. Never a 1RM. Isolation machines ~15–35% bodyweight; compound machines like leg press ~40–70% bodyweight for beginners. Cardio = "easy pace" or "—".
+  For each exercise "weight": a conservative working load from profile weight_kg AND the selected ${requestedLevel} level, e.g. "12–16 kg", "bodyweight", or "easy pace" for cardio. Cardio = "easy pace" or "—". Never a 1RM.
 
 AVAILABLE EXERCISES:
 ${availableExercises}
@@ -794,7 +811,7 @@ ${context}`);
   return {
     title: String(parsed.title ?? "Your VIVRΛNT gym program").slice(0, 120),
     focus: String(parsed.focus ?? "full_body").replaceAll(" ", "_").slice(0, 40),
-    level: String(parsed.level ?? "beginner"),
+    level: requestedLevel,
     days_per_week: daysPerWeek,
     summary: String(parsed.summary ?? "A gentle program matched to your current rhythm.").slice(0, 600),
     recommendations,

@@ -4,8 +4,10 @@ import {
   bmiBand,
   clampGymPlanPrefs,
   computeBmi,
+  MAX_KNOWN_MACHINE_SLUGS,
   parseRoutineDefaults,
   weightForBmi,
+  type GymPlanPrefs,
 } from "./body-metrics";
 
 describe("computeBmi", () => {
@@ -43,6 +45,7 @@ describe("parseRoutineDefaults", () => {
     expect(parseRoutineDefaults({ days_per_week: "3–4", session_minutes: "35–55" })).toEqual({
       days_per_week: 4,
       session_minutes: 45,
+      level: "beginner",
       known_machine_slugs: [],
       known_custom_exercises: [],
       avoid_targets: [],
@@ -53,6 +56,7 @@ describe("parseRoutineDefaults", () => {
     expect(clampGymPlanPrefs({ days_per_week: 99, session_minutes: 5 })).toEqual({
       days_per_week: 6,
       session_minutes: 15,
+      level: "beginner",
       known_machine_slugs: [],
       known_custom_exercises: [],
       avoid_targets: [],
@@ -67,12 +71,28 @@ describe("parseRoutineDefaults", () => {
     ).toEqual(["leg-press", "lat-pulldown"]);
   });
 
+  it("keeps a broad known-exercise selection", () => {
+    const slugs = Array.from({ length: 80 }, (_, i) => `machine-${i}`);
+    expect(clampGymPlanPrefs({ known_machine_slugs: slugs }).known_machine_slugs).toHaveLength(80);
+    const overflow = Array.from({ length: MAX_KNOWN_MACHINE_SLUGS + 5 }, (_, i) => `machine-${i}`);
+    expect(clampGymPlanPrefs({ known_machine_slugs: overflow }).known_machine_slugs).toHaveLength(
+      MAX_KNOWN_MACHINE_SLUGS,
+    );
+  });
+
   it("sanitizes custom exercises", () => {
     expect(
       clampGymPlanPrefs({
         known_custom_exercises: ["  Hip thrust ", "hip thrust", "a", "Landmine press"],
       }).known_custom_exercises,
     ).toEqual(["Hip thrust", "Landmine press"]);
+  });
+
+  it("defaults and sanitizes experience level", () => {
+    expect(clampGymPlanPrefs({}).level).toBe("beginner");
+    expect(clampGymPlanPrefs({ level: "ADVANCED" } as Partial<GymPlanPrefs>).level).toBe("advanced");
+    expect(clampGymPlanPrefs({ level: "intermediate" }).level).toBe("intermediate");
+    expect(clampGymPlanPrefs({ level: "expert" } as Partial<GymPlanPrefs>).level).toBe("beginner");
   });
 
   it("sanitizes avoid targets", () => {
@@ -108,6 +128,7 @@ describe("parseRoutineDefaults", () => {
       {
         days_per_week: 5,
         session_minutes: 40,
+        level: "intermediate",
         known_machine_slugs: [],
         known_custom_exercises: [],
         avoid_targets: [],

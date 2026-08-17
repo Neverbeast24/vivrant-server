@@ -20,10 +20,15 @@ export type RoutineScaling = {
   summary: string;
 };
 
+export const GYM_PLAN_LEVELS = ["beginner", "intermediate", "advanced"] as const;
+export type GymPlanLevel = (typeof GYM_PLAN_LEVELS)[number];
+
 /** Editable program prefs used by Training program + AI generation. */
 export type GymPlanPrefs = {
   days_per_week: number;
   session_minutes: number;
+  /** Self-reported experience — drives AI working loads, not BMI band. */
+  level: GymPlanLevel;
   /** Catalog slugs for machines / free-weight moves the user already knows. */
   known_machine_slugs: string[];
   /** Free-text moves the user typed that are not in the catalog checklist. */
@@ -65,6 +70,9 @@ function midpointFromRange(raw: string, fallback: number) {
   return Math.round((nums[0] + nums[1]) / 2);
 }
 
+/** Max catalog slugs a member can mark as known (covers a full gym-floor checklist). */
+export const MAX_KNOWN_MACHINE_SLUGS = 250;
+
 function sanitizeKnownMachineSlugs(input: unknown): string[] {
   if (!Array.isArray(input)) return [];
   const seen = new Set<string>();
@@ -75,7 +83,7 @@ function sanitizeKnownMachineSlugs(input: unknown): string[] {
       .slice(0, 80);
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
-    if (seen.size >= 60) break;
+    if (seen.size >= MAX_KNOWN_MACHINE_SLUGS) break;
   }
   return [...seen];
 }
@@ -114,11 +122,19 @@ function sanitizeAvoidTargets(input: unknown): string[] {
   return [...seen];
 }
 
+export function clampGymPlanLevel(input: unknown): GymPlanLevel {
+  const value = String(input ?? "")
+    .trim()
+    .toLowerCase();
+  return value === "intermediate" || value === "advanced" ? value : "beginner";
+}
+
 /** Turn BMI-suggested range strings into editable number defaults. */
 export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_week" | "session_minutes"> | null | undefined): GymPlanPrefs {
   return {
     days_per_week: Math.max(2, Math.min(6, midpointFromRange(scaling?.days_per_week ?? "3", 3))),
     session_minutes: Math.max(15, Math.min(120, midpointFromRange(scaling?.session_minutes ?? "45", 45))),
+    level: "beginner",
     known_machine_slugs: [],
     known_custom_exercises: [],
     avoid_targets: [],
@@ -131,6 +147,7 @@ export function clampGymPlanPrefs(input: Partial<GymPlanPrefs> | null | undefine
   return {
     days_per_week: Math.max(2, Math.min(6, Number.isFinite(days) ? Math.round(days) : 3)),
     session_minutes: Math.max(15, Math.min(120, Number.isFinite(session) ? Math.round(session) : 45)),
+    level: clampGymPlanLevel(input?.level),
     known_machine_slugs: sanitizeKnownMachineSlugs(input?.known_machine_slugs),
     known_custom_exercises: sanitizeCustomExercises(input?.known_custom_exercises),
     avoid_targets: sanitizeAvoidTargets(input?.avoid_targets),

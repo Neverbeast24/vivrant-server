@@ -60,7 +60,9 @@ import {
 import {
   clampGymPlanPrefs,
   GYM_AVOID_TARGETS,
+  GYM_PLAN_LEVELS,
   parseRoutineDefaults,
+  type GymPlanLevel,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
 import { trainingSubNav } from "@/lib/nav";
@@ -351,10 +353,13 @@ const muscleFilters = [
 const muscleFiltersPrimary = [
   "all",
   "legs",
+  "glutes",
   "chest",
   "back",
+  "shoulders",
   "arms",
   "core",
+  "cardio",
 ] as const;
 
 /** Legs filter also surfaces posterior-chain free-weight demos (RDL, etc.). */
@@ -736,6 +741,7 @@ export function GymPlansView({
   const suggested = useMemo(() => parseRoutineDefaults(scaling), [scaling]);
   const [daysPerWeek, setDaysPerWeek] = useState(String(suggested.days_per_week));
   const [sessionMinutes, setSessionMinutes] = useState(String(suggested.session_minutes));
+  const [level, setLevel] = useState<GymPlanLevel>(suggested.level);
   const [knownMachineSlugs, setKnownMachineSlugs] = useState<string[]>([]);
   const [knownCustomExercises, setKnownCustomExercises] = useState<string[]>([]);
   const [customDraft, setCustomDraft] = useState("");
@@ -803,6 +809,7 @@ export function GymPlansView({
           JSON.parse(raw) as {
             days_per_week?: number;
             session_minutes?: number;
+            level?: GymPlanLevel;
             known_machine_slugs?: string[];
             known_custom_exercises?: string[];
             avoid_targets?: string[];
@@ -810,6 +817,7 @@ export function GymPlansView({
         );
         setDaysPerWeek(String(saved.days_per_week));
         setSessionMinutes(String(saved.session_minutes));
+        setLevel(saved.level);
         if (saved.known_machine_slugs.length) {
           setKnownMachineSlugs(saved.known_machine_slugs);
         }
@@ -922,12 +930,14 @@ export function GymPlansView({
     const prefs = clampGymPlanPrefs({
       days_per_week: Number(daysPerWeek),
       session_minutes: Number(sessionMinutes),
+      level,
       known_machine_slugs: knownMachineSlugs,
       known_custom_exercises: knownCustomExercises,
       avoid_targets: avoidTargets,
     });
     setDaysPerWeek(String(prefs.days_per_week));
     setSessionMinutes(String(prefs.session_minutes));
+    setLevel(prefs.level);
     persistKnownMachines(prefs.known_machine_slugs);
     persistKnownCustom(prefs.known_custom_exercises);
     persistAvoidTargets(prefs.avoid_targets);
@@ -958,7 +968,8 @@ export function GymPlansView({
         }
       />
       <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Choose how often you train, then create a weekly program. Extra options are optional.
+        Choose how often you train and your experience, then create a weekly program. Extra options are
+        optional.
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
@@ -1032,6 +1043,32 @@ export function GymPlansView({
             {scaling && (
               <p className="mt-1 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
             )}
+          </div>
+        </div>
+        <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Experience</p>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            Working loads use your body weight and this level.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {GYM_PLAN_LEVELS.map((item) => {
+              const selected = level === item;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setLevel(item)}
+                  aria-pressed={selected}
+                  className={`rounded-full border px-3.5 py-1.5 text-[11px] font-black capitalize transition ${
+                    selected
+                      ? "border-accent/40 bg-accent-soft text-accent"
+                      : "border-ink/10 bg-card text-muted hover:border-ink/20 hover:text-ink"
+                  }`}
+                >
+                  {humanizeGymLabel(item)}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">

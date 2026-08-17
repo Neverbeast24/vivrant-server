@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   let body: {
     days_per_week?: number;
     session_minutes?: number;
+    level?: string;
     known_machine_slugs?: string[];
     known_custom_exercises?: string[];
     avoid_targets?: string[];
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
         metadata: {
           title: plan.title,
           focus: plan.focus,
+          level: plan.level,
           known_machine_count: prefs.known_machine_slugs.length,
           known_custom_count: prefs.known_custom_exercises.length,
           avoid_targets: prefs.avoid_targets,

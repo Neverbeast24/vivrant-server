@@ -203,9 +203,10 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
       action: "gym_plan_created",
       entity: "gym_plans",
       entityId: data?.id != null ? String(data.id) : undefined,
-      metadata: {
+        metadata: {
         title: plan.title,
         focus: plan.focus,
+        level: plan.level,
         known_machine_count: prefs.known_machine_slugs.length,
         known_custom_count: prefs.known_custom_exercises.length,
         avoid_targets: prefs.avoid_targets,
