@@ -141,7 +141,17 @@ export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_wee
   };
 }
 
-export function clampGymPlanPrefs(input: Partial<GymPlanPrefs> | null | undefined): GymPlanPrefs {
+/** JSON / form payloads — every field is sanitized, including unknown `level` strings. */
+export type GymPlanPrefsInput = {
+  days_per_week?: unknown;
+  session_minutes?: unknown;
+  level?: unknown;
+  known_machine_slugs?: unknown;
+  known_custom_exercises?: unknown;
+  avoid_targets?: unknown;
+};
+
+export function clampGymPlanPrefs(input: GymPlanPrefsInput | Partial<GymPlanPrefs> | null | undefined): GymPlanPrefs {
   const days = Number(input?.days_per_week);
   const session = Number(input?.session_minutes);
   return {

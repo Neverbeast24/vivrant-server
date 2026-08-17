@@ -7,7 +7,6 @@ import {
   MAX_KNOWN_MACHINE_SLUGS,
   parseRoutineDefaults,
   weightForBmi,
-  type GymPlanPrefs,
 } from "./body-metrics";
 
 describe("computeBmi", () => {
@@ -90,9 +89,9 @@ describe("parseRoutineDefaults", () => {
 
   it("defaults and sanitizes experience level", () => {
     expect(clampGymPlanPrefs({}).level).toBe("beginner");
-    expect(clampGymPlanPrefs({ level: "ADVANCED" } as Partial<GymPlanPrefs>).level).toBe("advanced");
+    expect(clampGymPlanPrefs({ level: "ADVANCED" }).level).toBe("advanced");
     expect(clampGymPlanPrefs({ level: "intermediate" }).level).toBe("intermediate");
-    expect(clampGymPlanPrefs({ level: "expert" } as Partial<GymPlanPrefs>).level).toBe("beginner");
+    expect(clampGymPlanPrefs({ level: "expert" }).level).toBe("beginner");
   });
 
   it("sanitizes avoid targets", () => {
