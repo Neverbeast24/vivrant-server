@@ -1,5 +1,6 @@
 import {
   formatGymExerciseLine,
+  formatTrainingDaysLabel,
   humanizeGymLabel,
   type GymPlan,
   type GymPlanDay,
@@ -132,7 +133,7 @@ function gymPlanArticleHtml(plan: GymPlan, headingTag: "h1" | "h2" = "h1") {
   return `<header class="sheet-head">
       ${headingTag === "h1" ? `<p class="brand">VIVRΛNT</p><p class="kind">Training program</p>` : `<p class="kind">Program</p>`}
       <${headingTag}>${escapeHtml(plan.title)}</${headingTag}>
-      <p class="meta"><em>${escapeHtml(printLabel(plan.focus))}</em> · <strong>${escapeHtml(plan.level)}</strong> · ${escapeHtml(String(plan.days_per_week))} days/week</p>
+      <p class="meta"><em>${escapeHtml(printLabel(plan.focus))}</em> · <strong>${escapeHtml(plan.level)}</strong> · ${escapeHtml(formatTrainingDaysLabel(plan.training_days ?? []) || `${plan.days_per_week} days/week`)}</p>
       ${plan.summary ? `<p class="summary">${escapeHtml(plan.summary)}</p>` : ""}
     </header>
     ${gymCoachNotesHtml(recs)}
@@ -177,7 +178,7 @@ export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
   const recs = plan.recommendations ?? [];
   const lines = [
     plan.title,
-    `${focus} · ${plan.level} · ${plan.days_per_week} days/week`,
+    `${focus} · ${plan.level} · ${formatTrainingDaysLabel(plan.training_days ?? []) || `${plan.days_per_week} days/week`}`,
     plan.summary ? `\n${plan.summary}` : "",
     recs.length ? `\nCoach notes\n${recs.map((rec) => `• ${rec}`).join("\n")}` : "",
     "",

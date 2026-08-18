@@ -92,7 +92,7 @@ export function ProgramSessionPanel({
   const [saving, startSave] = useTransition();
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
-  const today = plan ? pickTodaysPlanDay(plan.days ?? []) : null;
+  const today = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
   const items = useMemo(() => (today ? buildItems(today) : []), [today]);
 
   useEffect(() => {
@@ -297,7 +297,9 @@ export function ProgramSessionPanel({
   if (!plan || !today) {
     return (
       <Panel title="Today’s program" className={compact ? "mb-4" : ""}>
-        <EmptyState>This program does not have a session for today.</EmptyState>
+        <EmptyState>
+          Rest day — no gym session on your schedule today. Enjoy recovery, or log a walk below.
+        </EmptyState>
       </Panel>
     );
   }
@@ -315,7 +317,7 @@ export function ProgramSessionPanel({
       >
         <p className="mb-3 text-sm leading-6 text-muted">
           Check off each set. Rest starts automatically from the program (skip anytime). Save when you are
-          done — this is the same log as Sessions.
+          done — this saves as today’s workout.
         </p>
         {plans.length > 1 && (
           <label className="mb-3 block">

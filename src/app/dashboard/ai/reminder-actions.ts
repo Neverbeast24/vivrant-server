@@ -6,6 +6,8 @@ import { writeAuditLog } from "@/lib/audit";
 import { buildUserContext } from "@/lib/ai/context";
 import { draftReminder } from "@/lib/ai/gemini";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
+import { hydrateGymPlan } from "@/lib/gym";
+import { reminderDaysFromGymPlan } from "@/lib/gym-schedule";
 import { processDueReminders } from "@/lib/reminders/process";
 import { syncTodayLeftoverReminders } from "@/lib/reminders/today-leftovers";
 import { createClient } from "@/lib/supabase/server";
@@ -233,16 +235,8 @@ export async function syncRemindersFromGymPlan() {
     .maybeSingle();
   const timezone = settings?.timezone || "Asia/Manila";
 
-  // Prefer weekday pattern from days_per_week
-  const daysPerWeek = Math.min(6, Math.max(2, Number(plan.days_per_week ?? 3)));
-  const defaultDays =
-    daysPerWeek >= 5
-      ? [1, 2, 3, 4, 5]
-      : daysPerWeek === 4
-        ? [1, 2, 4, 5]
-        : daysPerWeek === 3
-          ? [1, 3, 5]
-          : [2, 5];
+  // Prefer weekday names on the plan; fall back to a spread from days_per_week.
+  const defaultDays = reminderDaysFromGymPlan(hydrateGymPlan(plan));
 
   await supabase
     .from("user_reminders")
@@ -268,7 +262,7 @@ export async function syncRemindersFromGymPlan() {
     kind: "plan",
     schedule_time,
     days_of_week: defaultDays,
-    href: "/dashboard/gym/sessions",
+    href: "/dashboard/movement/log",
     source_id: String(plan.id),
     enabled: true,
     timezone,

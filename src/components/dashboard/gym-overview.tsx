@@ -58,7 +58,7 @@ export function GymOverview({
             <PrimaryButton className="rounded-full px-5">Watch beginner demos</PrimaryButton>
           </Link>
           <Link
-            href="/dashboard/gym/sessions"
+            href="/dashboard/movement/log"
             className="inline-flex items-center rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
           >
             Start today’s workout

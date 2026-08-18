@@ -1,3 +1,31 @@
+import {
+  formatRestDaysLabel,
+  formatTrainingDaysLabel,
+  GYM_WEEKDAYS,
+  isoWeekdayFromDate,
+  nextTrainingDayHint,
+  parseTrainingDays,
+  reminderDaysFromGymPlan,
+  resolveTrainingDays,
+  sanitizeTrainingDays,
+  SESSION_MINUTE_PRESETS,
+  weekdayIsoFromLabel,
+} from "@/lib/gym-schedule";
+
+export {
+  formatRestDaysLabel,
+  formatTrainingDaysLabel,
+  GYM_WEEKDAYS,
+  isoWeekdayFromDate,
+  nextTrainingDayHint,
+  parseTrainingDays,
+  reminderDaysFromGymPlan,
+  resolveTrainingDays,
+  sanitizeTrainingDays,
+  SESSION_MINUTE_PRESETS,
+  weekdayIsoFromLabel,
+};
+
 export type GymExercise = {
   id: number;
   slug: string;
@@ -69,6 +97,8 @@ export type GymPlan = {
   focus: string;
   level: string;
   days_per_week: number;
+  /** ISO weekdays 1=Mon … 7=Sun the member actually trains. */
+  training_days?: number[];
   summary: string | null;
   days: GymPlanDay[];
   recommendations?: string[];
@@ -301,12 +331,18 @@ export function parseGymPlanExercise(raw: unknown): GymPlanExercise {
   };
 }
 
-export function parseGymPlanDays(raw: unknown): { days: GymPlanDay[]; recommendations: string[] } {
+export function parseGymPlanDays(raw: unknown): {
+  days: GymPlanDay[];
+  recommendations: string[];
+  training_days: number[];
+} {
   const rows = Array.isArray(raw) ? raw : [];
   const recommendations: string[] = [];
   const seen = new Set<string>();
-  const days = rows.map((row) => {
+  let packedTraining: unknown;
+  const days = rows.map((row, index) => {
     const day = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+    if (index === 0) packedTraining = day.training_days;
     for (const rec of clampGymPlanRecommendations(day.recommendations)) {
       const key = rec.toLowerCase();
       if (seen.has(key)) continue;
@@ -323,24 +359,49 @@ export function parseGymPlanDays(raw: unknown): { days: GymPlanDay[]; recommenda
       ...(additionals.length ? { additionals } : {}),
     };
   });
-  return { days, recommendations };
+  return {
+    days,
+    recommendations,
+    training_days: resolveTrainingDays({
+      training_days: packedTraining,
+      days,
+      days_per_week: days.length,
+    }),
+  };
 }
 
 /** Persist program-level recs on day 1 so older `days` jsonb stays an array. */
-export function serializeGymPlanDays(days: GymPlanDay[], recommendations: string[]) {
+export function serializeGymPlanDays(
+  days: GymPlanDay[],
+  recommendations: string[],
+  trainingDays: number[] = [],
+) {
   const recs = clampGymPlanRecommendations(recommendations);
-  return days.map((day, index) => (index === 0 && recs.length ? { ...day, recommendations: recs } : day));
+  const schedule = parseTrainingDays(trainingDays);
+  return days.map((day, index) => {
+    if (index !== 0) return day;
+    return {
+      ...day,
+      ...(recs.length ? { recommendations: recs } : {}),
+      ...(schedule.length ? { training_days: schedule } : {}),
+    };
+  });
 }
 
-export function hydrateGymPlan<T extends { days?: unknown; recommendations?: unknown }>(
-  row: T,
-): T & { days: GymPlanDay[]; recommendations: string[] } {
+export function hydrateGymPlan<
+  T extends { days?: unknown; recommendations?: unknown; days_per_week?: unknown },
+>(row: T): T & { days: GymPlanDay[]; recommendations: string[]; training_days: number[] } {
   const parsed = parseGymPlanDays(row.days);
   const top = clampGymPlanRecommendations(row.recommendations);
   return {
     ...row,
     days: parsed.days,
     recommendations: top.length ? top : parsed.recommendations,
+    training_days: resolveTrainingDays({
+      training_days: parsed.training_days,
+      days: parsed.days,
+      days_per_week: Number(row.days_per_week ?? parsed.days.length),
+    }),
   };
 }
 
@@ -353,48 +414,72 @@ export function formatGymExerciseLine(
   return `${ex.name} · ${parts.join(" · ")}`;
 }
 
-const WEEKDAY_FULL = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
-const WEEKDAY_SHORT = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-
-/** Pick the session that should show on Today — weekday name first, else Mon-based rotation. */
-export function pickTodaysPlanDay(days: GymPlanDay[], date = new Date()): GymPlanDay | null {
-  if (!days.length) return null;
-  const dow = date.getDay();
-  const full = WEEKDAY_FULL[dow];
-  const short = WEEKDAY_SHORT[dow];
-  const named = days.find((day) => {
-    const label = String(day.day ?? "").toLowerCase();
-    const tokens = label.split(/[\s,/:.-]+/).filter(Boolean);
-    return label.includes(full) || tokens.includes(short);
+export function labelGymPlanDaysWithWeekdays(days: GymPlanDay[], trainingDays: number[]): GymPlanDay[] {
+  const isos = sanitizeTrainingDays(trainingDays, days.length);
+  return days.slice(0, isos.length).map((day, index) => {
+    const weekday = GYM_WEEKDAYS.find((item) => item.iso === isos[index])?.full ?? `Day ${index + 1}`;
+    const focus = humanizeGymLabel(day.focus) || "Training";
+    return {
+      ...day,
+      day: `${weekday} · ${focus}`.slice(0, 40),
+    };
   });
-  if (named) return named;
-  const mondayIndex = dow === 0 ? 6 : dow - 1;
-  return days[mondayIndex % days.length] ?? days[0];
+}
+
+/** Pick today’s session. Rest days return null so Today does not invent a workout. */
+export function pickTodaysPlanDay(
+  days: GymPlanDay[],
+  date = new Date(),
+  trainingDays?: number[],
+): GymPlanDay | null {
+  if (!days.length) return null;
+  const iso = isoWeekdayFromDate(date);
+  const named = days.map((day) => weekdayIsoFromLabel(String(day.day ?? "")));
+  if (named.some((value) => value != null)) {
+    const index = named.findIndex((value) => value === iso);
+    return index >= 0 ? (days[index] ?? null) : null;
+  }
+  const schedule = resolveTrainingDays({
+    training_days: trainingDays,
+    days,
+    days_per_week: days.length,
+  });
+  const index = schedule.indexOf(iso);
+  if (index < 0) return null;
+  return days[index] ?? null;
 }
 
 export type TodaysProgramSummary = {
   title: string;
   focus: string;
   daysPerWeek: number;
+  trainingDays: number[];
   planCount: number;
   today: {
     day: string;
     focus: string;
     exercises: { name: string; sets: string }[];
   } | null;
+  nextSession: string | null;
 };
 
 export function summarizeTodaysProgram(
-  plans: Array<Pick<GymPlan, "title" | "focus" | "days_per_week" | "days">>,
+  plans: Array<Pick<GymPlan, "title" | "focus" | "days_per_week" | "days" | "training_days">>,
   date = new Date(),
 ): TodaysProgramSummary | null {
   if (!plans.length) return null;
   const plan = plans[0];
-  const day = pickTodaysPlanDay(plan.days ?? [], date);
+  const trainingDays = resolveTrainingDays({
+    training_days: plan.training_days,
+    days: plan.days ?? [],
+    days_per_week: plan.days_per_week,
+  });
+  const day = pickTodaysPlanDay(plan.days ?? [], date, trainingDays);
   return {
     title: plan.title,
     focus: plan.focus,
-    daysPerWeek: plan.days_per_week,
+    daysPerWeek: trainingDays.length || plan.days_per_week,
+    trainingDays,
     planCount: plans.length,
     today: day
       ? {
@@ -406,10 +491,37 @@ export function summarizeTodaysProgram(
           })),
         }
       : null,
+    nextSession: day ? null : nextTrainingDayHint(trainingDays, date),
   };
 }
 
-type GymCatalogItem = Pick<GymExercise, "name" | "muscle_group" | "equipment">;
+export type GymCatalogItem = Pick<GymExercise, "name" | "muscle_group" | "equipment">;
+
+export type GymPlanCatalogRow = GymCatalogItem & {
+  slug?: string;
+  difficulty?: string;
+};
+
+export const GYM_PLAN_CATALOG_FALLBACK =
+  "bodyweight squat, push-up, plank, glute bridge, lat pulldown";
+
+const RELATED_MUSCLES: Record<string, string[]> = {
+  legs: ["hamstrings", "glutes", "inner_thighs", "calves"],
+  hamstrings: ["legs", "glutes", "inner_thighs"],
+  inner_thighs: ["legs", "hamstrings", "glutes"],
+  glutes: ["hamstrings", "legs", "inner_thighs"],
+  calves: ["legs"],
+  chest: ["shoulders", "arms"],
+  back: ["shoulders", "arms", "traps"],
+  shoulders: ["arms", "chest", "back"],
+  arms: ["shoulders", "chest"],
+  traps: ["back", "shoulders"],
+  core: ["cardio", "mobility"],
+  cardio: ["core"],
+  lower_back: ["core", "hamstrings"],
+  full_body: ["core", "cardio"],
+  mobility: ["core"],
+};
 
 const ADDON_COMPLEMENT: Record<string, string[]> = {
   back: ["shoulders", "arms", "core"],
@@ -520,5 +632,237 @@ export function findExerciseMatch<T extends { name: string }>(name: string, exer
   return exercises.find((item) => {
     const catalog = item.name.toLowerCase();
     return catalog.includes(stripped) || stripped.includes(catalog.replace(/\b(machine|trainer)\b/g, "").trim());
+  });
+}
+
+function formatGymCatalogLine(row: GymPlanCatalogRow) {
+  return `${row.name}${row.slug ? ` [${row.slug}]` : ""} (${row.muscle_group}, ${row.equipment}${
+    row.difficulty ? `, ${row.difficulty}` : ""
+  })`;
+}
+
+/** Prompt catalog: when the user marked known moves, send only that set. */
+export function buildGymPlanAvailableExercises(
+  rows: GymPlanCatalogRow[],
+  prefs: {
+    known_machine_slugs: string[];
+    known_custom_exercises: string[];
+    avoid_targets: string[];
+  },
+): { catalogText: string; knownRows: GymPlanCatalogRow[]; restrictToKnown: boolean } {
+  const knownSet = new Set(prefs.known_machine_slugs.map((slug) => slug.toLowerCase()));
+  const knownRows = knownSet.size
+    ? rows.filter((row) => knownSet.has(String(row.slug ?? "").toLowerCase()))
+    : [];
+  const restrictToKnown = knownRows.length > 0 || prefs.known_custom_exercises.length > 0;
+  const parts: string[] = [];
+  if (prefs.avoid_targets.length) {
+    parts.push(`AVOID THESE TARGETS (do not program primary work for): ${prefs.avoid_targets.join(", ")}`);
+  }
+  if (restrictToKnown) {
+    const knownBlock = [
+      knownRows.length ? knownRows.map(formatGymCatalogLine).join("\n") : null,
+      prefs.known_custom_exercises.length
+        ? prefs.known_custom_exercises.map((name) => `${name} (custom, user-typed)`).join("\n")
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    parts.push(
+      "ALLOWED EXERCISES ONLY — program exclusively from this list. Do not add any other catalog machine or free-weight move:\n" +
+        knownBlock,
+    );
+  } else {
+    parts.push(rows.map(formatGymCatalogLine).join("\n"));
+  }
+  return {
+    catalogText: parts.join("\n\n"),
+    knownRows,
+    restrictToKnown,
+  };
+}
+
+/** When known moves are set, only fill swaps/extras from that catalog (empty = skip enrich). */
+export function gymPlanEnrichCatalog<T extends { slug?: string }>(
+  catalog: T[],
+  knownSlugs: string[],
+  hasCustomExercises: boolean,
+): T[] {
+  if (!knownSlugs.length && !hasCustomExercises) return catalog;
+  const allowed = new Set(knownSlugs.map((slug) => slug.toLowerCase()));
+  return catalog.filter((item) => allowed.has(String(item.slug ?? "").toLowerCase()));
+}
+
+function normalizeGymMoveName(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(machines?|trainers?|exercises?|the)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferCustomMuscleGroup(name: string) {
+  const n = name.toLowerCase();
+  if (/\b(sit\s*-?ups?|crunch|plank|ab\b|core|glider)\b/.test(n)) return "core";
+  if (/\b(treadmill|bike|cardio|run|jog|elliptical)\b/.test(n)) return "cardio";
+  if (/\b(tricep|bicep|arm)\b/.test(n) && !/\bleg\b/.test(n)) return "arms";
+  if (/\b(chest|bench|pec)\b/.test(n)) return "chest";
+  if (/\b(lat|pulldown|row)\b/.test(n) || /\bback\b/.test(n)) return "back";
+  if (/\b(shoulder|delt)\b/.test(n)) return "shoulders";
+  if (/\b(glute|hip thrust|kickback)\b/.test(n)) return "glutes";
+  if (/\b(hamstring|rdl|deadlift|leg curl)\b/.test(n)) return "hamstrings";
+  if (/\b(calf)\b/.test(n)) return "calves";
+  if (/\b(inner thigh|adductor|abductor)\b/.test(n)) return "inner_thighs";
+  if (/\b(leg|squat|lunge|thigh)\b/.test(n)) return "legs";
+  return "full_body";
+}
+
+type KnownMovePoolItem = {
+  name: string;
+  muscle_group: string;
+  slug?: string;
+};
+
+export function isAllowedGymPlanMove(name: string, allowed: Array<{ name: string; slug?: string }>) {
+  const needle = name.toLowerCase().trim();
+  if (!needle || !allowed.length) return false;
+  if (allowed.some((item) => item.slug && item.slug.toLowerCase() === needle)) return true;
+  if (allowed.some((item) => item.name.toLowerCase() === needle)) return true;
+  const normalizedNeedle = normalizeGymMoveName(name);
+  if (!normalizedNeedle) return false;
+  return allowed.some((item) => {
+    const known = normalizeGymMoveName(item.name);
+    if (!known) return false;
+    if (normalizedNeedle === known) return true;
+    const [short, long] =
+      normalizedNeedle.length <= known.length
+        ? [normalizedNeedle, known]
+        : [known, normalizedNeedle];
+    // Short tokens like "press" must not match every press machine.
+    return short.length >= 10 && long.includes(short);
+  });
+}
+
+function muscleForMoveName(name: string, catalog: Array<{ name: string; muscle_group: string }>) {
+  return findExerciseMatch(name, catalog)?.muscle_group ?? inferCustomMuscleGroup(name);
+}
+
+function pickKnownReplacement(
+  wantedName: string,
+  used: Set<string>,
+  pool: KnownMovePoolItem[],
+  catalog: Array<{ name: string; muscle_group: string }>,
+): KnownMovePoolItem | null {
+  const unused = pool.filter((item) => !used.has(item.name.toLowerCase()));
+  if (!unused.length) return null;
+  const wantedMuscle = muscleForMoveName(wantedName, catalog);
+  const same = unused.find((item) => item.muscle_group === wantedMuscle);
+  if (same) return same;
+  for (const group of RELATED_MUSCLES[wantedMuscle] ?? []) {
+    const related = unused.find((item) => item.muscle_group === group);
+    if (related) return related;
+  }
+  return unused[0] ?? null;
+}
+
+function canonicalKnownName(name: string, pool: KnownMovePoolItem[]) {
+  const exact = pool.find((item) => item.name.toLowerCase() === name.toLowerCase().trim());
+  if (exact) return exact.name;
+  const slug = pool.find((item) => item.slug && item.slug.toLowerCase() === name.toLowerCase().trim());
+  if (slug) return slug.name;
+  const normalizedNeedle = normalizeGymMoveName(name);
+  const close = pool.find((item) => normalizeGymMoveName(item.name) === normalizedNeedle);
+  return close?.name ?? name;
+}
+
+/**
+ * When the user marked known moves, drop/replace anything Gemini added from the rest of the catalog
+ * (classic leak: unmarked "Horizontal leg press" on a hamstring day).
+ */
+export function constrainGymPlanToKnownMoves(
+  days: GymPlanDay[],
+  knownMoves: KnownMovePoolItem[],
+  customExercises: string[] = [],
+  fullCatalog: Array<{ name: string; muscle_group: string; equipment?: string }> = [],
+): GymPlanDay[] {
+  if (!knownMoves.length && !customExercises.length) return days;
+  const pool: KnownMovePoolItem[] = [
+    ...knownMoves,
+    ...customExercises.map((name) => ({
+      name,
+      muscle_group: muscleForMoveName(name, fullCatalog.length ? fullCatalog : knownMoves),
+    })),
+  ];
+  const catalog = fullCatalog.length ? fullCatalog : knownMoves;
+
+  return days.map((day) => {
+    const used = new Set<string>();
+    const remaps = new Map<string, string>();
+
+    const mapToAllowed = (rawName: string): string | null => {
+      if (isAllowedGymPlanMove(rawName, pool)) {
+        const canonical = canonicalKnownName(rawName, pool);
+        used.add(canonical.toLowerCase());
+        if (canonical.toLowerCase() !== rawName.toLowerCase()) {
+          remaps.set(rawName.toLowerCase(), canonical);
+        }
+        return canonical;
+      }
+      const replacement = pickKnownReplacement(rawName, used, pool, catalog);
+      if (!replacement) return null;
+      used.add(replacement.name.toLowerCase());
+      remaps.set(rawName.toLowerCase(), replacement.name);
+      return replacement.name;
+    };
+
+    let exercises = day.exercises.flatMap((ex) => {
+      const name = mapToAllowed(ex.name);
+      if (!name) return [];
+      if (name.toLowerCase() === ex.name.toLowerCase()) return [{ ...ex, name }];
+      const { notes: _notes, ...rest } = ex;
+      return [{ ...rest, name }];
+    });
+
+    if (!exercises.length) {
+      for (const item of pool) {
+        if (exercises.length >= 3) break;
+        if (used.has(item.name.toLowerCase())) continue;
+        used.add(item.name.toLowerCase());
+        exercises.push({ name: item.name, sets: "3 x 10", rest: "60s" });
+      }
+    }
+
+    const seenExercise = new Set<string>();
+    exercises = exercises.filter((ex) => {
+      const key = ex.name.toLowerCase();
+      if (seenExercise.has(key)) return false;
+      seenExercise.add(key);
+      return true;
+    });
+
+    const alternatives = (day.alternatives ?? []).flatMap((swap) => {
+      const insteadOf = remaps.get(swap.instead_of.toLowerCase()) ?? swap.instead_of;
+      if (!isAllowedGymPlanMove(swap.use, pool)) return [];
+      const use = canonicalKnownName(swap.use, pool);
+      if (use.toLowerCase() === insteadOf.toLowerCase()) return [];
+      if (!exercises.some((ex) => ex.name.toLowerCase() === insteadOf.toLowerCase())) return [];
+      return [{ instead_of: insteadOf, use }];
+    });
+
+    const additionals = (day.additionals ?? []).flatMap((addon) => {
+      if (!isAllowedGymPlanMove(addon.name, pool)) return [];
+      const name = canonicalKnownName(addon.name, pool);
+      if (exercises.some((ex) => ex.name.toLowerCase() === name.toLowerCase())) return [];
+      return [{ ...addon, name }];
+    });
+
+    const { alternatives: _oldAlts, additionals: _oldAdds, ...rest } = day;
+    return {
+      ...rest,
+      exercises,
+      ...(alternatives.length ? { alternatives } : {}),
+      ...(additionals.length ? { additionals } : {}),
+    };
   });
 }

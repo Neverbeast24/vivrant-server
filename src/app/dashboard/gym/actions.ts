@@ -12,9 +12,13 @@ import {
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
 import {
+  buildGymPlanAvailableExercises,
+  constrainGymPlanToKnownMoves,
   enrichGymPlanDays,
+  GYM_PLAN_CATALOG_FALLBACK,
   gymSessionFocusFromPlan,
   hydrateGymPlan,
+  labelGymPlanDaysWithWeekdays,
   serializeGymPlanDays,
 } from "@/lib/gym";
 import { createClient } from "@/lib/supabase/server";
@@ -204,57 +208,41 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
       if (!avoidSet.size) return true;
       return !avoidSet.has(String(row.muscle_group).toLowerCase());
     });
-    const knownSet = new Set(prefs.known_machine_slugs);
-    const knownRows = knownSet.size
-      ? rows.filter((row) => knownSet.has(String(row.slug).toLowerCase()))
-      : [];
-    const otherRows = knownSet.size
-      ? rows.filter((row) => !knownSet.has(String(row.slug).toLowerCase()))
-      : rows;
-
-    const formatRow = (row: { name: string; muscle_group: string; equipment: string; difficulty: string; slug?: string }) =>
-      `${row.name}${row.slug ? ` [${row.slug}]` : ""} (${row.muscle_group}, ${row.equipment}, ${row.difficulty})`;
-
-    const catalogParts: string[] = [];
-    if (prefs.avoid_targets.length) {
-      catalogParts.push(
-        `AVOID THESE TARGETS (do not program primary work for): ${prefs.avoid_targets.join(", ")}`,
-      );
-    }
-    if (knownRows.length || prefs.known_custom_exercises.length) {
-      const knownBlock = [
-        knownRows.length ? knownRows.map(formatRow).join("\n") : null,
-        prefs.known_custom_exercises.length
-          ? prefs.known_custom_exercises.map((name) => `${name} (custom, user-typed)`).join("\n")
-          : null,
-      ]
-        .filter(Boolean)
-        .join("\n");
-      catalogParts.push(
-        "KNOWN EXERCISES (user checked / typed these — prioritize):\n" + knownBlock,
-      );
-      catalogParts.push(
-        "OTHER CATALOG (use sparingly if needed):\n" + otherRows.map(formatRow).join("\n"),
-      );
-    } else {
-      catalogParts.push(otherRows.map(formatRow).join("\n"));
-    }
-
-    const plan = await generateGymPlan(
-      context,
-      catalogParts.join("\n\n") ||
-        "bodyweight squat, push-up, plank, glute bridge, leg press, lat pulldown",
-      prefs,
-    );
-
-    const days = enrichGymPlanDays(
-      plan.days,
-      (exercises ?? []).map((row) => ({
+    const catalogItems = (exercises ?? []).map((row) => ({
+      slug: String(row.slug),
+      name: String(row.name),
+      muscle_group: String(row.muscle_group),
+      equipment: String(row.equipment),
+    }));
+    const { catalogText, knownRows, restrictToKnown } = buildGymPlanAvailableExercises(
+      rows.map((row) => ({
+        slug: String(row.slug),
         name: String(row.name),
         muscle_group: String(row.muscle_group),
         equipment: String(row.equipment),
+        difficulty: String(row.difficulty),
       })),
-      prefs.avoid_targets,
+      prefs,
+    );
+
+    const plan = await generateGymPlan(
+      context,
+      catalogText || GYM_PLAN_CATALOG_FALLBACK,
+      prefs,
+    );
+
+    const days = labelGymPlanDaysWithWeekdays(
+      enrichGymPlanDays(
+        constrainGymPlanToKnownMoves(
+          plan.days,
+          knownRows,
+          prefs.known_custom_exercises,
+          catalogItems,
+        ),
+        restrictToKnown ? knownRows : catalogItems,
+        prefs.avoid_targets,
+      ),
+      prefs.training_days,
     );
 
     const { data, error } = await supabase
@@ -266,7 +254,7 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
         level: plan.level,
         days_per_week: plan.days_per_week,
         summary: plan.summary,
-        days: serializeGymPlanDays(days, plan.recommendations),
+        days: serializeGymPlanDays(days, plan.recommendations, prefs.training_days),
       })
       .select("id, title, focus, level, days_per_week, summary, days, created_at")
       .single();

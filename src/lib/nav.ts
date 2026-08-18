@@ -4,7 +4,6 @@ import {
   Apple,
   BookOpen,
   BrainCircuit,
-  ClipboardList,
   Cog,
   Droplets,
   Dumbbell,
@@ -70,7 +69,6 @@ export const dashboardNav: NavItem[] = [
       { label: "Program", href: "/dashboard/gym/plans", caption: "Saved AI programs" },
       { label: "Demos", href: "/dashboard/gym/demos", caption: "Form videos" },
       { label: "Machines", href: "/dashboard/gym/machines", caption: "Equipment guides" },
-      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Check off sets + rest timer" },
       { label: "Gym", href: "/dashboard/gym", caption: "Training hub" },
     ],
   },
@@ -172,7 +170,6 @@ export const trainingSubNav = [
   { href: "/dashboard/movement/log", label: "Log workout", icon: Dumbbell },
   { href: "/dashboard/gym/demos", label: "Demos", icon: Play },
   { href: "/dashboard/gym/machines", label: "Machines", icon: Cog },
-  { href: "/dashboard/gym/sessions", label: "Sessions", icon: ClipboardList },
   { href: "/dashboard/gym/plans", label: "Program", icon: Sparkles },
 ] as const;
 

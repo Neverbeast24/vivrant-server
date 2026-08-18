@@ -4,6 +4,8 @@ import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
+import { hydrateGymPlan } from "@/lib/gym";
+import { reminderDaysFromGymPlan } from "@/lib/gym-schedule";
 
 /** Create/refresh reminders from the member's latest active gym plan. */
 export async function POST(request: Request) {
@@ -28,15 +30,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   const timezone = settings?.timezone || "Asia/Manila";
 
-  const daysPerWeek = Math.min(6, Math.max(2, Number(plan.days_per_week ?? 3)));
-  const defaultDays =
-    daysPerWeek >= 5
-      ? [1, 2, 3, 4, 5]
-      : daysPerWeek === 4
-        ? [1, 2, 4, 5]
-        : daysPerWeek === 3
-          ? [1, 3, 5]
-          : [2, 5];
+  const defaultDays = reminderDaysFromGymPlan(hydrateGymPlan(plan));
 
   await supabase
     .from("user_reminders")
@@ -64,7 +58,7 @@ export async function POST(request: Request) {
       kind: "plan",
       schedule_time,
       days_of_week: defaultDays,
-      href: "/dashboard/gym/sessions",
+      href: "/dashboard/movement/log",
       source_id: String(plan.id),
       enabled: true,
       timezone,

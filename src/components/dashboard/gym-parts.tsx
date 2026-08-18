@@ -28,18 +28,13 @@ import { toast } from "sonner";
 import {
   createAiGymPlan,
   deleteGymPlan,
-  deleteGymSession,
-  logGymSession,
   recommendMachinesWithAi,
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
-import { ProgramSessionPanel } from "@/components/dashboard/program-session";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   EmptyState,
-  FormField,
-  ListRow,
   PageHeader,
   Panel,
   PrimaryButton,
@@ -47,18 +42,22 @@ import {
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
-import { gymPlanDoc, gymPlansDoc, gymSessionsDoc } from "@/lib/share-export";
-import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { gymPlanDoc, gymPlansDoc } from "@/lib/share-export";
 import {
+  constrainGymPlanToKnownMoves,
   enrichGymPlanDays,
   findExerciseMatch,
+  formatRestDaysLabel,
+  formatTrainingDaysLabel,
   gymExerciseCardImage,
+  gymPlanEnrichCatalog,
+  GYM_WEEKDAYS,
   humanizeGymLabel,
   isMachineGear,
   pickTodaysPlanDay,
+  SESSION_MINUTE_PRESETS,
   type GymExercise,
   type GymPlan,
-  type GymSession,
 } from "@/lib/gym";
 import {
   clampGymPlanPrefs,
@@ -70,7 +69,7 @@ import {
 } from "@/lib/health/body-metrics";
 import { trainingSubNav } from "@/lib/nav";
 
-export type { GymExercise, GymPlan, GymSession };
+export type { GymExercise, GymPlan };
 
 const PLAN_PREFS_KEY = "vivrant.gym.planPrefs";
 const KNOWN_MACHINES_KEY = "vivrant.gym.knownMachines";
@@ -149,7 +148,7 @@ export function GymJumpCards({
       icon: Cog,
     },
     {
-      href: "/dashboard/gym/sessions",
+      href: "/dashboard/movement/log",
       title: "Log workout",
       detail: sessionCount ? `${sessionCount} logged recently` : "Today’s program, checkboxes, rest timer",
       icon: ClipboardList,
@@ -469,7 +468,7 @@ function TodaysProgramMoves({
   onSelect: (exercise: GymExercise) => void;
 }) {
   const plan = plans[0];
-  const today = plan ? pickTodaysPlanDay(plan.days ?? []) : null;
+  const today = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
   const programmed = today?.exercises ?? [];
   const matched = programmed
     .map((ex) => {
@@ -486,11 +485,11 @@ function TodaysProgramMoves({
 
   return (
     <Panel
-      title={today ? `Today · ${today.focus}` : "Today’s program"}
+      title={today ? `Today · ${today.focus}` : plan ? "Rest day" : "Today’s program"}
       className="mb-4"
       right={
-        <Link href="/dashboard/gym/sessions" className="text-xs font-black text-accent">
-          Start workout →
+        <Link href="/dashboard/movement/log" className="text-xs font-black text-accent">
+          {today ? "Start workout →" : plan ? "Open log →" : "Create program →"}
         </Link>
       }
     >
@@ -524,6 +523,8 @@ function TodaysProgramMoves({
             )}
           </div>
         </>
+      ) : plan ? (
+        <p className="text-sm text-muted">Rest day — nothing programmed today. Browse the library below.</p>
       ) : (
         <EmptyState>
           No program yet.{" "}
@@ -732,126 +733,6 @@ export function GymMachinesView({
   );
 }
 
-export function GymSessionsView({
-  sessions,
-  plans = [],
-}: {
-  sessions: GymSession[];
-  plans?: GymPlan[];
-}) {
-  const { pending, submit } = useModuleAction(logGymSession);
-  const [busy, start] = useTransition();
-  const [showFreeform, setShowFreeform] = useState(plans.length === 0);
-
-  function run(action: () => Promise<{ ok: boolean; message: string }>) {
-    start(async () => {
-      const result = await action();
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
-    });
-  }
-
-  return (
-    <>
-      <PageHeader eyebrow="TRAINING" title="Log what you" highlight="trained." />
-      <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Today’s program is listed first. Check off sets, rest between them, then save. Walks and extra gym
-        work still go here too.
-      </p>
-      <ModuleSubNav items={trainingSubNav} />
-      <ProgramSessionPanel plans={plans} compact />
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
-        <Panel title={plans.length ? "Or log something else" : "Log a gym workout"}>
-          {plans.length > 0 && !showFreeform ? (
-            <button
-              type="button"
-              onClick={() => setShowFreeform(true)}
-              className="text-sm font-black text-accent"
-            >
-              Log a walk-in workout without the program
-            </button>
-          ) : (
-          <form action={submit} className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Workout name" hint="Required" className="sm:col-span-2">
-              <input name="title" required placeholder="e.g. Leg day" className={fieldClass} />
-            </FormField>
-            <FormField label="Focus">
-              <select name="focus" defaultValue="full_body" className={fieldClass}>
-                <option value="full_body">Full body</option>
-                <option value="strength">Strength</option>
-                <option value="fat_loss">Fat loss</option>
-                <option value="mobility">Mobility</option>
-                <option value="endurance">Endurance</option>
-                <option value="upper">Upper</option>
-                <option value="lower">Lower</option>
-                <option value="core">Core</option>
-              </select>
-            </FormField>
-            <FormField label="Duration" hint="minutes">
-              <input name="duration_minutes" type="number" min={5} required defaultValue={45} className={fieldClass} />
-            </FormField>
-            <FormField label="Calories" hint="optional">
-              <input name="calories_burned" type="number" min={0} placeholder="0" className={fieldClass} />
-            </FormField>
-            <FormField label="Exercises / machines" hint="one per line" className="sm:col-span-2">
-              <textarea
-                name="exercises"
-                rows={4}
-                placeholder={"Leg press machine\nLat pulldown\nCable face pull"}
-                className={`${fieldClass} min-h-28 resize-y`}
-              />
-            </FormField>
-            <FormField label="Notes" className="sm:col-span-2">
-              <input name="notes" placeholder="Seat settings / weight used" className={fieldClass} />
-            </FormField>
-            <PrimaryButton disabled={pending} className="sm:col-span-2">
-              {pending ? "Saving…" : "Save workout"}
-            </PrimaryButton>
-          </form>
-          )}
-        </Panel>
-
-        <Panel
-          title="Recent workouts"
-          right={
-            <div className="flex flex-wrap items-center gap-2">
-              {sessions.length > 0 && <ShareExportMenu compact doc={gymSessionsDoc(sessions)} />}
-              <Target size={16} className="text-accent" />
-            </div>
-          }
-        >
-          <div className="space-y-2">
-            {sessions.map((session) => (
-              <ListRow
-                key={session.id}
-                title={session.title}
-                meta={`${humanizeGymLabel(session.focus)} · ${session.duration_minutes ?? 0} min`}
-                right={
-                  <span className="flex items-center gap-2">
-                    <span className="text-xs font-black">{session.calories_burned ?? 0} kcal</span>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => run(() => deleteGymSession(session.id))}
-                      className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
-                      aria-label={`Delete ${session.title}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </span>
-                }
-              />
-            ))}
-            {!sessions.length && (
-              <EmptyState>No workouts yet. Log your first gym session on the left.</EmptyState>
-            )}
-          </div>
-        </Panel>
-      </div>
-    </>
-  );
-}
-
 export function GymPlansView({
   plans,
   exercises,
@@ -866,7 +747,7 @@ export function GymPlansView({
   const [planning, startPlan] = useTransition();
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
   const suggested = useMemo(() => parseRoutineDefaults(scaling), [scaling]);
-  const [daysPerWeek, setDaysPerWeek] = useState(String(suggested.days_per_week));
+  const [trainingDays, setTrainingDays] = useState<number[]>(suggested.training_days);
   const [sessionMinutes, setSessionMinutes] = useState(String(suggested.session_minutes));
   const [level, setLevel] = useState<GymPlanLevel>(suggested.level);
   const [knownMachineSlugs, setKnownMachineSlugs] = useState<string[]>([]);
@@ -920,12 +801,27 @@ export function GymPlansView({
   );
   const knownSelectedCount = knownMachineSlugs.length + knownCustomExercises.length;
   const displayPlans = useMemo(
-    () =>
-      plans.map((plan) => ({
+    () => {
+      const knownCatalog = gymPlanEnrichCatalog(
+        exercises,
+        knownMachineSlugs,
+        knownCustomExercises.length > 0,
+      );
+      return plans.map((plan) => ({
         ...plan,
-        days: enrichGymPlanDays(plan.days ?? [], exercises, avoidTargets),
-      })),
-    [avoidTargets, exercises, plans],
+        days: enrichGymPlanDays(
+          constrainGymPlanToKnownMoves(
+            plan.days ?? [],
+            knownCatalog,
+            knownCustomExercises,
+            exercises,
+          ),
+          knownCatalog,
+          avoidTargets,
+        ),
+      }));
+    },
+    [avoidTargets, exercises, knownCustomExercises, knownMachineSlugs, plans],
   );
 
   useEffect(() => {
@@ -935,6 +831,7 @@ export function GymPlansView({
         const saved = clampGymPlanPrefs(
           JSON.parse(raw) as {
             days_per_week?: number;
+            training_days?: number[];
             session_minutes?: number;
             level?: GymPlanLevel;
             known_machine_slugs?: string[];
@@ -942,7 +839,7 @@ export function GymPlansView({
             avoid_targets?: string[];
           },
         );
-        setDaysPerWeek(String(saved.days_per_week));
+        setTrainingDays(saved.training_days);
         setSessionMinutes(String(saved.session_minutes));
         setLevel(saved.level);
         if (saved.known_machine_slugs.length) {
@@ -1053,16 +950,25 @@ export function GymPlansView({
     });
   }
 
+  function toggleTrainingDay(iso: number) {
+    const next = trainingDays.includes(iso)
+      ? trainingDays.filter((day) => day !== iso)
+      : [...trainingDays, iso].sort((a, b) => a - b);
+    if (next.length < 2 || next.length > 6) return;
+    setTrainingDays(next);
+  }
+
   function generatePlan() {
     const prefs = clampGymPlanPrefs({
-      days_per_week: Number(daysPerWeek),
+      training_days: trainingDays,
+      days_per_week: trainingDays.length,
       session_minutes: Number(sessionMinutes),
       level,
       known_machine_slugs: knownMachineSlugs,
       known_custom_exercises: knownCustomExercises,
       avoid_targets: avoidTargets,
     });
-    setDaysPerWeek(String(prefs.days_per_week));
+    setTrainingDays(prefs.training_days);
     setSessionMinutes(String(prefs.session_minutes));
     setLevel(prefs.level);
     persistKnownMachines(prefs.known_machine_slugs);
@@ -1080,7 +986,7 @@ export function GymPlansView({
         toast.success(result.message, {
           action: {
             label: "Start today",
-            onClick: () => router.push("/dashboard/gym/sessions"),
+            onClick: () => router.push("/dashboard/movement/log"),
           },
         });
       } else toast.error(result.message);
@@ -1101,31 +1007,35 @@ export function GymPlansView({
         }
       />
       <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Choose how often you train and your experience, then create a weekly program. Extra options are
-        optional.
+        Pick the weekdays you train, then create a weekly program. Workouts and reminders follow this
+        calendar — rest days stay rest days. Extra options are optional.
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
       {displayPlans.length > 0 && (
         <div className="mb-4 grid gap-2 sm:grid-cols-2">
           {displayPlans.slice(0, 4).map((plan) => {
-            const today = pickTodaysPlanDay(plan.days ?? []);
+            const today = pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days);
+            const schedule = formatTrainingDaysLabel(plan.training_days ?? []);
             return (
               <a
                 key={plan.id}
-                href="/dashboard/gym/sessions"
+                href="/dashboard/movement/log"
                 className="rounded-[1.3rem] border border-ink/8 bg-card p-4 transition hover:border-accent/30"
               >
                 <p className="text-[10px] font-black tracking-wider text-accent">SAVED PROGRAM</p>
                 <p className="mt-1 text-sm font-black">{plan.title}</p>
                 <p className="mt-0.5 text-xs capitalize text-muted">
-                  {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
+                  {humanizeGymLabel(plan.focus)} · {plan.level} ·{" "}
+                  {schedule || `${plan.days_per_week} days/week`}
                 </p>
-                {today && (
+                {today ? (
                   <p className="mt-2 text-xs font-black text-accent">
                     Start today · {today.day} · {humanizeGymLabel(today.focus)}
                     {today.exercises[0] ? ` · ${today.exercises[0].name}` : ""}
                   </p>
+                ) : (
+                  <p className="mt-2 text-xs font-black text-muted">Rest day — nothing programmed today</p>
                 )}
               </a>
             );
@@ -1134,49 +1044,70 @@ export function GymPlansView({
       )}
 
       <Panel title="How often do you train?" className="mb-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-            <label
-              className="text-[10px] font-black uppercase tracking-wider text-[#948e99]"
-              htmlFor="plan-days"
-            >
-              Days per week
-            </label>
-            <input
-              id="plan-days"
-              type="number"
-              min={2}
-              max={6}
-              step={1}
-              value={daysPerWeek}
-              onChange={(e) => setDaysPerWeek(e.target.value)}
-              className={`${fieldClass} mt-1 py-2`}
-            />
-            {scaling && (
-              <p className="mt-1 text-[10px] text-muted">Suggested {scaling.days_per_week}</p>
-            )}
+        <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Training days</p>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            Pick 2–6 weekdays. {trainingDays.length} days/week
+            {formatRestDaysLabel(trainingDays) ? ` · ${formatRestDaysLabel(trainingDays)}` : ""}.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {GYM_WEEKDAYS.map((item) => {
+              const selected = trainingDays.includes(item.iso);
+              return (
+                <button
+                  key={item.iso}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => toggleTrainingDay(item.iso)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-black transition ${
+                    selected
+                      ? "bg-inverse text-inverse-fg"
+                      : "border border-ink/10 bg-surface text-muted hover:border-accent/30"
+                  }`}
+                >
+                  {item.short}
+                </button>
+              );
+            })}
           </div>
-          <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-            <label
-              className="text-[10px] font-black uppercase tracking-wider text-[#948e99]"
-              htmlFor="plan-session"
-            >
-              Minutes per workout
-            </label>
-            <input
-              id="plan-session"
-              type="number"
-              min={15}
-              max={120}
-              step={5}
-              value={sessionMinutes}
-              onChange={(e) => setSessionMinutes(e.target.value)}
-              className={`${fieldClass} mt-1 py-2`}
-            />
-            {scaling && (
-              <p className="mt-1 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
-            )}
+          {scaling && (
+            <p className="mt-2 text-[10px] text-muted">Suggested {scaling.days_per_week} days/week</p>
+          )}
+        </div>
+        <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">
+            Minutes per workout
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[
+              ...SESSION_MINUTE_PRESETS,
+              ...(SESSION_MINUTE_PRESETS as readonly number[]).includes(Number(sessionMinutes))
+                ? []
+                : [Number(sessionMinutes)],
+            ]
+              .filter((n) => Number.isFinite(n) && n >= 15 && n <= 120)
+              .map((mins) => {
+                const selected = Number(sessionMinutes) === mins;
+                return (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setSessionMinutes(String(mins))}
+                    aria-pressed={selected}
+                    className={`rounded-full border px-3.5 py-1.5 text-[11px] font-black transition ${
+                      selected
+                        ? "border-accent/40 bg-accent-soft text-accent"
+                        : "border-ink/10 bg-card text-muted hover:border-ink/20 hover:text-ink"
+                    }`}
+                  >
+                    {mins} min
+                  </button>
+                );
+              })}
           </div>
+          {scaling && (
+            <p className="mt-2 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
+          )}
         </div>
         <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
           <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Experience</p>
@@ -1354,8 +1285,9 @@ export function GymPlansView({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Optional: mark machines and moves you know so your program can prefer them. Choices stay in this
-          browser.
+          Optional: mark machines and moves you know. If you pick any, your program uses only those (plus
+          anything you type) — it will not add extras like a leg press. Leave this empty to let the program
+          choose from the full list. Choices stay in this browser.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
@@ -1608,12 +1540,16 @@ export function GymPlansView({
         right={displayPlans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(displayPlans)} /> : undefined}
       >
         <div className="space-y-4">
-          {displayPlans.map((plan) => (
+          {displayPlans.map((plan) => {
+            const today = pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days);
+            const schedule = formatTrainingDaysLabel(plan.training_days ?? []);
+            return (
             <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-4">
               <div>
                 <p className="text-sm font-black">{plan.title}</p>
                 <p className="mt-1 text-xs capitalize text-muted">
-                  {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
+                  {humanizeGymLabel(plan.focus)} · {plan.level} ·{" "}
+                  {schedule || `${plan.days_per_week} days/week`}
                 </p>
                 {plan.summary && <p className="mt-2 text-sm leading-6 text-muted">{plan.summary}</p>}
                 {(plan.recommendations ?? []).length > 0 && (
@@ -1633,10 +1569,10 @@ export function GymPlansView({
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Link
-                    href="/dashboard/gym/sessions"
+                    href="/dashboard/movement/log"
                     className="inline-flex items-center rounded-full bg-inverse px-3.5 py-2 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
                   >
-                    Start today’s workout
+                    Start {today ? "today’s workout" : "program"}
                   </Link>
                   <ShareExportMenu compact doc={gymPlanDoc(plan)} />
                   <button
@@ -1775,10 +1711,11 @@ export function GymPlansView({
                 </div>
               )}
             </article>
-          ))}
+            );
+          })}
           {!plans.length && (
             <EmptyState>
-              No program yet — choose how often you train above, then tap Create my program.
+              No program yet — pick your training days above, then tap Create my program.
             </EmptyState>
           )}
         </div>

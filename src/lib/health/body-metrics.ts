@@ -1,3 +1,5 @@
+import { sanitizeTrainingDays } from "@/lib/gym-schedule";
+
 export type BmiBand = "underweight" | "normal" | "overweight" | "obese";
 
 export type RoutineScaling = {
@@ -26,6 +28,8 @@ export type GymPlanLevel = (typeof GYM_PLAN_LEVELS)[number];
 /** Editable program prefs used by Training program + AI generation. */
 export type GymPlanPrefs = {
   days_per_week: number;
+  /** ISO weekdays 1=Mon … 7=Sun. Length matches days_per_week. */
+  training_days: number[];
   session_minutes: number;
   /** Self-reported experience — drives AI working loads, not BMI band. */
   level: GymPlanLevel;
@@ -131,8 +135,11 @@ export function clampGymPlanLevel(input: unknown): GymPlanLevel {
 
 /** Turn BMI-suggested range strings into editable number defaults. */
 export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_week" | "session_minutes"> | null | undefined): GymPlanPrefs {
+  const daysPerWeek = Math.max(2, Math.min(6, midpointFromRange(scaling?.days_per_week ?? "3", 3)));
+  const trainingDays = sanitizeTrainingDays(undefined, daysPerWeek);
   return {
-    days_per_week: Math.max(2, Math.min(6, midpointFromRange(scaling?.days_per_week ?? "3", 3))),
+    days_per_week: trainingDays.length,
+    training_days: trainingDays,
     session_minutes: Math.max(15, Math.min(120, midpointFromRange(scaling?.session_minutes ?? "45", 45))),
     level: "beginner",
     known_machine_slugs: [],
@@ -144,6 +151,7 @@ export function parseRoutineDefaults(scaling: Pick<RoutineScaling, "days_per_wee
 /** JSON / form payloads — every field is sanitized, including unknown `level` strings. */
 export type GymPlanPrefsInput = {
   days_per_week?: unknown;
+  training_days?: unknown;
   session_minutes?: unknown;
   level?: unknown;
   known_machine_slugs?: unknown;
@@ -154,8 +162,11 @@ export type GymPlanPrefsInput = {
 export function clampGymPlanPrefs(input: GymPlanPrefsInput | Partial<GymPlanPrefs> | null | undefined): GymPlanPrefs {
   const days = Number(input?.days_per_week);
   const session = Number(input?.session_minutes);
+  const fallbackCount = Math.max(2, Math.min(6, Number.isFinite(days) ? Math.round(days) : 3));
+  const trainingDays = sanitizeTrainingDays(input?.training_days, fallbackCount);
   return {
-    days_per_week: Math.max(2, Math.min(6, Number.isFinite(days) ? Math.round(days) : 3)),
+    days_per_week: trainingDays.length,
+    training_days: trainingDays,
     session_minutes: Math.max(15, Math.min(120, Number.isFinite(session) ? Math.round(session) : 45)),
     level: clampGymPlanLevel(input?.level),
     known_machine_slugs: sanitizeKnownMachineSlugs(input?.known_machine_slugs),

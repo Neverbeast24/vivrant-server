@@ -1,10 +1,6 @@
-import type { Metadata } from "next";
-import { GymSessionsView } from "@/components/dashboard/gym-parts";
-import { loadGymData } from "@/app/dashboard/gym/data";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Gym Sessions" };
-
-export default async function GymSessionsPage() {
-  const data = await loadGymData();
-  return <GymSessionsView sessions={data.sessions} plans={data.plans} />;
+/** Sessions duplicated Log workout (same program runner). Keep the old URL working. */
+export default function GymSessionsPage() {
+  redirect("/dashboard/movement/log");
 }

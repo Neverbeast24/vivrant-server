@@ -43,6 +43,7 @@ describe("parseRoutineDefaults", () => {
   it("parses midpoints from suggested ranges", () => {
     expect(parseRoutineDefaults({ days_per_week: "3–4", session_minutes: "35–55" })).toEqual({
       days_per_week: 4,
+      training_days: [1, 2, 4, 5],
       session_minutes: 45,
       level: "beginner",
       known_machine_slugs: [],
@@ -54,6 +55,7 @@ describe("parseRoutineDefaults", () => {
   it("clamps invalid prefs", () => {
     expect(clampGymPlanPrefs({ days_per_week: 99, session_minutes: 5 })).toEqual({
       days_per_week: 6,
+      training_days: [1, 2, 3, 4, 5, 7],
       session_minutes: 15,
       level: "beginner",
       known_machine_slugs: [],
@@ -102,6 +104,21 @@ describe("parseRoutineDefaults", () => {
     ).toEqual(["core", "lower_back", "arms"]);
   });
 
+  it("uses explicit training weekdays and derives days_per_week", () => {
+    expect(
+      clampGymPlanPrefs({
+        days_per_week: 3,
+        training_days: [1, 2, 3, 4, 5, 7],
+      }).training_days,
+    ).toEqual([1, 2, 3, 4, 5, 7]);
+    expect(
+      clampGymPlanPrefs({
+        days_per_week: 3,
+        training_days: [1, 2, 3, 4, 5, 7],
+      }).days_per_week,
+    ).toBe(6);
+  });
+
   it("applies overrides onto scaling", () => {
     const base = parseRoutineDefaults({ days_per_week: "3–4", session_minutes: "35–55" });
     const scaled = applyRoutineOverrides(
@@ -126,6 +143,7 @@ describe("parseRoutineDefaults", () => {
       },
       {
         days_per_week: 5,
+        training_days: [1, 2, 3, 4, 5],
         session_minutes: 40,
         level: "intermediate",
         known_machine_slugs: [],

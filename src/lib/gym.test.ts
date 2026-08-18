@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGymPlanAvailableExercises,
+  constrainGymPlanToKnownMoves,
   formatGymExerciseLine,
   formatRestClock,
   gymSessionFocusFromPlan,
   hydrateGymPlan,
+  isAllowedGymPlanMove,
   parseGymPlanDays,
   parseRestSeconds,
   parseSetCount,
@@ -11,6 +14,8 @@ import {
   serializeGymPlanDays,
   enrichGymPlanDays,
   summarizeTodaysProgram,
+  labelGymPlanDaysWithWeekdays,
+  reminderDaysFromGymPlan,
 } from "./gym";
 
 describe("parseGymPlanDays", () => {
@@ -61,6 +66,15 @@ describe("serializeGymPlanDays", () => {
     expect(packed[0]).toMatchObject({ recommendations: ["Keep 2 reps in reserve."] });
     expect(packed[1]).not.toHaveProperty("recommendations");
   });
+
+  it("stores training days on the first session", () => {
+    const packed = serializeGymPlanDays(
+      [{ day: "Monday · Pull", focus: "Pull", exercises: [] }],
+      [],
+      [1, 2, 3, 4, 5, 7],
+    );
+    expect(packed[0]).toMatchObject({ training_days: [1, 2, 3, 4, 5, 7] });
+  });
 });
 
 describe("hydrateGymPlan", () => {
@@ -109,6 +123,93 @@ describe("enrichGymPlanDays", () => {
   });
 });
 
+describe("buildGymPlanAvailableExercises", () => {
+  const rows = [
+    {
+      slug: "leg-press",
+      name: "Leg press machine",
+      muscle_group: "legs",
+      equipment: "machine",
+      difficulty: "beginner",
+    },
+    {
+      slug: "horizontal-leg-press",
+      name: "Horizontal leg press",
+      muscle_group: "legs",
+      equipment: "machine",
+      difficulty: "beginner",
+    },
+    {
+      slug: "leg-curl-machine",
+      name: "Lying leg curl machine",
+      muscle_group: "hamstrings",
+      equipment: "machine",
+      difficulty: "beginner",
+    },
+  ];
+
+  it("sends only marked moves when the user picked known exercises", () => {
+    const { catalogText, knownRows, restrictToKnown } = buildGymPlanAvailableExercises(rows, {
+      known_machine_slugs: ["leg-curl-machine"],
+      known_custom_exercises: ["stiffed leg lift"],
+      avoid_targets: [],
+    });
+    expect(restrictToKnown).toBe(true);
+    expect(knownRows.map((row) => row.slug)).toEqual(["leg-curl-machine"]);
+    expect(catalogText).toContain("ALLOWED EXERCISES ONLY");
+    expect(catalogText).toContain("Lying leg curl machine");
+    expect(catalogText).toContain("stiffed leg lift");
+    expect(catalogText).not.toContain("OTHER CATALOG");
+    expect(catalogText).not.toContain("horizontal-leg-press");
+  });
+});
+
+describe("constrainGymPlanToKnownMoves", () => {
+  const catalog = [
+    { name: "Horizontal leg press", muscle_group: "legs", equipment: "machine", slug: "horizontal-leg-press" },
+    { name: "Lying leg curl machine", muscle_group: "hamstrings", equipment: "machine", slug: "leg-curl-machine" },
+    { name: "Sit-up machine", muscle_group: "core", equipment: "machine", slug: "sit-up-machine" },
+  ];
+
+  it("replaces an unmarked leg press with a known lower-body move", () => {
+    const days = constrainGymPlanToKnownMoves(
+      [
+        {
+          day: "Day 5",
+          focus: "Hamstrings Inner Thighs & Core",
+          exercises: [
+            {
+              name: "Horizontal leg press machine",
+              sets: "4 x 12",
+              rest: "90s",
+              notes: "Mid-to-high foot placement focused on quad and knee-dominant drive.",
+            },
+            { name: "Lying leg curl machine", sets: "4 x 12-15", rest: "90s" },
+          ],
+          additionals: [{ name: "Leg press machine", sets: "2 x 12" }],
+        },
+      ],
+      [
+        { name: "Lying leg curl machine", muscle_group: "hamstrings", slug: "leg-curl-machine" },
+        { name: "Sit-up machine", muscle_group: "core", slug: "sit-up-machine" },
+      ],
+      ["stiffed leg lift", "multi press"],
+      catalog,
+    );
+    const names = days[0].exercises.map((ex) => ex.name.toLowerCase());
+    expect(names.some((name) => name.includes("leg press"))).toBe(false);
+    expect(names).toContain("lying leg curl machine");
+    expect(names).toContain("stiffed leg lift");
+    expect(days[0].exercises[0].notes).toBeUndefined();
+    expect(days[0].additionals ?? []).toEqual([]);
+  });
+
+  it("does not treat multi press as a match for leg press", () => {
+    expect(isAllowedGymPlanMove("Horizontal leg press machine", [{ name: "multi press" }])).toBe(false);
+    expect(isAllowedGymPlanMove("Lying leg curl machine", [{ name: "Lying leg curl machine" }])).toBe(true);
+  });
+});
+
 describe("formatGymExerciseLine", () => {
   it("includes weight when set", () => {
     expect(
@@ -130,13 +231,40 @@ describe("pickTodaysPlanDay", () => {
       { day: "Wednesday", focus: "Push", exercises: [] },
     ];
     expect(pickTodaysPlanDay(named, new Date("2026-08-17T12:00:00"))?.focus).toBe("Pull");
+    expect(pickTodaysPlanDay(named, new Date("2026-08-18T12:00:00"))).toBeNull();
     expect(pickTodaysPlanDay(named, new Date("2026-08-19T12:00:00"))?.focus).toBe("Push");
   });
 
-  it("rotates unnamed days from Monday", () => {
+  it("returns null on rest days when sessions are weekday-labeled", () => {
+    const named = [
+      { day: "Monday · Pull", focus: "Pull", exercises: [] },
+      { day: "Tuesday · Push", focus: "Push", exercises: [] },
+      { day: "Wednesday · Legs", focus: "Legs", exercises: [] },
+      { day: "Thursday · Upper", focus: "Upper", exercises: [] },
+      { day: "Friday · Lower", focus: "Lower", exercises: [] },
+      { day: "Sunday · Full body", focus: "Full body", exercises: [] },
+    ];
+    // 2026-08-22 is Saturday
+    expect(pickTodaysPlanDay(named, new Date("2026-08-22T12:00:00"))).toBeNull();
+    expect(pickTodaysPlanDay(named, new Date("2026-08-23T12:00:00"))?.focus).toBe("Full body");
+  });
+
+  it("uses Mon/Wed/Fri for unlabeled 3-day plans and rests on other days", () => {
     // 2026-08-17 is a Monday → Day 1
     expect(pickTodaysPlanDay(days, new Date("2026-08-17T12:00:00"))?.focus).toBe("Pull");
-    expect(pickTodaysPlanDay(days, new Date("2026-08-18T12:00:00"))?.focus).toBe("Push");
+    expect(pickTodaysPlanDay(days, new Date("2026-08-18T12:00:00"))).toBeNull();
+    expect(pickTodaysPlanDay(days, new Date("2026-08-19T12:00:00"))?.focus).toBe("Push");
+  });
+
+  it("maps a 6-day unlabeled plan onto Mon–Fri + Sunday", () => {
+    const six = [
+      ...days,
+      { day: "Day 4", focus: "Upper", exercises: [] },
+      { day: "Day 5", focus: "Lower", exercises: [] },
+      { day: "Day 6", focus: "Full", exercises: [] },
+    ];
+    expect(pickTodaysPlanDay(six, new Date("2026-08-22T12:00:00"))).toBeNull();
+    expect(pickTodaysPlanDay(six, new Date("2026-08-23T12:00:00"))?.focus).toBe("Full");
   });
 });
 
@@ -204,5 +332,42 @@ describe("summarizeTodaysProgram", () => {
 
   it("returns null when there are no plans", () => {
     expect(summarizeTodaysProgram([])).toBeNull();
+  });
+});
+
+describe("labelGymPlanDaysWithWeekdays", () => {
+  it("stamps weekday names onto sessions", () => {
+    const labeled = labelGymPlanDaysWithWeekdays(
+      [
+        { day: "Day 1", focus: "Pull", exercises: [] },
+        { day: "Day 2", focus: "Push", exercises: [] },
+      ],
+      [1, 7],
+    );
+    expect(labeled.map((day) => day.day)).toEqual(["Monday · Pull", "Sunday · Push"]);
+  });
+});
+
+describe("reminderDaysFromGymPlan", () => {
+  it("reads weekdays from labeled sessions including Sunday", () => {
+    expect(
+      reminderDaysFromGymPlan({
+        days_per_week: 6,
+        days: [
+          { day: "Monday · Pull" },
+          { day: "Tuesday · Push" },
+          { day: "Wednesday · Legs" },
+          { day: "Thursday · Upper" },
+          { day: "Friday · Lower" },
+          { day: "Sunday · Full body" },
+        ],
+      }),
+    ).toEqual([1, 2, 3, 4, 5, 7]);
+  });
+
+  it("falls back to Mon–Fri + Sunday for a 6-day unlabeled plan", () => {
+    expect(reminderDaysFromGymPlan({ days_per_week: 6, days: [{ day: "Day 1" }] })).toEqual([
+      1, 2, 3, 4, 5, 7,
+    ]);
   });
 });

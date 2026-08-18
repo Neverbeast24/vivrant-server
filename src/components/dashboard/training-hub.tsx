@@ -75,7 +75,7 @@ export function TrainingHub({
         title="Daily activity"
         className="mt-4"
         right={
-          <Link href="/dashboard/gym/sessions" className="inline-flex">
+          <Link href="/dashboard/movement/log" className="inline-flex">
             <PrimaryButton className="rounded-full px-4 py-2 text-xs">Log workout</PrimaryButton>
           </Link>
         }

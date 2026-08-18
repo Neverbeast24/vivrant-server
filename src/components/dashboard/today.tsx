@@ -24,7 +24,7 @@ import {
 import { QuickCheckin } from "@/components/dashboard/quick-checkin";
 import { TodayDoNow, type TodayGrocery, type TodayHabit } from "@/components/dashboard/today-do-now";
 import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
-import { humanizeGymLabel, type TodaysProgramSummary } from "@/lib/gym";
+import { formatTrainingDaysLabel, humanizeGymLabel, type TodaysProgramSummary } from "@/lib/gym";
 
 export type TodayData = {
   energy: number | null;
@@ -168,11 +168,13 @@ export function TodayView({ data }: { data: TodayData }) {
       label: data.program?.today
         ? `${data.program.today.day}: ${humanizeGymLabel(data.program.today.focus)}`
         : data.program
-          ? data.program.title
+          ? data.program.nextSession
+            ? `Rest day · next is ${data.program.nextSession}`
+            : "Rest day — recovery"
           : "Create a training program",
-      time: "Program",
-      done: data.gymToday > 0,
-      href: "/dashboard/gym/plans",
+      time: data.program?.today ? "Train" : data.program ? "Rest" : "Program",
+      done: data.gymToday > 0 || Boolean(data.program && !data.program.today),
+      href: data.program?.today ? "/dashboard/movement/log" : "/dashboard/gym/plans",
     },
   ] as const;
 
@@ -325,7 +327,7 @@ export function TodayView({ data }: { data: TodayData }) {
       </div>
 
       <Link
-        href={data.program ? "/dashboard/gym/sessions" : "/dashboard/gym/plans"}
+        href={data.program ? "/dashboard/movement/log" : "/dashboard/gym/plans"}
         className="mb-4 flex items-start gap-4 rounded-[1.4rem] border border-ink/8 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent">
@@ -337,10 +339,13 @@ export function TodayView({ data }: { data: TodayData }) {
             <>
               <p className="mt-1 text-lg font-black">{data.program.title}</p>
               <p className="mt-0.5 text-xs capitalize text-muted">
-                {humanizeGymLabel(data.program.focus)} · {data.program.daysPerWeek} days/week
+                {humanizeGymLabel(data.program.focus)} ·{" "}
+                {data.program.trainingDays?.length
+                  ? formatTrainingDaysLabel(data.program.trainingDays)
+                  : `${data.program.daysPerWeek} days/week`}
                 {data.program.planCount > 1 ? ` · ${data.program.planCount} saved` : ""}
               </p>
-              {data.program.today && (
+              {data.program.today ? (
                 <div className="mt-3 rounded-2xl border border-ink/6 bg-surface/60 px-3 py-2.5">
                   <p className="text-[11px] font-black text-accent">
                     Today · {data.program.today.day} · {humanizeGymLabel(data.program.today.focus)}
@@ -355,13 +360,19 @@ export function TodayView({ data }: { data: TodayData }) {
                   </ul>
                   <p className="mt-2 text-[11px] font-black text-accent">Tap to start · checkboxes + rest timer</p>
                 </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted">
+                  Rest day
+                  {data.program.nextSession ? ` · next session ${data.program.nextSession}` : ""}. Enjoy
+                  recovery, or tap to log a walk.
+                </p>
               )}
             </>
           ) : (
             <>
               <p className="mt-1 text-lg font-black">No program yet</p>
               <p className="mt-1 text-sm text-muted">
-                Create a weekly plan in a couple of taps — it will show up here every day.
+                Create a weekly plan in a couple of taps — it shows up here on your training days.
               </p>
             </>
           )}

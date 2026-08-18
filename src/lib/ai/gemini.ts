@@ -7,9 +7,11 @@ import {
 } from "@/lib/groceries/ph-price-catalog";
 import {
   clampGymPlanRecommendations,
+  labelGymPlanDaysWithWeekdays,
   parseGymPlanDays,
   type GymPlanDay,
 } from "@/lib/gym";
+import { sanitizeTrainingDays, formatRestDaysLabel, GYM_WEEKDAYS } from "@/lib/gym-schedule";
 import {
   clampGymPlanLevel,
   MAX_KNOWN_MACHINE_SLUGS,
@@ -706,12 +708,12 @@ export type HealthHistoryInsight = {
 
 function gymPlanLevelLoadNote(level: GymPlanLevel) {
   if (level === "advanced") {
-    return `User selected ADVANCED. Set "level" to "advanced" (do not downgrade). Working loads using profile weight_kg — never a 1RM, leave ~2–3 reps in reserve: isolation machines ~35–55% bodyweight; compound machines like leg press ~80–140% bodyweight; free weights can be heavier. Mix machines and free weights. Mention this level in the summary.`;
+    return `User selected ADVANCED. Set "level" to "advanced" (do not downgrade). Working loads using profile weight_kg — never a 1RM, leave ~2–3 reps in reserve: isolation machines ~35–55% bodyweight; compound machines ~80–140% bodyweight; free weights can be heavier. Mix machines and free weights. Mention this level in the summary.`;
   }
   if (level === "intermediate") {
-    return `User selected INTERMEDIATE. Set "level" to "intermediate" (do not upgrade or downgrade). Working loads using profile weight_kg — never a 1RM: isolation machines ~25–45% bodyweight; compound machines like leg press ~60–100% bodyweight; moderate free-weight volume. Mention this level in the summary.`;
+    return `User selected INTERMEDIATE. Set "level" to "intermediate" (do not upgrade or downgrade). Working loads using profile weight_kg — never a 1RM: isolation machines ~25–45% bodyweight; compound machines ~60–100% bodyweight; moderate free-weight volume. Mention this level in the summary.`;
   }
-  return `User selected BEGINNER. Set "level" to "beginner" (do not upgrade). Conservative working loads using profile weight_kg — never a 1RM: isolation machines ~15–35% bodyweight; compound machines like leg press ~40–70% bodyweight; prefer machines and light free weights; technique first. Mention this level in the summary.`;
+  return `User selected BEGINNER. Set "level" to "beginner" (do not upgrade). Conservative working loads using profile weight_kg — never a 1RM: isolation machines ~15–35% bodyweight; compound machines ~40–70% bodyweight; prefer machines and light free weights; technique first. Mention this level in the summary.`;
 }
 
 export async function generateGymPlan(
@@ -719,6 +721,7 @@ export async function generateGymPlan(
   availableExercises: string,
   prefs?: {
     days_per_week?: number;
+    training_days?: number[];
     session_minutes?: number;
     level?: GymPlanLevel;
     known_machine_slugs?: string[];
@@ -726,9 +729,8 @@ export async function generateGymPlan(
     avoid_targets?: string[];
   },
 ): Promise<GymPlanPayload> {
-  const requestedDays = prefs?.days_per_week != null
-    ? Math.max(2, Math.min(6, Math.round(prefs.days_per_week)))
-    : null;
+  const trainingDays = sanitizeTrainingDays(prefs?.training_days, prefs?.days_per_week ?? 3);
+  const requestedDays = trainingDays.length;
   const requestedSession = prefs?.session_minutes != null
     ? Math.max(15, Math.min(120, Math.round(prefs.session_minutes)))
     : null;
@@ -750,17 +752,24 @@ export async function generateGymPlan(
   if (knownCustom.length) knownParts.push(`custom typed: ${knownCustom.join(", ")}`);
   const knownMachinesNote =
     knownParts.length > 0
-      ? `User already knows these exercises (prefer them heavily — build the program around this set when possible; only add unfamiliar moves if needed for balance): ${knownParts.join(" · ")}`
+      ? `STRICT whitelist: the user marked the only exercises they know. Program exclusively from this set. Do NOT add any other catalog machine or free-weight move they did not mark — including common defaults such as a leg press, chest press, lat pulldown, or cable row. Repeat known moves across days if needed rather than inventing new ones. Known set: ${knownParts.join(" · ")}`
       : "User has not marked known exercises — prefer joint-friendly machines from the catalog and keep free-weight volume moderate.";
   const avoidTargetsNote =
     avoidTargets.length > 0
       ? `User does NOT want to target these areas — do NOT schedule dedicated days or primary exercises for them (skip core-focused days, isolation work, and day titles that emphasize them): ${avoidTargets.join(", ")}. Redistribute volume to allowed muscle groups instead.`
       : "No muscle-group exclusions were set.";
 
+  const weekdayNames = trainingDays
+    .map((iso) => GYM_WEEKDAYS.find((item) => item.iso === iso)?.full)
+    .filter(Boolean)
+    .join(", ");
+  const restNote = formatRestDaysLabel(trainingDays);
+
   const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training program for this user.
 Use their profile, energy, goals, recent activity, and especially bmi_details + routine_scaling (BMI band + target-date forecast).
 Scale the program explicitly:
-- ${requestedDays != null ? `User chose EXACTLY ${requestedDays} training days/week — set days_per_week to ${requestedDays} and return exactly ${requestedDays} day entries` : "Match days_per_week to routine_scaling.days_per_week"}
+- User trains EXACTLY ${requestedDays} days/week on ${weekdayNames}${restNote ? ` (${restNote})` : ""} — set days_per_week to ${requestedDays} and return exactly ${requestedDays} day entries in that weekday order
+- Label each day's "day" field as "Weekday · Focus" using those exact weekdays (e.g. "Monday · Pull"). Do not invent sessions for rest days.
 - ${requestedSession != null ? `User chose ~${requestedSession} minute sessions — size each day so it fits about ${requestedSession} minutes` : "Match session length to routine_scaling.session_minutes"}
 - Match focus to routine_scaling.focus (map to full_body, strength, fat_loss, mobility, or endurance)
 - ${gymPlanLevelLoadNote(requestedLevel)}
@@ -775,7 +784,7 @@ Return JSON:
 - "title"
 - "focus": one of full_body, strength, fat_loss, mobility, endurance
 - "level": must be exactly "${requestedLevel}"
-- "days_per_week": 2-6
+- "days_per_week": ${requestedDays}
 - "summary": 2 sentences (mention avoided targets briefly if any were set)
 - "days": array of {
     "day",
@@ -784,7 +793,7 @@ Return JSON:
     "alternatives": 1–3 swaps for THAT day's programmed moves: [{ "instead_of": exercise already in that day's list, "use": catalog substitute }]. Same muscle pattern. Use when a machine is busy, joints feel unhappy, or they want a simpler option. Respect avoid_targets.
     "additionals": 1–2 optional extras if they still have time: [{ "name", "sets" }]. Must NOT duplicate that day's main list. Keep them short (e.g. face pulls, calf raise, easy bike finish).
   }
-  Include 3–5 exercises per day. Name machines clearly when used (e.g. "Leg press machine").
+  Include 3–5 exercises per day. Name machines with the exact catalog/custom name from the allowed list (e.g. "Lat pulldown machine"). Never introduce a machine that is not on that list.
   For each day "focus", use a short human-readable label with spaces (e.g. "Fat loss", "Upper body", "Mobility") — never snake_case like fat_loss.
   For each exercise "weight": a conservative working load from profile weight_kg AND the selected ${requestedLevel} level, e.g. "12–16 kg", "bodyweight", or "easy pace" for cardio. Cardio = "easy pace" or "—". Never a 1RM.
 
@@ -795,9 +804,7 @@ USER CONTEXT:
 ${context}`);
 
   const parsedDays = parseGymPlanDays(parsed.days);
-  const daysPerWeek =
-    requestedDays ??
-    Math.max(2, Math.min(6, Math.round(Number(parsed.days_per_week ?? 3))));
+  const daysPerWeek = requestedDays;
   const topRecs = clampGymPlanRecommendations(parsed.recommendations);
   const recommendations = topRecs.length ? topRecs : parsedDays.recommendations;
 
@@ -815,10 +822,13 @@ ${context}`);
     days_per_week: daysPerWeek,
     summary: String(parsed.summary ?? "A gentle program matched to your current rhythm.").slice(0, 600),
     recommendations,
-    days: parsedDays.days.slice(0, daysPerWeek).map((day) => ({
-      ...day,
-      focus: humanizeFocus(day.focus, "Training"),
-    })),
+    days: labelGymPlanDaysWithWeekdays(
+      parsedDays.days.slice(0, daysPerWeek).map((day) => ({
+        ...day,
+        focus: humanizeFocus(day.focus, "Training"),
+      })),
+      trainingDays,
+    ),
   };
 }
 
