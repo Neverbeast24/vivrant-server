@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { createClient } from "@/lib/supabase/client";
 import {
   ArrowRight,
   Eye,
@@ -57,6 +58,8 @@ async function postJson(url: string, payload: unknown) {
     ok?: boolean;
     error?: string;
     message?: string;
+    access_token?: string | null;
+    refresh_token?: string | null;
   };
   if (!response.ok || !data.ok) {
     throw new Error(data.error ?? "Something went wrong. Please try again.");
@@ -106,7 +109,21 @@ export function AuthForm({
 
     try {
       if (mode === "signin") {
-        await postJson("/api/auth/login", { email, password });
+        const data = await postJson("/api/auth/login", {
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (data.access_token && data.refresh_token) {
+          try {
+            const supabase = createClient();
+            await supabase.auth.setSession({
+              access_token: data.access_token,
+              refresh_token: data.refresh_token,
+            });
+          } catch {
+            // API Set-Cookie is enough if the browser client cannot persist.
+          }
+        }
         // Hard navigation so session cookies are applied before the next page.
         window.location.assign(next.startsWith("/") ? next : "/dashboard");
         return; // keep the spinner while navigating
@@ -114,7 +131,7 @@ export function AuthForm({
 
       if (mode === "signup") {
         const data = await postJson("/api/auth/signup", {
-          email,
+          email: email.trim().toLowerCase(),
           password,
           displayName,
         });
@@ -127,7 +144,9 @@ export function AuthForm({
       }
 
       if (mode === "forgot") {
-        const data = await postJson("/api/auth/forgot-password", { email });
+        const data = await postJson("/api/auth/forgot-password", {
+          email: email.trim().toLowerCase(),
+        });
         setFeedback({
           tone: "notice",
           text: data.message ?? "Check your inbox for the reset link.",
@@ -251,7 +270,7 @@ export function AuthForm({
                     onChange={(event) => setPassword(event.target.value)}
                     type={showPassword ? "text" : "password"}
                     required
-                    minLength={8}
+                    minLength={mode === "signup" ? 8 : undefined}
                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     placeholder="At least 8 characters"
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"

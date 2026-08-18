@@ -1,8 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/supabase/admin";
 
-export async function createClient() {
+function requireConfig() {
   const { url, publishableKey } = getServerConfig();
 
   if (!url || !publishableKey) {
@@ -11,6 +12,11 @@ export async function createClient() {
     );
   }
 
+  return { url, publishableKey };
+}
+
+export async function createClient() {
+  const { url, publishableKey } = requireConfig();
   const cookieStore = await cookies();
 
   return createServerClient(url, publishableKey, {
@@ -26,6 +32,30 @@ export async function createClient() {
         } catch {
           // Server Components cannot write cookies. The proxy refreshes them.
         }
+      },
+    },
+  });
+}
+
+/** Bind auth cookies onto a specific Route Handler response (JSON or redirect). */
+export async function createClientForResponse(response: NextResponse) {
+  const { url, publishableKey } = requireConfig();
+  const cookieStore = await cookies();
+
+  return createServerClient(url, publishableKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          try {
+            cookieStore.set(name, value, options);
+          } catch {
+            // Cookie store can be read-only in some Server Component paths.
+          }
+          response.cookies.set(name, value, options);
+        });
       },
     },
   });

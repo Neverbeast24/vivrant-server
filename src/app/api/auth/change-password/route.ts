@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { ensureEmailIdentity } from "@/lib/auth/login-hints";
 import { getMobileSupabase } from "@/lib/mobile/auth";
 import { createAdminClient, getServerConfig } from "@/lib/supabase/admin";
 import { logger } from "@/lib/logger";
@@ -122,6 +123,8 @@ export async function POST(request: NextRequest) {
     logger.warn("auth/change-password", "update failed", { internal: error.message });
     return NextResponse.json({ error: friendlyPasswordError(error.message) }, { status: 400 });
   }
+
+  await ensureEmailIdentity(user.id);
 
   return NextResponse.json({
     ok: true,

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { ensureEmailIdentity } from "@/lib/auth/login-hints";
 import { getMobileSupabase } from "@/lib/mobile/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logger } from "@/lib/logger";
@@ -75,12 +76,15 @@ export async function POST(request: NextRequest) {
 
   const { error } = await admin.auth.admin.updateUserById(user.id, {
     password: parsed.data.password,
+    email_confirm: true,
   });
 
   if (error) {
     logger.warn("auth/reset-password", "update failed", { internal: error.message });
     return NextResponse.json({ error: friendlyPasswordError(error.message) }, { status: 400 });
   }
+
+  await ensureEmailIdentity(user.id);
 
   return NextResponse.json({ ok: true, message: "Password updated. You're signed in." });
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { emailSchema } from "@/lib/auth/credentials";
 import { createClient } from "@/lib/supabase/server";
 import {
   checkRateLimit,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/security/rate-limit";
 
 const schema = z.object({
-  email: z.email("Enter a valid email address."),
+  email: emailSchema,
 });
 
 export async function POST(request: NextRequest) {

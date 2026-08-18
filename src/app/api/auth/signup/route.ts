@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { emailSchema, signupConflictMessage } from "@/lib/auth/credentials";
+import { getLoginHints } from "@/lib/auth/login-hints";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSupabaseConfigStatus,
@@ -14,14 +16,14 @@ import {
 } from "@/lib/security/rate-limit";
 
 const schema = z.object({
-  email: z.email("Enter a valid email address."),
+  email: emailSchema,
   password: z.string().min(8, "Use a password with at least 8 characters."),
   displayName: z.string().trim().max(80).optional().default(""),
 });
 
 function friendlySignupError(message: string) {
   if (/already registered|already been registered|user already/i.test(message)) {
-    return "This email is already registered. Sign in instead, or reset your password.";
+    return "This email is already registered. Sign in instead, or use Forgot password.";
   }
   if (/password/i.test(message)) {
     return "Use a stronger password (at least 8 characters).";
@@ -90,8 +92,16 @@ export async function POST(request: NextRequest) {
       ms: Date.now() - started,
       internal: error.message,
     });
+    const conflict = /already registered|already been registered|user already/i.test(
+      error.message,
+    );
+    const hints = conflict ? await getLoginHints(email) : null;
     return NextResponse.json(
-      { error: friendlySignupError(error.message) },
+      {
+        error: conflict
+          ? signupConflictMessage(hints)
+          : friendlySignupError(error.message),
+      },
       { status: 400 },
     );
   }
@@ -100,8 +110,9 @@ export async function POST(request: NextRequest) {
   // is already registered (to avoid leaking accounts it doesn't error).
   if (data.user && data.user.identities?.length === 0) {
     logger.warn("auth/signup", "conflict", { email });
+    const hints = await getLoginHints(email);
     return NextResponse.json(
-      { error: "This email is already registered. Sign in instead, or reset your password." },
+      { error: signupConflictMessage(hints) },
       { status: 409 },
     );
   }
