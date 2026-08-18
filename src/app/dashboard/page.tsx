@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     allCheckinsRes,
     allMealsRes,
     plansRes,
+    groceryRes,
   ] = await Promise.all([
     supabase
       .from("daily_checkins")
@@ -62,7 +63,7 @@ export default async function DashboardPage() {
       .gte("spent_at", dayStart),
     supabase
       .from("nutrition_logs")
-      .select("id", { count: "exact", head: true })
+      .select("calories")
       .eq("user_id", user.id)
       .gte("logged_at", dayStart),
     supabase
@@ -89,9 +90,10 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("habits")
-      .select("id")
+      .select("id, title")
       .eq("user_id", user.id)
-      .eq("active", true),
+      .eq("active", true)
+      .order("created_at", { ascending: true }),
     supabase
       .from("habit_logs")
       .select("habit_id, logged_on")
@@ -120,6 +122,13 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(8),
+    supabase
+      .from("grocery_items")
+      .select("id, name, quantity")
+      .eq("user_id", user.id)
+      .eq("is_checked", false)
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
 
   const energyByDate = new Map(
@@ -140,11 +149,18 @@ export default async function DashboardPage() {
     0,
   );
 
+  const meals = mealsRes.data ?? [];
+  const caloriesToday = meals.reduce((sum, row) => sum + Number(row.calories ?? 0), 0);
   const habits = habitsRes.data ?? [];
   const logs = habitLogsRes.data ?? [];
   const habitsDoneToday = habits.filter((h) =>
     logs.some((l) => l.habit_id === h.id && l.logged_on === today),
   ).length;
+  const habitRows = habits.map((h) => ({
+    id: h.id,
+    title: h.title,
+    doneToday: logs.some((l) => l.habit_id === h.id && l.logged_on === today),
+  }));
 
   let habitStreak = 0;
   if (habits.length) {
@@ -181,7 +197,7 @@ export default async function DashboardPage() {
         sleepMinutes: checkin?.sleep_minutes ?? null,
         mood: checkin?.mood ?? null,
         spendToday,
-        mealsToday: mealsRes.count ?? 0,
+        mealsToday: meals.length,
         workoutsToday: workoutsRes.count ?? 0,
         gymToday: gymRes.count ?? 0,
         weekEnergy,
@@ -214,6 +230,9 @@ export default async function DashboardPage() {
               score: insightRes.data.score,
             }
           : null,
+        habits: habitRows,
+        groceries: groceryRes.data ?? [],
+        caloriesToday,
       }}
     />
   );

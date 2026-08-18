@@ -11,13 +11,26 @@ export type GymExercise = {
   cues: string | null;
 };
 
+export const GYM_SESSION_FOCUSES = [
+  "full_body",
+  "strength",
+  "fat_loss",
+  "mobility",
+  "endurance",
+  "upper",
+  "lower",
+  "core",
+] as const;
+
+export type GymSessionFocus = (typeof GYM_SESSION_FOCUSES)[number];
+
 export type GymSession = {
   id: number;
   title: string;
   focus: string;
   duration_minutes: number | null;
   calories_burned: number | null;
-  exercises: { name?: string; sets?: string }[] | null;
+  exercises: { name?: string; sets?: string; rest?: string; weight?: string; done?: boolean; completed_sets?: number }[] | null;
   notes: string | null;
   logged_at: string;
 };
@@ -66,12 +79,128 @@ export function isMachineGear(equipment: string) {
   return equipment === "machine" || equipment === "cable" || equipment === "cardio_machine";
 }
 
+/** Photos of the actual equipment — never YouTube thumbs. */
+const MACHINE_PHOTOS: Record<string, string> = {
+  "chest-press-machine": "/gym/machines/chest-press-machine.png",
+  "incline-chest-press-machine": "/gym/machines/chest-press-machine.png",
+  "decline-chest-press-machine": "/gym/machines/chest-press-machine.png",
+  "iso-lateral-chest-press": "/gym/machines/chest-press-machine.png",
+  "shoulder-press-machine": "/gym/machines/shoulder-press-machine.png",
+  "preacher-curl-machine": "/gym/machines/preacher-curl-machine.png",
+  "bicep-curl-machine": "/gym/machines/preacher-curl-machine.png",
+  "lateral-raise-machine": "/gym/machines/lateral-raise-machine.png",
+  "rear-delt-fly-machine": "/gym/machines/rear-delt-fly-machine.png",
+  "pullover-machine": "/gym/machines/pullover-machine.png",
+  "chest-supported-row": "/gym/machines/chest-supported-row.png",
+  "iso-lateral-row": "/gym/machines/chest-supported-row.png",
+  "high-row-machine": "/gym/machines/chest-supported-row.png",
+  "wide-grip-seated-row": "/gym/machines/chest-supported-row.png",
+  "t-bar-row-machine": "/gym/machines/chest-supported-row.png",
+  "tricep-extension-machine": "/gym/machines/tricep-extension-machine.png",
+  "leg-curl-machine": "/gym/machines/lying-leg-curl.png",
+  "seated-leg-curl": "/gym/machines/seated-leg-curl.png",
+  "standing-leg-curl": "/gym/machines/lying-leg-curl.png",
+  "glute-kickback-machine": "/gym/machines/glute-kickback-machine.png",
+  "glute-ham-developer": "/gym/machines/glute-ham-developer.png",
+  "belt-squat": "/gym/machines/belt-squat.png",
+  "pendulum-squat": "/gym/machines/pendulum-squat.png",
+  "hip-thrust-machine": "/gym/machines/hip-thrust-machine.png",
+  "ab-crunch-machine": "/gym/machines/ab-crunch-machine.png",
+  "calf-raise-machine": "/gym/machines/standing-calf-machine.png",
+  "donkey-calf-raise": "/gym/machines/standing-calf-machine.png",
+  "ski-erg": "/gym/machines/ski-erg.png",
+  "assault-bike": "/gym/machines/assault-bike.png",
+  "recumbent-bike": "/gym/machines/recumbent-bike.png",
+  "stationary-bike": "/gym/machines/recumbent-bike.png",
+  "spin-bike": "/gym/machines/spin-bike.png",
+  "stair-climber": "/gym/machines/stair-climber.png",
+  "jacob-ladder": "/gym/machines/jacob-ladder.png",
+  "arm-ergometer": "/gym/machines/arm-ergometer.png",
+  "recumbent-stepper": "/gym/machines/recumbent-stepper.png",
+};
+
+/** Prefer a photo of the machine itself; fall back to the catalog thumbnail. */
+export function gymExerciseCardImage(
+  exercise: Pick<GymExercise, "slug" | "demo_thumbnail_url">,
+  origin = "",
+) {
+  const local = MACHINE_PHOTOS[exercise.slug];
+  const path = local ?? exercise.demo_thumbnail_url;
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  const prefix = origin.replace(/\/$/, "");
+  return prefix ? `${prefix}${path.startsWith("/") ? path : `/${path}`}` : path;
+}
+
 /** Turn slug-style labels (fat_loss) into readable text for UI. */
 export function humanizeGymLabel(value: string) {
   return String(value ?? "")
     .replaceAll("_", " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Map a program day focus (Pull, Legs, HIIT…) onto gym_sessions.focus. */
+export function gymSessionFocusFromPlan(focus: string): GymSessionFocus {
+  const raw = String(focus ?? "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const compact = raw.replace(/\s+/g, "_");
+  if ((GYM_SESSION_FOCUSES as readonly string[]).includes(compact)) {
+    return compact as GymSessionFocus;
+  }
+  if (/\b(upper|push|pull|chest|back|shoulder|arm)\b/.test(raw)) return "upper";
+  if (/\b(lower|leg|glute|hamstring|calf|squat)\b/.test(raw)) return "lower";
+  if (/\b(core|ab)\b/.test(raw)) return "core";
+  if (/\b(cardio|endurance|hiit|run|bike)\b/.test(raw)) return "endurance";
+  if (/\b(mobilit|stretch|yoga)\b/.test(raw)) return "mobility";
+  if (/\b(fat|cut|loss)\b/.test(raw)) return "fat_loss";
+  if (/\b(strength|hypertrophy|power)\b/.test(raw)) return "strength";
+  return "full_body";
+}
+
+/** Rest strings from programs ("90s", "2 min", "60-90s") → seconds. */
+export function parseRestSeconds(rest: string): number {
+  const raw = String(rest ?? "")
+    .toLowerCase()
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!raw || raw === "-" || raw === "none" || raw === "no rest") return 0;
+  if (/^0+(?:\s*(?:s|sec|secs|seconds|m|min|mins|minutes))?$/.test(raw)) return 0;
+
+  const clamp = (value: number) => Math.max(0, Math.min(600, Math.round(value)));
+  const match = raw.match(
+    /^(\d+(?:\.\d+)?)(?:\s*-\s*\d+(?:\.\d+)?)?\s*(m|min|mins|minutes|s|sec|secs|seconds)?\b/,
+  );
+  if (!match) return 60;
+  const n = Number(match[1]);
+  const unit = match[2] ?? "";
+  if (unit.startsWith("m")) return clamp(n * 60);
+  return clamp(n);
+}
+
+/** "4 x 10-12" / "3 sets" → how many set checkboxes to show. */
+export function parseSetCount(sets: string): number {
+  const raw = String(sets ?? "")
+    .toLowerCase()
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  const x = raw.match(/(\d+)\s*[x×]/);
+  if (x) return Math.max(1, Math.min(10, Number(x[1])));
+  const word = raw.match(/(\d+)\s*sets?\b/);
+  if (word) return Math.max(1, Math.min(10, Number(word[1])));
+  return 1;
+}
+
+export function formatRestClock(totalSeconds: number) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
 export function clampGymPlanRecommendations(value: unknown, max = 8) {

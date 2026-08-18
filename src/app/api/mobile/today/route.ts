@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     plansRes,
     habitsRes,
     habitLogsRes,
+    groceryRes,
   ] = await Promise.all([
       supabase
         .from("daily_checkins")
@@ -61,12 +62,19 @@ export async function GET(request: Request) {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(8),
-      supabase.from("habits").select("id").eq("user_id", user.id).eq("active", true),
+      supabase.from("habits").select("id, title").eq("user_id", user.id).eq("active", true),
       supabase
         .from("habit_logs")
         .select("habit_id")
         .eq("user_id", user.id)
         .eq("logged_on", today),
+      supabase
+        .from("grocery_items")
+        .select("id, name, quantity")
+        .eq("user_id", user.id)
+        .eq("is_checked", false)
+        .order("created_at", { ascending: false })
+        .limit(8),
     ]);
 
   const checkin = checkinRes.data ?? null;
@@ -85,6 +93,7 @@ export async function GET(request: Request) {
   const habits_done_today = habits.filter((habit) =>
     habitLogs.some((log) => log.habit_id === habit.id),
   ).length;
+  const doneIds = new Set(habitLogs.map((log) => log.habit_id));
 
   return jsonOk({
     checkin,
@@ -99,6 +108,12 @@ export async function GET(request: Request) {
     workouts_today: workoutRows.length,
     habits_done_today,
     habits_total,
+    habits: habits.map((habit) => ({
+      id: habit.id,
+      title: habit.title,
+      done_today: doneIds.has(habit.id),
+    })),
+    groceries: groceryRes.data ?? [],
     program: summarizeTodaysProgram(
       ((plansRes.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row)),
     ),

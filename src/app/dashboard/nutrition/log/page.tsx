@@ -15,7 +15,7 @@ export default async function NutritionLogPage({ searchParams }: NutritionLogPag
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
 
-  const [mealsRes, checkinRes, profile] = await Promise.all([
+  const [mealsRes, checkinRes, profile, pantryRes] = await Promise.all([
     supabase
       .from("nutrition_logs")
       .select("*")
@@ -34,6 +34,13 @@ export default async function NutritionLogPage({ searchParams }: NutritionLogPag
       .select("daily_water_goal_ml")
       .eq("user_id", user.id)
       .maybeSingle(),
+    supabase
+      .from("pantry_items")
+      .select("id, name, category, stock_level")
+      .eq("user_id", user.id)
+      .gt("stock_level", 0)
+      .order("stock_level", { ascending: false })
+      .limit(20),
   ]);
 
   return (
@@ -43,6 +50,7 @@ export default async function NutritionLogPage({ searchParams }: NutritionLogPag
       meals={mealsRes.data ?? []}
       waterMl={checkinRes.data?.water_ml ?? 0}
       waterGoalMl={profile.data?.daily_water_goal_ml ?? 2400}
+      pantryItems={pantryRes.data ?? []}
     />
   );
 }

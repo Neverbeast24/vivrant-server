@@ -8,6 +8,15 @@ import {
 } from "@/lib/groceries/ph-price-catalog";
 import { createClient } from "@/lib/supabase/server";
 
+function revalidateKitchen() {
+  revalidatePath("/dashboard/groceries");
+  revalidatePath("/dashboard/pantry");
+  revalidatePath("/dashboard/pantry/items");
+  revalidatePath("/dashboard/pantry/low-stock");
+  revalidatePath("/dashboard/kitchen");
+  revalidatePath("/dashboard");
+}
+
 const itemSchema = z.object({
   name: z.string().min(1).max(120),
   quantity: z.string().max(40).optional(),
@@ -54,7 +63,7 @@ export async function addGroceryItem(formData: FormData) {
   });
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath("/dashboard/groceries");
+  revalidateKitchen();
   return { ok: true, message: `Item added · ${category} · ₱${estimatedPrice}.` };
 }
 
@@ -113,10 +122,9 @@ export async function toggleGroceryItem(id: number, checked: boolean) {
 
   if (checked && item) {
     await restockPantryFromGrocery(supabase, user.id, item);
-    revalidatePath("/dashboard/pantry");
   }
 
-  revalidatePath("/dashboard/groceries");
+  revalidateKitchen();
   return {
     ok: true,
     message: checked ? "Checked · pantry restocked." : "Updated.",
@@ -143,8 +151,7 @@ export async function restockPantryFromChecked() {
     await restockPantryFromGrocery(supabase, user.id, item);
   }
 
-  revalidatePath("/dashboard/pantry");
-  revalidatePath("/dashboard/groceries");
+  revalidateKitchen();
   return {
     ok: true,
     message: `Restocked ${items.length} pantry item${items.length === 1 ? "" : "s"}.`,
@@ -163,7 +170,7 @@ export async function deleteGroceryItem(id: number) {
     .eq("id", id)
     .eq("user_id", user.id);
   if (error) return { ok: false, message: error.message };
-  revalidatePath("/dashboard/groceries");
+  revalidateKitchen();
   return { ok: true, message: "Item removed." };
 }
 
@@ -179,6 +186,6 @@ export async function clearCompletedGroceries() {
     .eq("user_id", user.id)
     .eq("is_checked", true);
   if (error) return { ok: false, message: error.message };
-  revalidatePath("/dashboard/groceries");
+  revalidateKitchen();
   return { ok: true, message: "Completed items cleared." };
 }

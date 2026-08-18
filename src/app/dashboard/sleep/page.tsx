@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { SleepView } from "@/components/dashboard/sleep";
+import { loadWellnessPulse } from "@/app/dashboard/wellness/data";
 
 export const metadata: Metadata = { title: "Sleep" };
 
@@ -32,11 +33,14 @@ export default async function SleepPage() {
     rows.find((r) => r.sleep_minutes != null)?.sleep_minutes ??
     null;
 
+  const pulse = await loadWellnessPulse();
+
   return (
     <SleepView
       rows={rows.slice(0, 14)}
       avgMinutes={avgMinutes}
       lastNight={lastNight != null ? Number(lastNight) : null}
+      pulse={pulse}
     />
   );
 }

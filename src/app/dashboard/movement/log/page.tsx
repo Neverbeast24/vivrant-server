@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MovementView } from "@/components/dashboard/movement";
+import { loadGymData } from "@/app/dashboard/gym/data";
 import { requireUser } from "@/lib/auth/roles";
 
 export const metadata: Metadata = { title: "Log Workout" };
@@ -10,7 +11,7 @@ export default async function MovementLogPage() {
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
 
-  const [workoutsRes, checkinRes, profile] = await Promise.all([
+  const [workoutsRes, checkinRes, profile, gym] = await Promise.all([
     supabase
       .from("workout_logs")
       .select("*")
@@ -29,6 +30,7 @@ export default async function MovementLogPage() {
       .select("daily_step_goal")
       .eq("user_id", user.id)
       .maybeSingle(),
+    loadGymData(),
   ]);
 
   return (
@@ -37,6 +39,7 @@ export default async function MovementLogPage() {
       workouts={workoutsRes.data ?? []}
       steps={checkinRes.data?.steps ?? 0}
       stepGoal={profile.data?.daily_step_goal ?? 8000}
+      plans={gym.plans}
     />
   );
 }

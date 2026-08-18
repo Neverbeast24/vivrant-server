@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { MindfulnessView } from "@/components/dashboard/mindfulness";
+import { loadWellnessPulse } from "@/app/dashboard/wellness/data";
 
 export const metadata: Metadata = { title: "Mindfulness" };
 
@@ -25,5 +26,7 @@ export default async function MindfulnessPage() {
   const weekMoods = data ?? [];
   const todayMood = weekMoods.find((r) => r.checkin_date === today)?.mood ?? null;
 
-  return <MindfulnessView todayMood={todayMood} weekMoods={weekMoods} />;
+  const pulse = await loadWellnessPulse();
+
+  return <MindfulnessView todayMood={todayMood} weekMoods={weekMoods} pulse={pulse} />;
 }

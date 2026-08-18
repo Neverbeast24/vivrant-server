@@ -143,18 +143,27 @@ function scaleMacros(meal: QuickMeal, portion: PortionSize) {
   };
 }
 
+type PantryChip = {
+  id: number;
+  name: string;
+  stock_level: number;
+  category: string;
+};
+
 export function NutritionView({
   meals,
   waterMl = 0,
   waterGoalMl = 2400,
   mode = "overview",
   autoSuggest = false,
+  pantryItems = [],
 }: {
   meals: Meal[];
   waterMl?: number;
   waterGoalMl?: number;
   mode?: "overview" | "log";
   autoSuggest?: boolean;
+  pantryItems?: PantryChip[];
 }) {
   const { pending, submit } = useModuleAction(logMeal);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -349,6 +358,60 @@ export function NutritionView({
         }
       />
       <ModuleSubNav items={nutritionSubNav} />
+
+      {mode === "log" && (
+        <>
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Calories left"
+              value={String(Math.max(0, calorieGoal - totalCalories))}
+              detail={`${totalCalories} / ${calorieGoal} kcal today`}
+              icon={Flame}
+            />
+            <StatCard
+              label="Protein left"
+              value={`${Math.max(0, Math.round(proteinGoal - totalProtein))}g`}
+              detail={`${Math.round(totalProtein)} / ${proteinGoal}g`}
+              icon={Apple}
+            />
+            <StatCard
+              label="Meals today"
+              value={String(meals.length)}
+              detail={meals[0]?.meal_name ?? "Nothing logged yet"}
+              icon={Droplets}
+            />
+          </div>
+
+          {pantryItems.length > 0 && (
+            <Panel title="Cook from pantry" className="mb-4">
+              <p className="mb-3 text-xs text-muted">
+                Tap an item you used — it fills the meal name so you can estimate macros next.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {pantryItems
+                  .filter((item) => item.stock_level > 0)
+                  .slice(0, 14)
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setMealName(item.name);
+                        setDescription((prev) =>
+                          prev.includes(item.name) ? prev : [prev, item.name].filter(Boolean).join(", "),
+                        );
+                        toast.success(`Using ${item.name} from pantry`);
+                      }}
+                      className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/30 hover:text-accent"
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+              </div>
+            </Panel>
+          )}
+        </>
+      )}
 
       {mode === "log" && (
         <>
@@ -616,7 +679,7 @@ export function NutritionView({
             <StatCard
               label="Calories today"
               value={String(totalCalories)}
-              detail={`${meals.length} meals · ${Math.round(totalProtein)}g protein`}
+              detail={`${Math.max(0, calorieGoal - totalCalories)} left of ${calorieGoal} · ${Math.round(totalProtein)}g protein`}
               icon={Flame}
               tone="brand"
             />
@@ -664,6 +727,28 @@ export function NutritionView({
               ))}
             </div>
           </Panel>
+
+          {pantryItems.length > 0 && (
+            <Panel title="Cook from pantry" className="mt-4">
+              <p className="mb-3 text-xs text-muted">
+                Open log meal and tap a shelf item — or start from here.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {pantryItems
+                  .filter((item) => item.stock_level > 0)
+                  .slice(0, 12)
+                  .map((item) => (
+                    <Link
+                      key={item.id}
+                      href="/dashboard/nutrition/log"
+                      className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/30 hover:text-accent"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+              </div>
+            </Panel>
+          )}
 
           <Panel
             title="Logged meals"

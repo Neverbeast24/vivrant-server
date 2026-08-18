@@ -221,11 +221,76 @@ export function HabitsView({
               )}
             </Panel>
           </div>
+
+          {challenges.length > 0 && (
+            <Panel title="This week’s challenges" className="mt-6">
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {challenges.slice(0, 4).map((c) => {
+                  const pct = Math.min(
+                    100,
+                    Math.round((Number(c.current_value) / Math.max(Number(c.target_value), 1)) * 100),
+                  );
+                  return (
+                    <li key={c.id} className="rounded-2xl border border-ink/8 p-4">
+                      <p className="flex items-center gap-2 text-sm font-black">
+                        <Trophy size={14} className="text-accent" />
+                        {c.title}
+                        {c.completed ? " · Done" : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        {c.metric} · {Number(c.current_value).toFixed(0)} / {Number(c.target_value)}
+                      </p>
+                      <div className="mt-3">
+                        <Progress value={pct} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          )}
         </>
       )}
 
       {section === "challenges" && (
         <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Today’s habits">
+            <p className="mb-3 text-xs text-muted">
+              Checking habits here counts toward challenges that use the habits metric.
+            </p>
+            <ul className="space-y-2">
+              {habits.map((habit) => (
+                <li
+                  key={habit.id}
+                  className="flex items-center gap-3 rounded-2xl border border-ink/8 px-3 py-3"
+                >
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await toggleHabitToday(habit.id, !habit.doneToday);
+                      if (result.ok) toast.success(result.message);
+                      else toast.error(result.message);
+                    }}
+                    className={`grid size-9 place-items-center rounded-xl border ${
+                      habit.doneToday
+                        ? "border-accent bg-accent text-white"
+                        : "border-ink/15 text-muted"
+                    }`}
+                  >
+                    <Check size={16} />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{habit.title}</p>
+                    <p className="text-xs text-muted">{habit.category}</p>
+                  </div>
+                </li>
+              ))}
+              {!habits.length && (
+                <EmptyState>Add habits on Overview — they’ll show up here to check off.</EmptyState>
+              )}
+            </ul>
+          </Panel>
+
           <Panel title="Create weekly challenge">
             <form action={challengeAction.submit} className="grid gap-3">
               <FormField label="Title">

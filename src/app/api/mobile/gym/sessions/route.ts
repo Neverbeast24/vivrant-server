@@ -2,17 +2,22 @@ import { z } from "zod";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, readJson } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
+import { gymSessionFocusFromPlan } from "@/lib/gym";
 
 export const runtime = "nodejs";
 
 const exerciseItemSchema = z.object({
   name: z.string().trim().min(1).max(160),
   sets: z.string().trim().max(60).default("as logged"),
+  rest: z.string().trim().max(20).optional(),
+  weight: z.string().trim().max(40).optional(),
+  done: z.boolean().optional(),
+  completed_sets: z.coerce.number().int().min(0).max(10).optional(),
 });
 
 const sessionSchema = z.object({
   title: z.string().trim().min(1).max(120),
-  focus: z.enum(["full_body", "strength", "fat_loss", "mobility", "endurance", "upper", "lower", "core"]),
+  focus: z.string().trim().min(1).max(60),
   duration_minutes: z.coerce.number().int().min(5).max(180),
   calories_burned: z.coerce.number().int().min(0).max(2000).optional(),
   notes: z.string().trim().max(400).optional(),
@@ -45,6 +50,7 @@ export async function POST(request: Request) {
   const parsed = sessionSchema.safeParse(body);
   if (!parsed.success) return jsonError("Fill in a valid gym session.", 400);
 
+  const focus = gymSessionFocusFromPlan(parsed.data.focus);
   const exercisesInput = parsed.data.exercises;
   const exerciseRows = Array.isArray(exercisesInput)
     ? exercisesInput
@@ -59,7 +65,7 @@ export async function POST(request: Request) {
     .insert({
       user_id: user.id,
       title: parsed.data.title,
-      focus: parsed.data.focus,
+      focus,
       duration_minutes: parsed.data.duration_minutes,
       calories_burned: parsed.data.calories_burned ?? 0,
       notes: parsed.data.notes || null,
@@ -75,7 +81,7 @@ export async function POST(request: Request) {
       action: "gym_session_created",
       entity: "gym_sessions",
       entityId: data?.id != null ? String(data.id) : undefined,
-      metadata: { title: parsed.data.title, focus: parsed.data.focus },
+      metadata: { title: parsed.data.title, focus },
     },
     supabase,
   );

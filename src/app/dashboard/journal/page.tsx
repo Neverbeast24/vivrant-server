@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { loadWellnessPulse } from "@/app/dashboard/wellness/data";
 import { JournalView } from "@/components/dashboard/journal";
 
 export const metadata: Metadata = { title: "Journal" };
@@ -19,5 +20,7 @@ export default async function JournalPage() {
     .order("updated_at", { ascending: false })
     .limit(80);
 
-  return <JournalView entries={data ?? []} />;
+  const pulse = await loadWellnessPulse();
+
+  return <JournalView entries={data ?? []} pulse={pulse} />;
 }

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { ClipboardList, Dumbbell, Footprints } from "lucide-react";
 import { GymJumpCards, GymOverviewStats } from "@/components/dashboard/gym-parts";
+import { ProgramSessionPanel } from "@/components/dashboard/program-session";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { PageHeader, Panel, PrimaryButton, Stagger, StatCard } from "@/components/dashboard/ui";
 import { trainingSubNav } from "@/lib/nav";
+import type { GymPlan } from "@/lib/gym";
 
 export function TrainingHub({
   workoutsToday,
@@ -18,6 +20,7 @@ export function TrainingHub({
   machineCount,
   demoCount,
   planCount,
+  plans = [],
 }: {
   workoutsToday: number;
   workoutMinutes: number;
@@ -29,6 +32,7 @@ export function TrainingHub({
   machineCount: number;
   demoCount: number;
   planCount: number;
+  plans?: GymPlan[];
 }) {
   const stepPct = Math.min(100, Math.round((steps / Math.max(stepGoal, 1)) * 100));
 
@@ -36,7 +40,7 @@ export function TrainingHub({
     <>
       <PageHeader eyebrow="TRAINING" title="Move and" highlight="train." />
       <p className="-mt-5 mb-4 max-w-xl text-sm text-muted">
-        Daily activity and gym work in one place — walks and yoga beside demos, machines, and plans.
+        Daily activity and gym work in one place — create a program, then log today’s session with checkboxes and rest timers.
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
@@ -45,7 +49,7 @@ export function TrainingHub({
           <StatCard
             label="Workouts today"
             value={String(workoutsToday)}
-            detail={workoutMinutes ? `${workoutMinutes} min logged` : "Log a walk or session"}
+            detail={workoutMinutes ? `${workoutMinutes} min logged` : "Today’s program or a walk"}
             icon={Dumbbell}
           />
           <StatCard
@@ -63,18 +67,22 @@ export function TrainingHub({
         </div>
       </Stagger>
 
+      <div className="mt-4">
+        <ProgramSessionPanel plans={plans} compact />
+      </div>
+
       <Panel
         title="Daily activity"
         className="mt-4"
         right={
-          <Link href="/dashboard/movement/log" className="inline-flex">
+          <Link href="/dashboard/gym/sessions" className="inline-flex">
             <PrimaryButton className="rounded-full px-4 py-2 text-xs">Log workout</PrimaryButton>
           </Link>
         }
       >
         <p className="text-sm leading-6 text-muted">
-          Track walks, runs, cycles, yoga, and light strength. AI can suggest one workout from your
-          energy and steps.
+          Track walks, runs, and today’s gym program. Check off sets and rest between them, or log a
+          simple walk.
         </p>
       </Panel>
 

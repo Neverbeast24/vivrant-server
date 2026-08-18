@@ -6,5 +6,5 @@ export const metadata: Metadata = { title: "Gym Sessions" };
 
 export default async function GymSessionsPage() {
   const data = await loadGymData();
-  return <GymSessionsView sessions={data.sessions} />;
+  return <GymSessionsView sessions={data.sessions} plans={data.plans} />;
 }

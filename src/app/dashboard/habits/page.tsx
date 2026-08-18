@@ -25,7 +25,8 @@ export default async function HabitsPage() {
   if (!user) return null;
 
   const today = new Date().toISOString().slice(0, 10);
-  const [{ data: habits }, { data: logs }] = await Promise.all([
+  const [{ data: habits }, { data: logs }, { data: challenges }, { data: progress }] =
+    await Promise.all([
     supabase
       .from("habits")
       .select("id, title, category, frequency")
@@ -38,6 +39,16 @@ export default async function HabitsPage() {
       .eq("user_id", user.id)
       .order("logged_on", { ascending: false })
       .limit(400),
+    supabase
+      .from("challenges")
+      .select("id, title, description, metric, target_value, starts_on, ends_on")
+      .eq("user_id", user.id)
+      .order("ends_on", { ascending: false })
+      .limit(8),
+    supabase
+      .from("challenge_progress")
+      .select("challenge_id, current_value, completed")
+      .eq("user_id", user.id),
   ]);
 
   const logRows = logs ?? [];
@@ -53,6 +64,23 @@ export default async function HabitsPage() {
     };
   });
   const bestStreak = enriched.reduce((m, h) => Math.max(m, h.streak), 0);
+  const progressMap = new Map((progress ?? []).map((p) => [p.challenge_id, p] as const));
+  const challengeRows = (challenges ?? []).map((c) => {
+    const p = progressMap.get(c.id);
+    return {
+      ...c,
+      target_value: Number(c.target_value),
+      current_value: Number(p?.current_value ?? 0),
+      completed: Boolean(p?.completed),
+    };
+  });
 
-  return <HabitsView habits={enriched} bestStreak={bestStreak} section="overview" />;
+  return (
+    <HabitsView
+      habits={enriched}
+      bestStreak={bestStreak}
+      section="overview"
+      challenges={challengeRows}
+    />
+  );
 }

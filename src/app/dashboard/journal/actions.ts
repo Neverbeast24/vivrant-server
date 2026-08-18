@@ -72,6 +72,7 @@ export async function saveJournalEntry(formData: FormData) {
 
   revalidatePath("/dashboard/journal");
   revalidatePath("/dashboard/mindfulness");
+  revalidatePath("/dashboard/wellness");
   revalidatePath("/dashboard");
   return { ok: true, message: "Note saved.", id: row?.id as number | undefined };
 }
@@ -222,6 +223,7 @@ export async function logMood(formData: FormData) {
 
   await syncGoalProgress(supabase, user.id);
   revalidatePath("/dashboard/mindfulness");
+  revalidatePath("/dashboard/wellness");
   revalidatePath("/dashboard");
   return { ok: true, message: "Mood saved." };
 }

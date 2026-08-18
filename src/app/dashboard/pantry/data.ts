@@ -14,6 +14,16 @@ export async function loadPantryItems() {
   return (data ?? []) as PantryItem[];
 }
 
+export async function loadOpenGroceries() {
+  const { supabase, user } = await requireUser();
+  const { data } = await supabase
+    .from("grocery_items")
+    .select("id, name, quantity, is_checked")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
 export type { PantryItem } from "@/app/dashboard/pantry/shared";
 export {
   PANTRY_CATEGORIES,

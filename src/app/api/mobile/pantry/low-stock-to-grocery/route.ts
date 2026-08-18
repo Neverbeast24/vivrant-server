@@ -1,3 +1,5 @@
+import { pantryToGroceryCategory } from "@/app/dashboard/pantry/shared";
+import { estimateGroceryPrice } from "@/lib/groceries/ph-price-catalog";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError } from "@/lib/mobile/http";
 
@@ -35,13 +37,17 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("grocery_items")
     .insert(
-      toAdd.map((item) => ({
-        user_id: user.id,
-        name: item.name,
-        category: item.category || "other",
-        quantity: "1",
-        is_checked: false,
-      })),
+      toAdd.map((item) => {
+        const category = pantryToGroceryCategory(item.category || "other");
+        return {
+          user_id: user.id,
+          name: item.name,
+          category,
+          quantity: "1",
+          is_checked: false,
+          estimated_price: estimateGroceryPrice(item.name, "1", category),
+        };
+      }),
     )
     .select("*");
   if (error) return jsonError(error.message, 500);

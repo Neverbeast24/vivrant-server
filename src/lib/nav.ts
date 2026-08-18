@@ -66,11 +66,11 @@ export const dashboardNav: NavItem[] = [
     href: "/dashboard/training",
     children: [
       { label: "Overview", href: "/dashboard/training", caption: "Daily activity & gym" },
-      { label: "Log workout", href: "/dashboard/movement/log", caption: "Walk, run, yoga…" },
+      { label: "Log workout", href: "/dashboard/movement/log", caption: "Today’s program or a walk" },
       { label: "Program", href: "/dashboard/gym/plans", caption: "Saved AI programs" },
       { label: "Demos", href: "/dashboard/gym/demos", caption: "Form videos" },
       { label: "Machines", href: "/dashboard/gym/machines", caption: "Equipment guides" },
-      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Log gym work" },
+      { label: "Sessions", href: "/dashboard/gym/sessions", caption: "Check off sets + rest timer" },
       { label: "Gym", href: "/dashboard/gym", caption: "Training hub" },
     ],
   },

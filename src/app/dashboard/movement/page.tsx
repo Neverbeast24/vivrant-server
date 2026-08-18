@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MovementView } from "@/components/dashboard/movement";
 import { requireUser } from "@/lib/auth/roles";
+import { hydrateGymPlan, type GymPlan } from "@/lib/gym";
 
 export const metadata: Metadata = { title: "Movement" };
 
@@ -10,7 +11,7 @@ export default async function MovementPage() {
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
 
-  const [workoutsRes, checkinRes] = await Promise.all([
+  const [workoutsRes, checkinRes, plansRes] = await Promise.all([
     supabase
       .from("workout_logs")
       .select("*")
@@ -24,6 +25,12 @@ export default async function MovementPage() {
       .eq("user_id", user.id)
       .eq("checkin_date", today)
       .maybeSingle(),
+    supabase
+      .from("gym_plans")
+      .select("id, title, focus, level, days_per_week, summary, days, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
   const { data: profile } = await supabase
     .from("profiles")
@@ -37,6 +44,7 @@ export default async function MovementPage() {
       workouts={workoutsRes.data ?? []}
       steps={checkinRes.data?.steps ?? 0}
       stepGoal={profile?.daily_step_goal ?? 8000}
+      plans={((plansRes.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row))}
     />
   );
 }

@@ -14,6 +14,8 @@ import {
   Stagger,
   StatCard,
 } from "@/components/dashboard/ui";
+import { WellnessPulseBar } from "@/components/dashboard/wellness-pulse";
+import type { WellnessPulse } from "@/app/dashboard/wellness/types";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { wellnessSubNav } from "@/lib/nav";
 
@@ -21,10 +23,12 @@ export function HydrationView({
   waterMl,
   goalMl,
   weekRows,
+  pulse,
 }: {
   waterMl: number;
   goalMl: number;
   weekRows: { checkin_date: string; water_ml: number | null }[];
+  pulse?: WellnessPulse;
 }) {
   const { pending, submit } = useModuleAction(addHydration);
   const [remPending, startRem] = useTransition();
@@ -61,6 +65,7 @@ export function HydrationView({
         }
       />
       <ModuleSubNav items={wellnessSubNav} />
+      {pulse ? <WellnessPulseBar pulse={pulse} current="hydration" /> : null}
       <Stagger>
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard

@@ -9,7 +9,7 @@ export default async function GoalsSettingsPage() {
   const { supabase, user } = await requireUser();
   await syncGoalProgress(supabase, user.id);
 
-  const [settingsRes, profileRes, goalsRes] = await Promise.all([
+  const [settingsRes, profileRes, goalsRes, checkinRes, mealsRes, workoutsRes] = await Promise.all([
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
     supabase
@@ -17,6 +17,22 @@ export default async function GoalsSettingsPage() {
       .select("id, title, category, target_value, current_value, unit, target_date, status")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("daily_checkins")
+      .select("water_ml, sleep_minutes")
+      .eq("user_id", user.id)
+      .eq("checkin_date", new Date().toISOString().slice(0, 10))
+      .maybeSingle(),
+    supabase
+      .from("nutrition_logs")
+      .select("calories")
+      .eq("user_id", user.id)
+      .gte("logged_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    supabase
+      .from("workout_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("logged_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
   ]);
   const data = settingsRes.data;
   const profile = profileRes.data;
@@ -52,6 +68,14 @@ export default async function GoalsSettingsPage() {
         target_value: goal.target_value == null ? null : Number(goal.target_value),
         status: goal.status as "active" | "completed" | "paused",
       }))}
+      todayProgress={{
+        waterMl: Number(checkinRes.data?.water_ml ?? 0),
+        waterGoalMl: Number(profile?.daily_water_goal_ml ?? 2400),
+        calories: (mealsRes.data ?? []).reduce((sum, row) => sum + Number(row.calories ?? 0), 0),
+        workouts: workoutsRes.count ?? 0,
+        sleepMinutes:
+          checkinRes.data?.sleep_minutes != null ? Number(checkinRes.data.sleep_minutes) : null,
+      }}
     />
   );
 }

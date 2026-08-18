@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { HydrationView } from "@/components/dashboard/hydration";
+import { loadWellnessPulse } from "@/app/dashboard/wellness/data";
 
 export const metadata: Metadata = { title: "Hydration" };
 
@@ -35,11 +36,14 @@ export default async function HydrationPage() {
       .order("checkin_date", { ascending: false }),
   ]);
 
+  const pulse = await loadWellnessPulse();
+
   return (
     <HydrationView
       waterMl={Number(checkin.data?.water_ml ?? 0)}
       goalMl={Number(profile.data?.daily_water_goal_ml ?? 2400)}
       weekRows={week.data ?? []}
+      pulse={pulse}
     />
   );
 }

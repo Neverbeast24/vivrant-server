@@ -16,6 +16,8 @@ import {
   StatCard,
   fieldClass,
 } from "@/components/dashboard/ui";
+import { WellnessPulseBar } from "@/components/dashboard/wellness-pulse";
+import type { WellnessPulse } from "@/app/dashboard/wellness/types";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { wellnessSubNav } from "@/lib/nav";
 
@@ -30,9 +32,11 @@ const moods = [
 export function MindfulnessView({
   todayMood,
   weekMoods,
+  pulse,
 }: {
   todayMood: number | null;
   weekMoods: { checkin_date: string; mood: number | null }[];
+  pulse?: WellnessPulse;
 }) {
   const { pending, submit } = useModuleAction(logMood);
   const [tipPending, startTip] = useTransition();
@@ -72,6 +76,7 @@ export function MindfulnessView({
         }
       />
       <ModuleSubNav items={wellnessSubNav} />
+      {pulse ? <WellnessPulseBar pulse={pulse} current="mindfulness" /> : null}
       <Stagger>
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard

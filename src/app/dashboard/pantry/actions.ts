@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { estimateGroceryPrice } from "@/lib/groceries/ph-price-catalog";
 import { createClient } from "@/lib/supabase/server";
+import { pantryToGroceryCategory } from "@/app/dashboard/pantry/shared";
 
 const pantrySchema = z.object({
   name: z.string().min(1).max(120),
@@ -16,6 +18,9 @@ function revalidatePantry() {
   revalidatePath("/dashboard/pantry/categories");
   revalidatePath("/dashboard/pantry/low-stock");
   revalidatePath("/dashboard/pantry/add");
+  revalidatePath("/dashboard/kitchen");
+  revalidatePath("/dashboard/groceries");
+  revalidatePath("/dashboard");
 }
 
 export async function addPantryItem(formData: FormData) {
@@ -108,20 +113,66 @@ export async function addLowStockToGroceryList() {
   }
 
   const { error } = await supabase.from("grocery_items").insert(
-    toAdd.map((item) => ({
-      user_id: user.id,
-      name: item.name,
-      category: item.category || "other",
-      quantity: "1",
-      is_checked: false,
-    })),
+    toAdd.map((item) => {
+      const category = pantryToGroceryCategory(item.category || "other");
+      return {
+        user_id: user.id,
+        name: item.name,
+        category,
+        quantity: "1",
+        is_checked: false,
+        estimated_price: estimateGroceryPrice(item.name, "1", category),
+      };
+    }),
   );
   if (error) return { ok: false, message: error.message };
 
   revalidatePantry();
-  revalidatePath("/dashboard/groceries");
   return {
     ok: true,
     message: `Added ${toAdd.length} low-stock item${toAdd.length === 1 ? "" : "s"} to groceries.`,
   };
+}
+
+/** Push one pantry item onto the grocery list. */
+export async function addPantryItemToGroceryList(id: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { data: item } = await supabase
+    .from("pantry_items")
+    .select("id, name, category")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!item) return { ok: false, message: "Pantry item not found." };
+
+  const { data: open } = await supabase
+    .from("grocery_items")
+    .select("name")
+    .eq("user_id", user.id)
+    .eq("is_checked", false)
+    .ilike("name", item.name.trim());
+
+  if (open?.length) {
+    return { ok: true, message: `${item.name} is already on your shopping list.` };
+  }
+
+  const category = pantryToGroceryCategory(item.category || "other");
+  const { error } = await supabase.from("grocery_items").insert({
+    user_id: user.id,
+    name: item.name,
+    category,
+    quantity: "1",
+    is_checked: false,
+    estimated_price: estimateGroceryPrice(item.name, "1", category),
+  });
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePantry();
+  return { ok: true, message: `Added ${item.name} to groceries.` };
 }

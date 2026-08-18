@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Check,
@@ -33,6 +34,7 @@ import {
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
+import { ProgramSessionPanel } from "@/components/dashboard/program-session";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   EmptyState,
@@ -50,6 +52,7 @@ import { useModuleAction } from "@/components/dashboard/use-module-action";
 import {
   enrichGymPlanDays,
   findExerciseMatch,
+  gymExerciseCardImage,
   humanizeGymLabel,
   isMachineGear,
   pickTodaysPlanDay,
@@ -147,8 +150,8 @@ export function GymJumpCards({
     },
     {
       href: "/dashboard/gym/sessions",
-      title: "Sessions",
-      detail: sessionCount ? `${sessionCount} logged recently` : "Log training and review history",
+      title: "Log workout",
+      detail: sessionCount ? `${sessionCount} logged recently` : "Today’s program, checkboxes, rest timer",
       icon: ClipboardList,
     },
     {
@@ -279,7 +282,7 @@ function ExerciseGrid({
           <div className="relative aspect-video overflow-hidden bg-surface-soft">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={exercise.demo_thumbnail_url ?? "/vivrant-mark.png"}
+              src={gymExerciseCardImage(exercise) ?? "/vivrant-mark.png"}
               alt=""
               className="size-full object-cover transition duration-500 group-hover:scale-105"
             />
@@ -321,7 +324,7 @@ function KnownExerciseThumb({ exercise }: { exercise: GymExercise }) {
     <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-surface-soft ring-1 ring-ink/8">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={exercise.demo_thumbnail_url ?? "/vivrant-mark.png"}
+        src={gymExerciseCardImage(exercise) ?? "/vivrant-mark.png"}
         alt=""
         className="size-full object-cover"
         loading="lazy"
@@ -454,7 +457,93 @@ function MuscleFilterChips({
   );
 }
 
-export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
+function TodaysProgramMoves({
+  plans,
+  exercises,
+  gear,
+  onSelect,
+}: {
+  plans: GymPlan[];
+  exercises: GymExercise[];
+  gear: "free" | "machine";
+  onSelect: (exercise: GymExercise) => void;
+}) {
+  const plan = plans[0];
+  const today = plan ? pickTodaysPlanDay(plan.days ?? []) : null;
+  const programmed = today?.exercises ?? [];
+  const matched = programmed
+    .map((ex) => {
+      const found = findExerciseMatch(ex.name, exercises);
+      if (!found) return null;
+      const isMachine = isMachineGear(found.equipment);
+      if (gear === "machine" ? !isMachine : isMachine) return null;
+      return { name: ex.name, exercise: found, sets: ex.sets };
+    })
+    .filter((row): row is { name: string; exercise: GymExercise; sets: string } => row != null);
+  const unmatched = programmed.filter(
+    (ex) => !matched.some((row) => row.name.toLowerCase() === ex.name.toLowerCase()),
+  );
+
+  return (
+    <Panel
+      title={today ? `Today · ${today.focus}` : "Today’s program"}
+      className="mb-4"
+      right={
+        <Link href="/dashboard/gym/sessions" className="text-xs font-black text-accent">
+          Start workout →
+        </Link>
+      }
+    >
+      {today ? (
+        <>
+          <p className="mb-3 text-xs text-muted">
+            From {plan?.title ?? "your program"}. Tap a demo, or start the live workout.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {matched.map((row) => (
+              <button
+                key={row.exercise.id}
+                type="button"
+                onClick={() => onSelect(row.exercise)}
+                className="rounded-full border border-accent/25 bg-accent-soft px-3 py-1.5 text-xs font-bold text-accent"
+              >
+                {row.exercise.name}
+                {row.sets ? ` · ${row.sets}` : ""}
+              </button>
+            ))}
+            {unmatched.map((ex) => (
+              <span
+                key={ex.name}
+                className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted"
+              >
+                {ex.name}
+              </span>
+            ))}
+            {!programmed.length && (
+              <span className="text-xs text-muted">Rest day — browse the library below.</span>
+            )}
+          </div>
+        </>
+      ) : (
+        <EmptyState>
+          No program yet.{" "}
+          <Link href="/dashboard/gym/plans" className="font-bold text-accent hover:underline">
+            Create a program
+          </Link>{" "}
+          so today’s moves show up here.
+        </EmptyState>
+      )}
+    </Panel>
+  );
+}
+
+export function GymDemosView({
+  exercises,
+  plans = [],
+}: {
+  exercises: GymExercise[];
+  plans?: GymPlan[];
+}) {
   const [muscle, setMuscle] = useState<(typeof muscleFilters)[number]>("all");
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
   const freeWeight = exercises.filter((item) => !isMachineGear(item.equipment));
@@ -474,6 +563,12 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
         Short videos that show how to do each move with good form.
       </p>
       <ModuleSubNav items={trainingSubNav} />
+      <TodaysProgramMoves
+        plans={plans}
+        exercises={exercises}
+        gear="free"
+        onSelect={setActiveDemo}
+      />
       <Panel title="Free-weight & bodyweight demos" right={<Play size={16} className="text-accent" />}>
         <MuscleFilterChips muscle={muscle} onChange={setMuscle} />
         <ExerciseGrid exercises={filtered} onSelect={setActiveDemo} />
@@ -485,7 +580,13 @@ export function GymDemosView({ exercises }: { exercises: GymExercise[] }) {
   );
 }
 
-export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
+export function GymMachinesView({
+  exercises,
+  plans = [],
+}: {
+  exercises: GymExercise[];
+  plans?: GymPlan[];
+}) {
   const [muscle, setMuscle] = useState<(typeof muscleFilters)[number]>("all");
   const [gear, setGear] = useState<"all" | "machine" | "cable" | "cardio_machine">("all");
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
@@ -545,6 +646,12 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
         Watch demos for gym machines, or get a short list picked for you.
       </p>
       <ModuleSubNav items={trainingSubNav} />
+      <TodaysProgramMoves
+        plans={plans}
+        exercises={exercises}
+        gear="machine"
+        onSelect={setActiveDemo}
+      />
 
       {machineRecs && (
         <Panel
@@ -625,9 +732,16 @@ export function GymMachinesView({ exercises }: { exercises: GymExercise[] }) {
   );
 }
 
-export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
+export function GymSessionsView({
+  sessions,
+  plans = [],
+}: {
+  sessions: GymSession[];
+  plans?: GymPlan[];
+}) {
   const { pending, submit } = useModuleAction(logGymSession);
   const [busy, start] = useTransition();
+  const [showFreeform, setShowFreeform] = useState(plans.length === 0);
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -639,13 +753,24 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
 
   return (
     <>
-      <PageHeader eyebrow="GYM WORKOUTS" title="Log what you" highlight="trained." />
+      <PageHeader eyebrow="TRAINING" title="Log what you" highlight="trained." />
       <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Save a gym session so you can look back at your progress.
+        Today’s program is listed first. Check off sets, rest between them, then save. Walks and extra gym
+        work still go here too.
       </p>
       <ModuleSubNav items={trainingSubNav} />
+      <ProgramSessionPanel plans={plans} compact />
       <div className="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
-        <Panel title="Log a gym workout">
+        <Panel title={plans.length ? "Or log something else" : "Log a gym workout"}>
+          {plans.length > 0 && !showFreeform ? (
+            <button
+              type="button"
+              onClick={() => setShowFreeform(true)}
+              className="text-sm font-black text-accent"
+            >
+              Log a walk-in workout without the program
+            </button>
+          ) : (
           <form action={submit} className="grid gap-3 sm:grid-cols-2">
             <FormField label="Workout name" hint="Required" className="sm:col-span-2">
               <input name="title" required placeholder="e.g. Leg day" className={fieldClass} />
@@ -683,6 +808,7 @@ export function GymSessionsView({ sessions }: { sessions: GymSession[] }) {
               {pending ? "Saving…" : "Save workout"}
             </PrimaryButton>
           </form>
+          )}
         </Panel>
 
         <Panel
@@ -735,6 +861,7 @@ export function GymPlansView({
   exercises: GymExercise[];
   scaling?: RoutineScaling | null;
 }) {
+  const router = useRouter();
   const [busy, start] = useTransition();
   const [planning, startPlan] = useTransition();
   const [activeDemo, setActiveDemo] = useState<GymExercise | null>(null);
@@ -949,8 +1076,14 @@ export function GymPlansView({
 
     startPlan(async () => {
       const result = await createAiGymPlan(prefs);
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
+      if (result.ok) {
+        toast.success(result.message, {
+          action: {
+            label: "Start today",
+            onClick: () => router.push("/dashboard/gym/sessions"),
+          },
+        });
+      } else toast.error(result.message);
     });
   }
 
@@ -980,7 +1113,7 @@ export function GymPlansView({
             return (
               <a
                 key={plan.id}
-                href="#saved-programs"
+                href="/dashboard/gym/sessions"
                 className="rounded-[1.3rem] border border-ink/8 bg-card p-4 transition hover:border-accent/30"
               >
                 <p className="text-[10px] font-black tracking-wider text-accent">SAVED PROGRAM</p>
@@ -989,8 +1122,8 @@ export function GymPlansView({
                   {humanizeGymLabel(plan.focus)} · {plan.level} · {plan.days_per_week} days/week
                 </p>
                 {today && (
-                  <p className="mt-2 text-xs text-muted">
-                    Today · {today.day} · {humanizeGymLabel(today.focus)}
+                  <p className="mt-2 text-xs font-black text-accent">
+                    Start today · {today.day} · {humanizeGymLabel(today.focus)}
                     {today.exercises[0] ? ` · ${today.exercises[0].name}` : ""}
                   </p>
                 )}
@@ -1499,6 +1632,12 @@ export function GymPlansView({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Link
+                    href="/dashboard/gym/sessions"
+                    className="inline-flex items-center rounded-full bg-inverse px-3.5 py-2 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
+                  >
+                    Start today’s workout
+                  </Link>
                   <ShareExportMenu compact doc={gymPlanDoc(plan)} />
                   <button
                     type="button"
@@ -1527,7 +1666,7 @@ export function GymPlansView({
                                   <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-soft ring-1 ring-ink/8">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
-                                      src={linked.demo_thumbnail_url ?? "/vivrant-mark.png"}
+                                      src={gymExerciseCardImage(linked) ?? "/vivrant-mark.png"}
                                       alt=""
                                       className="size-full object-cover"
                                       loading="lazy"

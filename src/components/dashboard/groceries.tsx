@@ -44,6 +44,9 @@ import {
 } from "@/lib/groceries/ph-price-catalog";
 import { kitchenSubNav } from "@/lib/nav";
 import { toast } from "sonner";
+import { addLowStockToGroceryList } from "@/app/dashboard/pantry/actions";
+import type { PantryItem } from "@/app/dashboard/pantry/shared";
+import { LOW_STOCK_THRESHOLD } from "@/app/dashboard/pantry/shared";
 
 type GroceryItem = {
   id: number;
@@ -98,12 +101,14 @@ export function GroceriesView({
   spentThisMonth = 0,
   priceMonthLabel,
   stapleTrends = [],
+  lowStock = [],
 }: {
   items: GroceryItem[];
   monthlyBudget?: number;
   spentThisMonth?: number;
   priceMonthLabel?: string;
   stapleTrends?: StapleTrend[];
+  lowStock?: Pick<PantryItem, "id" | "name" | "stock_level" | "category">[];
 }) {
   const { pending, submit } = useModuleAction(addGroceryItem);
   const [togglePending, startToggle] = useTransition();
@@ -260,6 +265,46 @@ export function GroceriesView({
         }
       />
       <ModuleSubNav items={kitchenSubNav} />
+
+      {lowStock.length > 0 && (
+        <Panel
+          title="Low in pantry"
+          className="mb-4"
+          right={
+            <PrimaryButton
+              disabled={togglePending}
+              onClick={() => runAction(addLowStockToGroceryList)}
+              className="rounded-full px-4 py-2 text-xs"
+            >
+              Add all to list
+            </PrimaryButton>
+          }
+        >
+          <p className="mb-3 text-xs text-muted">
+            These pantry items are at or below {LOW_STOCK_THRESHOLD}%. Checking them off shopping
+            restocks the shelf.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {lowStock.slice(0, 12).map((item) => {
+              const onList = items.some(
+                (g) => !g.is_checked && g.name.trim().toLowerCase() === item.name.trim().toLowerCase(),
+              );
+              return (
+                <span
+                  key={item.id}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
+                    onList
+                      ? "border-accent/30 bg-accent-soft text-accent"
+                      : "border-ink/10 bg-surface text-muted"
+                  }`}
+                >
+                  {item.name} · {item.stock_level}%{onList ? " · on list" : ""}
+                </span>
+              );
+            })}
+          </div>
+        </Panel>
+      )}
 
       {plan && (
         <Panel

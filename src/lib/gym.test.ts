@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   formatGymExerciseLine,
+  formatRestClock,
+  gymSessionFocusFromPlan,
   hydrateGymPlan,
   parseGymPlanDays,
+  parseRestSeconds,
+  parseSetCount,
   pickTodaysPlanDay,
   serializeGymPlanDays,
   enrichGymPlanDays,
@@ -133,6 +137,41 @@ describe("pickTodaysPlanDay", () => {
     // 2026-08-17 is a Monday → Day 1
     expect(pickTodaysPlanDay(days, new Date("2026-08-17T12:00:00"))?.focus).toBe("Pull");
     expect(pickTodaysPlanDay(days, new Date("2026-08-18T12:00:00"))?.focus).toBe("Push");
+  });
+});
+
+describe("parseRestSeconds", () => {
+  it("reads seconds, minutes, and zero rest", () => {
+    expect(parseRestSeconds("90s")).toBe(90);
+    expect(parseRestSeconds("2 min")).toBe(120);
+    expect(parseRestSeconds("60-90s")).toBe(60);
+    expect(parseRestSeconds("0s")).toBe(0);
+    expect(parseRestSeconds("none")).toBe(0);
+  });
+});
+
+describe("parseSetCount", () => {
+  it("reads the leading set count", () => {
+    expect(parseSetCount("4 x 10-12")).toBe(4);
+    expect(parseSetCount("3x10")).toBe(3);
+    expect(parseSetCount("1 set of 35-40 mins")).toBe(1);
+    expect(parseSetCount("12 minutes steady")).toBe(1);
+  });
+});
+
+describe("gymSessionFocusFromPlan", () => {
+  it("maps day labels onto session focus values", () => {
+    expect(gymSessionFocusFromPlan("Pull")).toBe("upper");
+    expect(gymSessionFocusFromPlan("Leg day")).toBe("lower");
+    expect(gymSessionFocusFromPlan("strength")).toBe("strength");
+    expect(gymSessionFocusFromPlan("HIIT")).toBe("endurance");
+  });
+});
+
+describe("formatRestClock", () => {
+  it("formats m:ss", () => {
+    expect(formatRestClock(90)).toBe("1:30");
+    expect(formatRestClock(5)).toBe("0:05");
   });
 });
 

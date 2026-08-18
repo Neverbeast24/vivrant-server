@@ -12,6 +12,7 @@ import {
   deleteReminder,
   draftAndSaveReminder,
   syncRemindersFromGymPlan,
+  syncRemindersFromTodayLeftovers,
   toggleReminder,
 } from "@/app/dashboard/ai/reminder-actions";
 import {
@@ -157,6 +158,17 @@ export function AiView({
               >
                 <Dumbbell size={14} className="mr-1.5 inline" />
                 Sync gym plan
+              </PrimaryButton>
+              <PrimaryButton
+                className="rounded-full"
+                onClick={async () => {
+                  const result = await syncRemindersFromTodayLeftovers();
+                  if (result.ok) toast.success(result.message);
+                  else toast.error(result.message);
+                }}
+              >
+                <Bell size={14} className="mr-1.5 inline" />
+                Nudge leftovers
               </PrimaryButton>
             </div>
           ) : undefined

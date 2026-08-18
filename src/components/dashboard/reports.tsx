@@ -45,6 +45,7 @@ export type ReportsData = {
   avgEnergy: number | null;
   totalWorkoutMinutes: number;
   totalCalories: number;
+  catchUp: { label: string; detail: string; href: string }[];
 };
 
 function buildSummary(data: ReportsData) {
@@ -128,6 +129,33 @@ export function ReportsView({ data }: { data: ReportsData }) {
             </div>
           </Panel>
         )}
+
+        <Panel
+          title="Still open today"
+          className="mb-4"
+          right={
+            <Link href="/dashboard" className="text-xs font-black text-accent">
+              Today →
+            </Link>
+          }
+        >
+          {data.catchUp.length ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {data.catchUp.map((item) => (
+                <Link
+                  key={item.href + item.label}
+                  href={item.href}
+                  className="rounded-2xl border border-ink/8 bg-surface/60 px-4 py-3 transition hover:border-accent/25"
+                >
+                  <p className="text-sm font-black">{item.label}</p>
+                  <p className="mt-0.5 text-xs text-muted">{item.detail}</p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState>Today’s logs look complete. Nice rhythm.</EmptyState>
+          )}
+        </Panel>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard

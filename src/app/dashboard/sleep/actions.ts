@@ -54,6 +54,7 @@ export async function logSleep(formData: FormData) {
   });
 
   revalidatePath("/dashboard/sleep");
+  revalidatePath("/dashboard/wellness");
   revalidatePath("/dashboard");
   return { ok: true, message: "Sleep logged." };
 }

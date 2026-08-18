@@ -7,6 +7,7 @@ import { buildUserContext } from "@/lib/ai/context";
 import { draftReminder } from "@/lib/ai/gemini";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
 import { processDueReminders } from "@/lib/reminders/process";
+import { syncTodayLeftoverReminders } from "@/lib/reminders/today-leftovers";
 import { createClient } from "@/lib/supabase/server";
 
 const kindEnum = z.enum([
@@ -286,6 +287,19 @@ export async function syncRemindersFromGymPlan() {
     ok: true,
     message: `Gym plan reminders synced (${defaultDays.length} days/week at 7:30 AM).`,
   };
+}
+
+/** Evening nudge for habits, water, shopping, meals, or today’s program still open. */
+export async function syncRemindersFromTodayLeftovers() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const result = await syncTodayLeftoverReminders(supabase, user.id);
+  if (result.ok) revalidateReminderPaths();
+  return result;
 }
 
 export async function runDueRemindersNow() {

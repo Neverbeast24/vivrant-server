@@ -330,26 +330,73 @@ export function SpendingOverview({
   );
 }
 
-export function SpendingLog({ today }: { today: string }) {
+export function SpendingLog({
+  today,
+  expenses = [],
+  monthlyBudget = 2000,
+}: {
+  today: string;
+  expenses?: Expense[];
+  monthlyBudget?: number;
+}) {
   const { pending, submit } = useModuleAction(addExpense);
+  const stats = useSpendingStats(expenses, monthlyBudget);
 
   return (
     <>
       <SpendingHeader title="Log an" highlight="expense." />
+      <Stagger>
+        <div className="mb-4 grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Spent this month"
+            value={money(stats.total)}
+            detail={`${expenses.length} expenses`}
+            icon={WalletCards}
+            tone="brand"
+          />
+          <StatCard
+            label="Left this month"
+            value={money(stats.remaining)}
+            detail={
+              stats.overBudget > 0
+                ? `${money(stats.overBudget)} over budget`
+                : `${stats.remainingPct}% remaining`
+            }
+            icon={TrendingDown}
+            tone="soft"
+          />
+          <StatCard
+            label="Monthly budget"
+            value={money(monthlyBudget)}
+            detail={`${stats.usedPct}% used`}
+            icon={Target}
+            tone="warn"
+          />
+        </div>
+      </Stagger>
       <Panel title="New expense">
         <ExpenseForm today={today} pending={pending} submit={submit} submitLabel="Add expense" />
       </Panel>
-      <Panel title="Tip" className="mt-4">
-        <p className="text-sm leading-6 text-muted">
-          Logged expenses count toward your monthly budget. Open the sheet view when you need to
-          scan or edit many rows at once.
-        </p>
-        <Link
-          href="/dashboard/spending/sheet"
-          className="mt-4 inline-flex text-xs font-black text-accent"
-        >
-          Open Excel-style sheet →
-        </Link>
+      <Panel
+        title="Recent expenses"
+        className="mt-4"
+        right={
+          <Link href="/dashboard/spending/sheet" className="text-xs font-black text-accent">
+            Full sheet →
+          </Link>
+        }
+      >
+        <div className="space-y-2">
+          {expenses.slice(0, 6).map((expense) => (
+            <ListRow
+              key={expense.id}
+              title={expense.title}
+              meta={`${categoryLabel(expense.category)} · ${expense.spent_at}`}
+              right={<span className="text-xs font-black">{money(Number(expense.amount))}</span>}
+            />
+          ))}
+          {!expenses.length && <EmptyState>No expenses yet. Log your first purchase above.</EmptyState>}
+        </div>
       </Panel>
     </>
   );

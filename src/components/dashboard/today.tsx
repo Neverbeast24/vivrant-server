@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { QuickCheckin } from "@/components/dashboard/quick-checkin";
+import { TodayDoNow, type TodayGrocery, type TodayHabit } from "@/components/dashboard/today-do-now";
 import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
 import { humanizeGymLabel, type TodaysProgramSummary } from "@/lib/gym";
 
@@ -52,6 +53,9 @@ export type TodayData = {
     body: string;
     score: number | null;
   } | null;
+  habits: TodayHabit[];
+  groceries: TodayGrocery[];
+  caloriesToday: number;
 };
 
 const DISMISS_KEY = "vivrant_getting_started_dismissed";
@@ -321,7 +325,7 @@ export function TodayView({ data }: { data: TodayData }) {
       </div>
 
       <Link
-        href="/dashboard/gym/plans"
+        href={data.program ? "/dashboard/gym/sessions" : "/dashboard/gym/plans"}
         className="mb-4 flex items-start gap-4 rounded-[1.4rem] border border-ink/8 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent">
@@ -349,6 +353,7 @@ export function TodayView({ data }: { data: TodayData }) {
                       </li>
                     ))}
                   </ul>
+                  <p className="mt-2 text-[11px] font-black text-accent">Tap to start · checkboxes + rest timer</p>
                 </div>
               )}
             </>
@@ -363,6 +368,14 @@ export function TodayView({ data }: { data: TodayData }) {
         </div>
         <ChevronRight size={16} className="mt-1 shrink-0 text-accent" />
       </Link>
+
+      <TodayDoNow
+        habits={data.habits}
+        groceries={data.groceries}
+        waterMl={data.waterMl ?? 0}
+        waterGoalMl={data.waterGoalMl}
+        calories={data.caloriesToday}
+      />
 
       <div className="mb-4">
         <p className="mb-2 text-[10px] font-black tracking-wider text-muted">JUMP IN</p>

@@ -1,5 +1,6 @@
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError } from "@/lib/mobile/http";
+import { gymExerciseCardImage } from "@/lib/gym";
 
 export const runtime = "nodejs";
 
@@ -26,5 +27,11 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return jsonError(error.message, 500);
 
-  return jsonOk({ exercises: data ?? [] });
+  const origin = new URL(request.url).origin;
+  const exercises = (data ?? []).map((exercise) => ({
+    ...exercise,
+    demo_thumbnail_url: gymExerciseCardImage(exercise, origin),
+  }));
+
+  return jsonOk({ exercises });
 }

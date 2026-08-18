@@ -11,7 +11,12 @@ import {
   type GymPlanPrefs,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
-import { hydrateGymPlan, enrichGymPlanDays, serializeGymPlanDays } from "@/lib/gym";
+import {
+  enrichGymPlanDays,
+  gymSessionFocusFromPlan,
+  hydrateGymPlan,
+  serializeGymPlanDays,
+} from "@/lib/gym";
 import { createClient } from "@/lib/supabase/server";
 
 function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
@@ -29,14 +34,41 @@ function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
   }
 }
 
+const sessionExerciseSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  sets: z.string().trim().max(60).optional(),
+  rest: z.string().trim().max(20).optional(),
+  weight: z.string().trim().max(40).optional(),
+  done: z.boolean().optional(),
+  completed_sets: z.coerce.number().int().min(0).max(10).optional(),
+});
+
 const sessionSchema = z.object({
   title: z.string().trim().min(1).max(120),
-  focus: z.enum(["full_body", "strength", "fat_loss", "mobility", "endurance", "upper", "lower", "core"]),
+  focus: z.string().trim().min(1).max(60),
   duration_minutes: z.coerce.number().int().min(5).max(180),
   calories_burned: z.coerce.number().int().min(0).max(2000).optional(),
   notes: z.string().trim().max(400).optional(),
   exercises: z.string().trim().max(2000).optional(),
 });
+
+const programSessionSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  focus: z.string().trim().min(1).max(60),
+  duration_minutes: z.coerce.number().int().min(5).max(180),
+  calories_burned: z.coerce.number().int().min(0).max(2000).optional(),
+  notes: z.string().trim().max(400).optional(),
+  exercises: z.array(sessionExerciseSchema).min(1).max(20),
+});
+
+function revalidateGymSessionPaths() {
+  revalidatePath("/dashboard/gym");
+  revalidatePath("/dashboard/gym/sessions");
+  revalidatePath("/dashboard/gym/plans");
+  revalidatePath("/dashboard/movement/log");
+  revalidatePath("/dashboard/training");
+  revalidatePath("/dashboard");
+}
 
 export async function logGymSession(formData: FormData) {
   const parsed = sessionSchema.safeParse({
@@ -55,6 +87,7 @@ export async function logGymSession(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
+  const focus = gymSessionFocusFromPlan(parsed.data.focus);
   const exerciseLines = (parsed.data.exercises ?? "")
     .split("\n")
     .map((line) => line.trim())
@@ -64,7 +97,7 @@ export async function logGymSession(formData: FormData) {
   const { error } = await supabase.from("gym_sessions").insert({
     user_id: user.id,
     title: parsed.data.title,
-    focus: parsed.data.focus,
+    focus,
     duration_minutes: parsed.data.duration_minutes,
     calories_burned: parsed.data.calories_burned ?? 0,
     notes: parsed.data.notes || null,
@@ -75,12 +108,52 @@ export async function logGymSession(formData: FormData) {
   await writeAuditLog({
     action: "gym_session_created",
     entity: "gym_sessions",
-    metadata: { title: parsed.data.title, focus: parsed.data.focus },
+    metadata: { title: parsed.data.title, focus },
   });
 
-  revalidatePath("/dashboard/gym");
-  revalidatePath("/dashboard");
+  revalidateGymSessionPaths();
   return { ok: true, message: "Gym session logged." };
+}
+
+export async function logProgramGymSession(input: unknown) {
+  const parsed = programSessionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Check off at least one set, then save." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const focus = gymSessionFocusFromPlan(parsed.data.focus);
+  const exercises = parsed.data.exercises.map((ex) => ({
+    name: ex.name,
+    sets: ex.sets || "as logged",
+    ...(ex.rest ? { rest: ex.rest } : {}),
+    ...(ex.weight ? { weight: ex.weight } : {}),
+    ...(ex.done != null ? { done: ex.done } : {}),
+    ...(ex.completed_sets != null ? { completed_sets: ex.completed_sets } : {}),
+  }));
+
+  const { error } = await supabase.from("gym_sessions").insert({
+    user_id: user.id,
+    title: parsed.data.title,
+    focus,
+    duration_minutes: parsed.data.duration_minutes,
+    calories_burned: parsed.data.calories_burned ?? 0,
+    notes: parsed.data.notes || null,
+    exercises,
+  });
+  if (error) return { ok: false, message: error.message };
+
+  await writeAuditLog({
+    action: "gym_session_created",
+    entity: "gym_sessions",
+    metadata: { title: parsed.data.title, focus, source: "program" },
+  });
+
+  revalidateGymSessionPaths();
+  return { ok: true, message: "Workout saved from your program." };
 }
 
 export async function deleteGymSession(id: number) {
@@ -103,7 +176,7 @@ export async function deleteGymSession(id: number) {
     entityId: String(id),
   });
 
-  revalidatePath("/dashboard/gym");
+  revalidateGymSessionPaths();
   return { ok: true, message: "Session removed." };
 }
 
@@ -214,6 +287,10 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
     });
 
     revalidatePath("/dashboard/gym");
+    revalidatePath("/dashboard/gym/sessions");
+    revalidatePath("/dashboard/gym/plans");
+    revalidatePath("/dashboard/movement/log");
+    revalidatePath("/dashboard");
     return { ok: true, message: "AI gym program saved.", plan: data ? hydrateGymPlan(data) : data };
   } catch (error) {
     const message =

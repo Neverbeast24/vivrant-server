@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LOW_STOCK_THRESHOLD } from "@/app/dashboard/pantry/shared";
 import { GroceriesView } from "@/components/dashboard/groceries";
 import {
   buildStaplePriceTrends,
@@ -14,7 +15,7 @@ export default async function GroceriesPage() {
   const { supabase, user } = await requireUser();
   const ph = getPhCalendarDate();
 
-  const [groceriesRes, profileRes, expensesRes] = await Promise.all([
+  const [groceriesRes, profileRes, expensesRes, pantryRes] = await Promise.all([
     supabase
       .from("grocery_items")
       .select("*")
@@ -30,6 +31,12 @@ export default async function GroceriesPage() {
       .select("amount, spent_at")
       .eq("user_id", user.id)
       .gte("spent_at", ph.monthStart),
+    supabase
+      .from("pantry_items")
+      .select("id, name, category, stock_level")
+      .eq("user_id", user.id)
+      .lte("stock_level", LOW_STOCK_THRESHOLD)
+      .order("stock_level", { ascending: true }),
   ]);
 
   // Reprice in memory for the response; persist patches without blocking render.
@@ -88,6 +95,7 @@ export default async function GroceriesPage() {
       spentThisMonth={spentThisMonth}
       priceMonthLabel={ph.monthLabel}
       stapleTrends={stapleTrends}
+      lowStock={pantryRes.data ?? []}
     />
   );
 }

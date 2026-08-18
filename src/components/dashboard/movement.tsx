@@ -22,6 +22,8 @@ import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { movementWorkoutsDoc } from "@/lib/share-export";
 import { trainingSubNav } from "@/lib/nav";
+import { ProgramSessionPanel } from "@/components/dashboard/program-session";
+import type { GymPlan } from "@/lib/gym";
 
 type Workout = {
   id: number;
@@ -36,11 +38,13 @@ export function MovementView({
   steps = 0,
   stepGoal = 8000,
   mode = "overview",
+  plans = [],
 }: {
   workouts: Workout[];
   steps?: number;
   stepGoal?: number;
   mode?: "overview" | "log";
+  plans?: GymPlan[];
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
@@ -98,6 +102,10 @@ export function MovementView({
       />
       <ModuleSubNav items={trainingSubNav} />
 
+      {(mode === "log" || plans.length > 0) && (
+        <ProgramSessionPanel plans={plans} compact />
+      )}
+
       {mode === "log" && (
         <>
       {reason && (
@@ -106,7 +114,7 @@ export function MovementView({
         </p>
       )}
 
-      <Panel title="Log a workout" className="mb-4">
+      <Panel title={plans.length ? "Or log a walk, run, or yoga" : "Log a workout"} className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <FormField label="Workout" hint="Required" className="sm:col-span-2">
             <input

@@ -23,6 +23,10 @@ export default async function ReportsPage() {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 6);
   const weekIso = weekAgo.toISOString();
+  const today = new Date().toISOString().slice(0, 10);
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const dayIso = dayStart.toISOString();
 
   const [
     checkins,
@@ -36,6 +40,14 @@ export default async function ReportsPage() {
     weekWorkouts,
     weekCheckins,
     weekGym,
+    todayCheckinRes,
+    todayMealsRes,
+    todayWorkoutsRes,
+    todayGymRes,
+    todayHabitsRes,
+    todayHabitLogsRes,
+    todayGroceryRes,
+    todayProfileRes,
   ] = await Promise.all([
     supabase
       .from("daily_checkins")
@@ -97,6 +109,43 @@ export default async function ReportsPage() {
       .select("logged_at")
       .eq("user_id", user.id)
       .gte("logged_at", weekIso),
+    supabase
+      .from("daily_checkins")
+      .select("water_ml, sleep_minutes")
+      .eq("user_id", user.id)
+      .eq("checkin_date", today)
+      .maybeSingle(),
+    supabase
+      .from("nutrition_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("logged_at", dayIso),
+    supabase
+      .from("workout_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("logged_at", dayIso),
+    supabase
+      .from("gym_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("logged_at", dayIso),
+    supabase.from("habits").select("id").eq("user_id", user.id).eq("active", true),
+    supabase
+      .from("habit_logs")
+      .select("habit_id")
+      .eq("user_id", user.id)
+      .eq("logged_on", today),
+    supabase
+      .from("grocery_items")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_checked", false),
+    supabase
+      .from("profiles")
+      .select("daily_water_goal_ml")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   const expensesTotal = (expenses.data ?? []).reduce(
@@ -183,6 +232,48 @@ export default async function ReportsPage() {
     })),
   ].slice(0, 10);
 
+  const catchUp: ReportsData["catchUp"] = [];
+  const waterMl = Number(todayCheckinRes.data?.water_ml ?? 0);
+  const waterGoal = Number(todayProfileRes.data?.daily_water_goal_ml ?? 2400);
+  if (waterMl < waterGoal) {
+    catchUp.push({
+      label: "Water",
+      detail: `${Math.max(0, waterGoal - waterMl)} ml left of ${waterGoal}`,
+      href: "/dashboard/hydration",
+    });
+  }
+  if ((todayMealsRes.count ?? 0) === 0) {
+    catchUp.push({
+      label: "Log a meal",
+      detail: "Nothing eaten logged yet",
+      href: "/dashboard/nutrition/log",
+    });
+  }
+  if ((todayWorkoutsRes.count ?? 0) + (todayGymRes.count ?? 0) === 0) {
+    catchUp.push({
+      label: "Move",
+      detail: "No workout or gym session yet",
+      href: "/dashboard/movement/log",
+    });
+  }
+  const habitDone = new Set((todayHabitLogsRes.data ?? []).map((row) => row.habit_id));
+  const habitsLeft = (todayHabitsRes.data ?? []).filter((habit) => !habitDone.has(habit.id)).length;
+  if (habitsLeft > 0) {
+    catchUp.push({
+      label: "Habits",
+      detail: `${habitsLeft} still open`,
+      href: "/dashboard/habits",
+    });
+  }
+  const groceryOpen = todayGroceryRes.count ?? 0;
+  if (groceryOpen > 0) {
+    catchUp.push({
+      label: "Shopping",
+      detail: `${groceryOpen} item${groceryOpen === 1 ? "" : "s"} on the list`,
+      href: "/dashboard/groceries",
+    });
+  }
+
   return (
     <ReportsView
       data={{
@@ -206,6 +297,7 @@ export default async function ReportsPage() {
           (sum, row) => sum + Number(row.calories ?? 0),
           0,
         ),
+        catchUp,
       }}
     />
   );

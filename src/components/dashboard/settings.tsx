@@ -192,12 +192,20 @@ export function SettingsView({
   goals = [],
   history = [],
   section = "profile",
+  todayProgress,
 }: {
   settings: Settings;
   profile: HealthProfile;
   goals?: HealthGoal[];
   history?: HealthHistoryEntry[];
   section?: "profile" | "goals" | "history" | "preferences";
+  todayProgress?: {
+    waterMl: number;
+    waterGoalMl: number;
+    calories: number;
+    workouts: number;
+    sleepMinutes: number | null;
+  };
 }) {
   const preferencesAction = useModuleAction(saveSettings);
   const profileAction = useModuleAction(saveHealthProfile);
@@ -438,7 +446,7 @@ export function SettingsView({
       </div>
       )}
 
-      {section === "goals" && <GoalsPanel goals={goals} />}
+      {section === "goals" && <GoalsPanel goals={goals} today={todayProgress} />}
 
       {section === "history" && <HealthHistoryPanel entries={history} />}
 

@@ -19,6 +19,8 @@ import {
 import { PageHeader, PrimaryButton } from "@/components/dashboard/ui";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { journalEntriesDoc, journalNoteDoc } from "@/lib/share-export";
+import { WellnessPulseBar } from "@/components/dashboard/wellness-pulse";
+import type { WellnessPulse } from "@/app/dashboard/wellness/types";
 
 type Entry = {
   id: number;
@@ -54,7 +56,13 @@ function previewText(body: string) {
   return body.replace(/\s+/g, " ").trim();
 }
 
-export function JournalView({ entries }: { entries: Entry[] }) {
+export function JournalView({
+  entries,
+  pulse,
+}: {
+  entries: Entry[];
+  pulse?: WellnessPulse;
+}) {
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
   const [query, setQuery] = useState("");
@@ -219,6 +227,8 @@ export function JournalView({ entries }: { entries: Entry[] }) {
           </div>
         }
       />
+
+      {pulse ? <WellnessPulseBar pulse={pulse} /> : null}
 
       {tip && (
         <div className="mb-4 rounded-[1.4rem] border border-accent/20 bg-accent-soft/70 px-4 py-3">

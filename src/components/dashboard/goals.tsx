@@ -42,7 +42,19 @@ type SuggestedGoal = {
   why: string;
 };
 
-export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
+export function GoalsPanel({
+  goals,
+  today,
+}: {
+  goals: HealthGoal[];
+  today?: {
+    waterMl: number;
+    waterGoalMl: number;
+    calories: number;
+    workouts: number;
+    sleepMinutes: number | null;
+  };
+}) {
   const { pending, submit } = useModuleAction(addHealthGoal);
   const [busy, start] = useTransition();
   const [suggesting, startSuggest] = useTransition();
@@ -95,6 +107,30 @@ export function GoalsPanel({ goals }: { goals: HealthGoal[] }) {
         </div>
       }
     >
+      {today && (
+        <div className="mb-5 grid gap-2 sm:grid-cols-4">
+          {[
+            {
+              label: "Water",
+              value: `${(today.waterMl / 1000).toFixed(1)} / ${(today.waterGoalMl / 1000).toFixed(1)}L`,
+            },
+            { label: "Calories", value: String(today.calories) },
+            { label: "Workouts", value: String(today.workouts) },
+            {
+              label: "Sleep",
+              value:
+                today.sleepMinutes == null
+                  ? "—"
+                  : `${(today.sleepMinutes / 60).toFixed(1)}h`,
+            },
+          ].map((row) => (
+            <div key={row.label} className="rounded-2xl border border-ink/8 bg-surface/50 px-3 py-2">
+              <p className="text-[10px] font-black uppercase tracking-wide text-muted">{row.label}</p>
+              <p className="mt-0.5 text-sm font-black">{row.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
       {ideas.length > 0 && (
         <div className="mb-5 space-y-2 rounded-2xl border border-accent/15 bg-accent-soft/50 p-3">
           {ideas.map((idea) => (

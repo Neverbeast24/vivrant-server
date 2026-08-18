@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import {
   AlertTriangle,
+  Check,
   LayoutDashboard,
   Minus,
   PackagePlus,
@@ -17,9 +18,11 @@ import { toast } from "sonner";
 import {
   addPantryItem,
   addLowStockToGroceryList,
+  addPantryItemToGroceryList,
   deletePantryItem,
   updatePantryStock,
 } from "@/app/dashboard/pantry/actions";
+import { toggleGroceryItem } from "@/app/dashboard/groceries/actions";
 import {
   categoryLabel,
   LOW_STOCK_THRESHOLD,
@@ -42,6 +45,56 @@ import {
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { pantryDoc } from "@/lib/share-export";
 import { kitchenSubNav } from "@/lib/nav";
+
+function OpenShoppingStrip({
+  groceries,
+  updating,
+  runAction,
+  className = "mt-4",
+}: {
+  groceries: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+  updating: boolean;
+  runAction: (action: () => Promise<{ ok: boolean; message: string }>) => void;
+  className?: string;
+}) {
+  const groceryOpen = groceries.filter((item) => !item.is_checked);
+  if (!groceryOpen.length) return null;
+
+  return (
+    <Panel
+      title="Shopping list"
+      className={className}
+      right={
+        <Link href="/dashboard/groceries" className="text-[11px] font-black text-accent hover:underline">
+          Open list
+        </Link>
+      }
+    >
+      <div className="space-y-2">
+        {groceryOpen.slice(0, 8).map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 rounded-2xl border border-ink/6 bg-panel/60 px-4 py-3"
+          >
+            <button
+              type="button"
+              disabled={updating}
+              onClick={() => runAction(() => toggleGroceryItem(item.id, true))}
+              className="grid size-8 place-items-center rounded-lg border border-ink/15 text-muted"
+              aria-label={`Check off ${item.name}`}
+            >
+              <Check size={14} />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold">{item.name}</p>
+              {item.quantity ? <p className="text-xs text-muted">{item.quantity}</p> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
 
 export type PantryMode = "overview" | "items" | "categories" | "low-stock" | "add";
 
@@ -153,15 +206,33 @@ function StockRow({
           <Trash2 size={14} />
         </button>
       </div>
+      {item.stock_level <= LOW_STOCK_THRESHOLD && (
+        <button
+          type="button"
+          disabled={updating}
+          onClick={() => runAction(() => addPantryItemToGroceryList(item.id))}
+          className="mb-3 w-full rounded-xl border border-ink/10 bg-panel py-1.5 text-[11px] font-black text-accent"
+        >
+          Add to shopping list
+        </button>
+      )}
       <Progress value={item.stock_level} />
     </div>
   );
 }
 
-function PantryOverview({ items }: { items: PantryItem[] }) {
+function PantryOverview({
+  items,
+  groceries = [],
+}: {
+  items: PantryItem[];
+  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+}) {
+  const { updating, runAction } = usePantryActions();
   const lowStock = items.filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD);
   const categories = new Set(items.map((item) => item.category)).size;
   const wellStocked = items.filter((item) => item.stock_level > LOW_STOCK_THRESHOLD).length;
+  const groceryOpen = groceries.filter((g) => !g.is_checked);
 
   return (
     <>
@@ -247,6 +318,51 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
         </div>
 
         <Panel
+          title="Shopping list"
+          className="mt-4"
+          right={
+            <Link href="/dashboard/groceries" className="text-[11px] font-black text-accent hover:underline">
+              Open list
+            </Link>
+          }
+        >
+          {groceryOpen.length ? (
+            <div className="space-y-2">
+              {groceryOpen.slice(0, 8).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-2xl border border-ink/6 bg-panel/60 px-4 py-3"
+                >
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => runAction(() => toggleGroceryItem(item.id, true))}
+                    className="grid size-8 place-items-center rounded-lg border border-ink/15 text-muted"
+                    aria-label={`Check off ${item.name}`}
+                  >
+                    <Check size={14} />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{item.name}</p>
+                    {item.quantity ? (
+                      <p className="text-xs text-muted">{item.quantity}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState>
+              Nothing open on the shopping list. Add low-stock items below, or{" "}
+              <Link href="/dashboard/groceries" className="font-bold text-accent hover:underline">
+                shop
+              </Link>
+              .
+            </EmptyState>
+          )}
+        </Panel>
+
+        <Panel
           title="Needs restock soon"
           className="mt-4"
           right={
@@ -271,9 +387,17 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
                       {categoryLabel(item.category)}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs font-black text-ember">
-                    {item.stock_level}%
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs font-black text-ember">{item.stock_level}%</span>
+                    <button
+                      type="button"
+                      disabled={updating}
+                      onClick={() => runAction(() => addPantryItemToGroceryList(item.id))}
+                      className="rounded-full border border-ink/12 px-2.5 py-1 text-[10px] font-black text-accent"
+                    >
+                      Add to list
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -305,7 +429,13 @@ function PantryOverview({ items }: { items: PantryItem[] }) {
   );
 }
 
-function PantryItems({ items }: { items: PantryItem[] }) {
+function PantryItems({
+  items,
+  groceries = [],
+}: {
+  items: PantryItem[];
+  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+}) {
   const { updating, runAction } = usePantryActions();
 
   return (
@@ -324,6 +454,7 @@ function PantryItems({ items }: { items: PantryItem[] }) {
         }
       />
       <ModuleSubNav items={kitchenSubNav} />
+      <OpenShoppingStrip groceries={groceries} updating={updating} runAction={runAction} className="mb-4" />
 
       <Panel
         title="Stock levels"
@@ -348,7 +479,13 @@ function PantryItems({ items }: { items: PantryItem[] }) {
   );
 }
 
-function PantryCategories({ items }: { items: PantryItem[] }) {
+function PantryCategories({
+  items,
+  groceries = [],
+}: {
+  items: PantryItem[];
+  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+}) {
   const { updating, runAction } = usePantryActions();
   const grouped: { value: string; label: string; items: PantryItem[] }[] = PANTRY_CATEGORIES.map(
     (cat) => ({
@@ -368,6 +505,7 @@ function PantryCategories({ items }: { items: PantryItem[] }) {
     <>
       <PageHeader eyebrow="PANTRY" title="Browse by" highlight="category." />
       <ModuleSubNav items={kitchenSubNav} />
+      <OpenShoppingStrip groceries={groceries} updating={updating} runAction={runAction} className="mb-4" />
 
       <Stagger>
         {!grouped.length && (
@@ -413,7 +551,13 @@ function PantryCategories({ items }: { items: PantryItem[] }) {
   );
 }
 
-function PantryLowStock({ items }: { items: PantryItem[] }) {
+function PantryLowStock({
+  items,
+  groceries = [],
+}: {
+  items: PantryItem[];
+  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+}) {
   const { updating, runAction } = usePantryActions();
   const lowStock = items
     .filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD)
@@ -446,6 +590,7 @@ function PantryLowStock({ items }: { items: PantryItem[] }) {
         }
       />
       <ModuleSubNav items={kitchenSubNav} />
+      <OpenShoppingStrip groceries={groceries} updating={updating} runAction={runAction} className="mb-4" />
 
       <Panel
         title={`Needs restock (≤${LOW_STOCK_THRESHOLD}%)`}
@@ -468,8 +613,17 @@ function PantryLowStock({ items }: { items: PantryItem[] }) {
   );
 }
 
-function PantryAdd({ defaultCategory }: { defaultCategory?: string }) {
-  const { pending, submit } = usePantryActions();
+function PantryAdd({
+  defaultCategory,
+  items = [],
+  groceries = [],
+}: {
+  defaultCategory?: string;
+  items?: PantryItem[];
+  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+}) {
+  const { pending, submit, updating, runAction } = usePantryActions();
+  const lowStock = items.filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD);
 
   return (
     <>
@@ -479,6 +633,26 @@ function PantryAdd({ defaultCategory }: { defaultCategory?: string }) {
       <Panel title="New pantry item">
         <PantryAddForm pending={pending} submit={submit} defaultCategory={defaultCategory} />
       </Panel>
+
+      {lowStock.length > 0 && (
+        <Panel title="Already running low" className="mt-4">
+          <div className="flex flex-wrap gap-2">
+            {lowStock.slice(0, 8).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                disabled={updating}
+                onClick={() => runAction(() => addPantryItemToGroceryList(item.id))}
+                className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted"
+              >
+                {item.name} · {item.stock_level}% · add to list
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
+
+      <OpenShoppingStrip groceries={groceries} updating={updating} runAction={runAction} />
     </>
   );
 }
@@ -486,15 +660,17 @@ function PantryAdd({ defaultCategory }: { defaultCategory?: string }) {
 export function PantryView({
   mode = "overview",
   items,
+  groceries = [],
   defaultCategory,
 }: {
   mode?: PantryMode;
   items: PantryItem[];
+  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
   defaultCategory?: string;
 }) {
-  if (mode === "items") return <PantryItems items={items} />;
-  if (mode === "categories") return <PantryCategories items={items} />;
-  if (mode === "low-stock") return <PantryLowStock items={items} />;
-  if (mode === "add") return <PantryAdd defaultCategory={defaultCategory} />;
-  return <PantryOverview items={items} />;
+  if (mode === "items") return <PantryItems items={items} groceries={groceries} />;
+  if (mode === "categories") return <PantryCategories items={items} groceries={groceries} />;
+  if (mode === "low-stock") return <PantryLowStock items={items} groceries={groceries} />;
+  if (mode === "add") return <PantryAdd defaultCategory={defaultCategory} items={items} groceries={groceries} />;
+  return <PantryOverview items={items} groceries={groceries} />;
 }

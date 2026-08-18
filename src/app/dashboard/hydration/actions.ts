@@ -47,6 +47,7 @@ export async function addHydration(formData: FormData) {
   });
 
   revalidatePath("/dashboard/hydration");
+  revalidatePath("/dashboard/wellness");
   revalidatePath("/dashboard/nutrition");
   revalidatePath("/dashboard");
   return { ok: true, message: `+${parsed.data.amount_ml} ml logged.` };
