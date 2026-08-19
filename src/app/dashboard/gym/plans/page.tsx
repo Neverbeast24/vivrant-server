@@ -6,5 +6,12 @@ export const metadata: Metadata = { title: "Gym Program" };
 
 export default async function GymPlansPage() {
   const data = await loadGymData();
-  return <GymPlansView plans={data.plans} exercises={data.exercises} scaling={data.scaling} />;
+  return (
+    <GymPlansView
+      plans={data.plans}
+      exercises={data.exercises}
+      scaling={data.scaling}
+      draft={data.draft}
+    />
+  );
 }

@@ -4,6 +4,7 @@ import {
   filenameSlug,
   gymPlanDoc,
   gymPlansDoc,
+  gymProgramDraftDoc,
   groceryListDoc,
   mealsDoc,
   toCsv,
@@ -61,6 +62,7 @@ describe("gymPlanDoc", () => {
     expect(doc.csv).toContain("Lat pulldown machine");
     expect(doc.csv.split("\n")).toHaveLength(3);
     expect(JSON.parse(doc.json).days_per_week).toBe(6);
+    expect(JSON.parse(doc.json).training_days).toEqual([]);
   });
 
   it("builds print-only html with emphasis and color-coded chips", () => {
@@ -89,6 +91,34 @@ describe("gymPlansDoc", () => {
     expect(doc.html).toContain("Push strength block");
     expect(doc.html).toContain("page-break");
     expect(doc.csv.startsWith("Program,Day,Focus")).toBe(true);
+  });
+});
+
+describe("gymProgramDraftDoc", () => {
+  it("exports kept days and remaining slots", () => {
+    const doc = gymProgramDraftDoc({
+      title: "Builder week",
+      focus: "strength",
+      level: "beginner",
+      summary: null,
+      recommendations: [],
+      prefs: {
+        days_per_week: 3,
+        training_days: [1, 3, 5],
+        session_minutes: 45,
+        level: "beginner",
+        known_machine_slugs: [],
+        known_custom_exercises: [],
+        avoid_targets: [],
+      },
+      preview_days: samplePlan.days,
+      kept_days: { "1": samplePlan.days[0] },
+      training_days: [1, 3, 5],
+      updated_at: "2026-08-19T00:00:00.000Z",
+    });
+    expect(doc.text).toContain("Still to pick");
+    expect(doc.text).toContain("Latest generated options");
+    expect(JSON.parse(doc.json).remaining_days).toEqual([3, 5]);
   });
 });
 

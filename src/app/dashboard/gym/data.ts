@@ -5,11 +5,14 @@ import {
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
 import { enrichGymPlanDays, hydrateGymPlan, isMachineGear, type GymExercise, type GymPlan, type GymSession } from "@/lib/gym";
+import { loadGymProgramDraft } from "@/lib/gym-plan-generate";
+import type { GymProgramDraft } from "@/lib/gym-program-draft";
 
 const emptyGymData = {
   exercises: [] as GymExercise[],
   sessions: [] as GymSession[],
   plans: [] as GymPlan[],
+  draft: null as GymProgramDraft | null,
   machineCount: 0,
   demoCount: 0,
   totalMinutes: 0,
@@ -21,7 +24,7 @@ export async function loadGymData() {
   const { supabase, user } = await requireUser();
 
   try {
-    const [exercises, sessions, plans, profile, goals] = await Promise.all([
+    const [exercises, sessions, plans, profile, goals, draft] = await Promise.all([
       supabase
         .from("gym_exercises")
         .select(
@@ -51,6 +54,7 @@ export async function loadGymData() {
         .eq("user_id", user.id)
         .eq("status", "active")
         .limit(12),
+      loadGymProgramDraft(supabase, user.id).catch(() => null),
     ]);
 
     if (exercises.error) {
@@ -84,6 +88,7 @@ export async function loadGymData() {
       exercises: exerciseRows,
       sessions: sessionRows,
       plans: planRows,
+      draft,
       machineCount: exerciseRows.filter((item) => isMachineGear(item.equipment)).length,
       demoCount: exerciseRows.filter((item) => !isMachineGear(item.equipment)).length,
       totalMinutes: sessionRows.reduce((sum, row) => sum + (row.duration_minutes ?? 0), 0),

@@ -28,7 +28,11 @@ import { toast } from "sonner";
 import {
   createAiGymPlan,
   deleteGymPlan,
+  discardGymProgramDraftAction,
+  dropGymProgramDay,
+  keepGymProgramDay,
   recommendMachinesWithAi,
+  saveGymProgramFromDraft,
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
@@ -43,6 +47,8 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { gymPlanDoc, gymPlansDoc } from "@/lib/share-export";
+import { GYM_PROGRAM_DRAFT_KEY, newerDraft, parseGymProgramDraft, type GymProgramDraft } from "@/lib/gym-program-draft";
+import { GymProgramBuilder } from "@/components/dashboard/gym-program-builder";
 import {
   constrainGymPlanToKnownMoves,
   enrichGymPlanDays,
@@ -737,10 +743,12 @@ export function GymPlansView({
   plans,
   exercises,
   scaling = null,
+  draft: initialDraft = null,
 }: {
   plans: GymPlan[];
   exercises: GymExercise[];
   scaling?: RoutineScaling | null;
+  draft?: GymProgramDraft | null;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -757,6 +765,8 @@ export function GymPlansView({
   const [knownQuery, setKnownQuery] = useState("");
   const [knownMuscle, setKnownMuscle] = useState<(typeof muscleFilters)[number]>("all");
   const [showCustomize, setShowCustomize] = useState(false);
+  const [draft, setDraft] = useState<GymProgramDraft | null>(initialDraft);
+  const [savingDraft, startSaveDraft] = useTransition();
   const machines = useMemo(
     () => exercises.filter((item) => isMachineGear(item.equipment)),
     [exercises],
@@ -825,6 +835,7 @@ export function GymPlansView({
   );
 
   useEffect(() => {
+    queueMicrotask(() => {
     try {
       const raw = localStorage.getItem(PLAN_PREFS_KEY);
       if (raw) {
@@ -872,10 +883,26 @@ export function GymPlansView({
         const targets = clampGymPlanPrefs({ avoid_targets: parsed as string[] }).avoid_targets;
         if (targets.length) setAvoidTargets(targets);
       }
+      const draftRaw = localStorage.getItem(GYM_PROGRAM_DRAFT_KEY);
+      if (draftRaw) {
+        const localDraft = parseGymProgramDraft(JSON.parse(draftRaw));
+        setDraft((current) => newerDraft(localDraft, current ?? initialDraft));
+      }
     } catch {
       // ignore corrupt local prefs
     }
-  }, []);
+    });
+  }, [initialDraft]);
+
+  function persistDraft(next: GymProgramDraft | null) {
+    setDraft(next);
+    try {
+      if (!next) localStorage.removeItem(GYM_PROGRAM_DRAFT_KEY);
+      else localStorage.setItem(GYM_PROGRAM_DRAFT_KEY, JSON.stringify(next));
+    } catch {
+      // ignore quota / private mode
+    }
+  }
 
   function persistKnownMachines(next: string[]) {
     const slugs = clampGymPlanPrefs({ known_machine_slugs: next }).known_machine_slugs;
@@ -982,14 +1009,62 @@ export function GymPlansView({
 
     startPlan(async () => {
       const result = await createAiGymPlan(prefs);
-      if (result.ok) {
-        toast.success(result.message, {
-          action: {
-            label: "Start today",
-            onClick: () => router.push("/dashboard/movement/log"),
-          },
-        });
+      if (result.ok && "draft" in result && result.draft) {
+        persistDraft(result.draft);
+        toast.success(result.message);
       } else toast.error(result.message);
+    });
+  }
+
+  function keepDay(iso: number) {
+    startSaveDraft(async () => {
+      const result = await keepGymProgramDay(iso);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      if (result.draft) persistDraft(result.draft);
+      toast.success(result.message);
+    });
+  }
+
+  function dropDay(iso: number) {
+    startSaveDraft(async () => {
+      const result = await dropGymProgramDay(iso);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      if (result.draft) persistDraft(result.draft);
+    });
+  }
+
+  function saveDraftProgram() {
+    startSaveDraft(async () => {
+      const result = await saveGymProgramFromDraft();
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      persistDraft(null);
+      toast.success(result.message, {
+        action: {
+          label: "Start today",
+          onClick: () => router.push("/dashboard/movement/log"),
+        },
+      });
+    });
+  }
+
+  function discardDraft() {
+    startSaveDraft(async () => {
+      const result = await discardGymProgramDraftAction();
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      persistDraft(null);
+      toast.success(result.message);
     });
   }
 
@@ -1002,13 +1077,14 @@ export function GymPlansView({
         action={
           <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
-            {planning ? "Creating your program…" : "Create my program"}
+            {planning ? "Generating workouts…" : "Generate workouts"}
           </PrimaryButton>
         }
       />
       <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Pick the weekdays you train, then create a weekly program. Workouts and reminders follow this
-        calendar — rest days stay rest days. Extra options are optional.
+        Pick the weekdays you train, then generate workouts. Keep the days you like, generate again for
+        the rest, and only then save them as your program. Workouts and reminders follow this calendar —
+        rest days stay rest days.
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
@@ -1138,7 +1214,7 @@ export function GymPlansView({
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
-            {planning ? "Creating your program…" : "Create my program"}
+            {planning ? "Generating workouts…" : "Generate workouts"}
           </PrimaryButton>
           <button
             type="button"
@@ -1150,6 +1226,19 @@ export function GymPlansView({
           </button>
         </div>
       </Panel>
+
+      {draft && (
+        <GymProgramBuilder
+          draft={draft}
+          planning={planning}
+          saving={savingDraft}
+          onKeep={keepDay}
+          onDrop={dropDay}
+          onGenerate={generatePlan}
+          onSave={saveDraftProgram}
+          onDiscard={discardDraft}
+        />
+      )}
 
       {showCustomize && scaling && (
         <Panel title="Your goals & fitness level" className="mb-4">
@@ -1715,7 +1804,7 @@ export function GymPlansView({
           })}
           {!plans.length && (
             <EmptyState>
-              No program yet — pick your training days above, then tap Create my program.
+              No program yet — generate workouts, keep the days you like, then save.
             </EmptyState>
           )}
         </div>

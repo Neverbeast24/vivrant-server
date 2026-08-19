@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, Repeat2, Timer, X } from "lucide-react";
 import { toast } from "sonner";
-import { logProgramGymSession } from "@/app/dashboard/gym/actions";
+import {
+  clearGymLiveSessionAction,
+  loadGymLiveSessionAction,
+  logProgramGymSession,
+  saveGymLiveSessionAction,
+} from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import {
   formatRestClock,
@@ -16,6 +21,18 @@ import {
   type GymPlan,
   type GymPlanDay,
 } from "@/lib/gym";
+import {
+  GYM_LIVE_SESSION_KEY,
+  liveSessionHasProgress,
+  liveSessionMatches,
+  newerLiveSession,
+  parseGymLiveSession,
+  restEndsAtFromSeconds,
+  restRemainingSeconds,
+  todaySessionDate,
+  type GymLiveSessionDraft,
+} from "@/lib/gym-live-session";
+import { playGymRestAlarm, requestGymRestNotifyPermission, unlockGymRestAlert } from "@/lib/gym-rest-alert";
 
 type RunnerItem = {
   key: string;
@@ -32,15 +49,28 @@ type RunnerItem = {
 };
 
 type RestState = {
-  itemKey: string;
   label: string;
-  remaining: number;
   total: number;
+  endsAt: number;
+  alerted: boolean;
 };
 
-function storageKey(planId: number, day: string) {
-  const date = new Date().toISOString().slice(0, 10);
-  return `vivrant.gym.liveSession.${planId}.${day}.${date}`;
+function readLocalLiveSession(): GymLiveSessionDraft | null {
+  try {
+    const raw = localStorage.getItem(GYM_LIVE_SESSION_KEY);
+    return raw ? parseGymLiveSession(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalLiveSession(draft: GymLiveSessionDraft | null) {
+  try {
+    if (!draft) localStorage.removeItem(GYM_LIVE_SESSION_KEY);
+    else localStorage.setItem(GYM_LIVE_SESSION_KEY, JSON.stringify(draft));
+  } catch {
+    // ignore quota / private mode
+  }
 }
 
 function buildItems(day: GymPlanDay): RunnerItem[] {
@@ -90,99 +120,173 @@ export function ProgramSessionPanel({
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [saving, startSave] = useTransition();
+  const [restored, setRestored] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  const syncTimer = useRef<number | null>(null);
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
   const today = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
   const items = useMemo(() => (today ? buildItems(today) : []), [today]);
 
   useEffect(() => {
-    if (plans[0] && !plans.some((item) => item.id === planId)) {
-      setPlanId(plans[0].id);
-    }
-  }, [planId, plans]);
-
-  useEffect(() => {
-    setHydrated(false);
+    let cancelled = false;
     if (!plan || !today) {
-      setChecks({});
-      setNames({});
-      setHydrated(true);
-      return;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setChecks({});
+        setNames({});
+        setRest(null);
+        setRestored(false);
+        setHydrated(true);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     const nextItems = buildItems(today);
     const nextNames = Object.fromEntries(nextItems.map((item) => [item.key, item.name]));
-    let nextChecks = emptyChecks(nextItems);
-    let nextStarted: number | null = null;
-    try {
-      const raw = sessionStorage.getItem(storageKey(plan.id, today.day));
-      if (raw) {
-        const saved = JSON.parse(raw) as {
-          checks?: Record<string, boolean[]>;
-          names?: Record<string, string>;
-          startedAt?: number;
-        };
-        if (saved.checks) {
-          nextChecks = Object.fromEntries(
-            nextItems.map((item) => {
-              const row = saved.checks?.[item.key];
-              return [item.key, Array.from({ length: item.setCount }, (_, i) => Boolean(row?.[i]))];
-            }),
-          );
+    const applyDraft = (saved: GymLiveSessionDraft | null) => {
+      if (cancelled) return;
+      let nextChecks = emptyChecks(nextItems);
+      const namesOut = { ...nextNames };
+      if (saved && liveSessionMatches(saved, plan.id, today.day)) {
+        nextChecks = Object.fromEntries(
+          nextItems.map((item) => {
+            const row = saved.checks[item.key];
+            return [item.key, Array.from({ length: item.setCount }, (_, i) => Boolean(row?.[i]))];
+          }),
+        );
+        for (const item of nextItems) {
+          if (saved.names[item.key]) namesOut[item.key] = saved.names[item.key];
         }
-        if (saved.names) {
-          for (const item of nextItems) {
-            if (saved.names[item.key]) nextNames[item.key] = saved.names[item.key];
-          }
+        setStartedAt(saved.started_at);
+        const remaining = restRemainingSeconds(saved.rest_ends_at);
+        if (remaining > 0 && saved.rest_ends_at) {
+          setRest({
+            label: saved.rest_label ?? "Rest",
+            total: saved.rest_total ?? remaining,
+            endsAt: saved.rest_ends_at,
+            alerted: Boolean(saved.rest_alerted),
+          });
+        } else if (saved.rest_ends_at && remaining <= 0 && !saved.rest_alerted) {
+          setRest(null);
+          void playGymRestAlarm(saved.rest_label ?? undefined);
+          toast.success("Rest done — next set.");
+        } else {
+          setRest(null);
         }
-        if (saved.startedAt) nextStarted = saved.startedAt;
+        setRestored(liveSessionHasProgress(saved));
+      } else {
+        setStartedAt(null);
+        setRest(null);
+        setRestored(false);
       }
-    } catch {
-      // ignore corrupt live-session cache
-    }
-    setChecks(nextChecks);
-    setNames(nextNames);
-    setStartedAt(nextStarted);
-    setHydrated(true);
+      setChecks(nextChecks);
+      setNames(namesOut);
+      setHydrated(true);
+    };
+
+    const local = readLocalLiveSession();
+    queueMicrotask(() => {
+      if (cancelled) return;
+      applyDraft(liveSessionMatches(local, plan.id, today.day) ? local : null);
+    });
+
+    void (async () => {
+      try {
+        const remote = await loadGymLiveSessionAction();
+        if (cancelled || !remote.ok) return;
+        const merged = newerLiveSession(
+          liveSessionMatches(local, plan.id, today.day) ? local : null,
+          remote.session,
+        );
+        if (merged && liveSessionMatches(merged, plan.id, today.day)) {
+          applyDraft(merged);
+        }
+      } catch {
+        // offline — local draft is enough
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [plan, today]);
 
   useEffect(() => {
     if (!hydrated || !plan || !today || !Object.keys(checks).length) return;
-    try {
-      sessionStorage.setItem(
-        storageKey(plan.id, today.day),
-        JSON.stringify({ checks, names, startedAt }),
-      );
-    } catch {
-      // ignore quota / private mode
-    }
-  }, [checks, hydrated, names, plan, startedAt, today]);
+    const draft: GymLiveSessionDraft = {
+      plan_id: plan.id,
+      day_label: today.day,
+      session_date: todaySessionDate(),
+      checks,
+      names,
+      started_at: startedAt,
+      rest_ends_at: rest?.endsAt ?? null,
+      rest_label: rest?.label ?? null,
+      rest_total: rest?.total ?? null,
+      rest_alerted: rest?.alerted ?? false,
+      updated_at: new Date().toISOString(),
+    };
+    writeLocalLiveSession(draft);
+    if (!liveSessionHasProgress(draft) && !draft.rest_ends_at) return;
+    if (syncTimer.current) window.clearTimeout(syncTimer.current);
+    syncTimer.current = window.setTimeout(() => {
+      void saveGymLiveSessionAction(draft);
+    }, 600);
+    return () => {
+      if (syncTimer.current) window.clearTimeout(syncTimer.current);
+    };
+  }, [checks, hydrated, names, plan, rest, startedAt, today]);
 
   useEffect(() => {
     if (!rest) return;
-    const id = window.setInterval(() => {
-      setRest((current) => {
-        if (!current) return current;
-        if (current.remaining <= 1) {
-          toast.success("Rest done — next set.");
-          return null;
-        }
-        return { ...current, remaining: current.remaining - 1 };
-      });
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [rest?.itemKey, rest?.total]);
+    const tick = () => {
+      const remaining = restRemainingSeconds(rest.endsAt);
+      setNowTick(Date.now());
+      if (remaining <= 0 && !rest.alerted) {
+        void playGymRestAlarm(rest.label);
+        toast.success("Rest done — next set.");
+        setRest(null);
+      }
+    };
+    const id = window.setInterval(tick, 250);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    queueMicrotask(tick);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [rest]);
 
   const doneCount = items.reduce(
     (sum, item) => sum + (checks[item.key] ?? []).filter(Boolean).length,
     0,
   );
   const totalCount = items.reduce((sum, item) => sum + item.setCount, 0);
+  const restRemaining = rest ? restRemainingSeconds(rest.endsAt, nowTick) : 0;
   const elapsedMinutes = startedAt
-    ? Math.max(5, Math.round((Date.now() - startedAt) / 60_000))
+    ? Math.max(5, Math.round((nowTick - startedAt) / 60_000))
     : 45;
 
   function markStarted() {
     setStartedAt((current) => current ?? Date.now());
+  }
+
+  function startRest(label: string, seconds: number) {
+    if (seconds <= 0) return;
+    unlockGymRestAlert();
+    requestGymRestNotifyPermission();
+    const endsAt = restEndsAtFromSeconds(seconds);
+    setRest({
+      label,
+      total: seconds,
+      endsAt,
+      alerted: false,
+    });
   }
 
   function toggleSet(item: RunnerItem, index: number) {
@@ -197,12 +301,7 @@ export function ProgramSessionPanel({
       return rowChecks.some((value) => !value);
     });
     if (item.restSeconds > 0 && remainingSets) {
-      setRest({
-        itemKey: item.key,
-        label: names[item.key] ?? item.name,
-        remaining: item.restSeconds,
-        total: item.restSeconds,
-      });
+      startRest(names[item.key] ?? item.name, item.restSeconds);
     }
   }
 
@@ -213,14 +312,7 @@ export function ProgramSessionPanel({
     setChecks((prev) => ({ ...prev, [item.key]: next }));
     if (allOn) return;
     markStarted();
-    if (item.restSeconds > 0) {
-      setRest({
-        itemKey: item.key,
-        label: names[item.key] ?? item.name,
-        remaining: item.restSeconds,
-        total: item.restSeconds,
-      });
-    }
+    startRest(names[item.key] ?? item.name, item.restSeconds);
   }
 
   function swapItem(item: RunnerItem) {
@@ -272,11 +364,9 @@ export function ProgramSessionPanel({
       setChecks(emptyChecks(items));
       setStartedAt(null);
       setRest(null);
-      try {
-        sessionStorage.removeItem(storageKey(plan.id, today.day));
-      } catch {
-        // ignore
-      }
+      setRestored(false);
+      writeLocalLiveSession(null);
+      void clearGymLiveSessionAction();
     });
   }
 
@@ -316,9 +406,14 @@ export function ProgramSessionPanel({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Check off each set. Rest starts automatically from the program (skip anytime). Save when you are
-          done — this saves as today’s workout.
+          Check off each set. Rest starts automatically from the program (skip anytime). Close the tab
+          anytime — your sets and rest timer come back. Save when you are done.
         </p>
+        {restored && (
+          <p className="mb-3 rounded-2xl border border-accent/20 bg-accent-soft/50 px-3.5 py-2 text-xs font-black text-accent">
+            Restored your in-progress workout.
+          </p>
+        )}
         {plans.length > 1 && (
           <label className="mb-3 block">
             <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted">
@@ -350,13 +445,13 @@ export function ProgramSessionPanel({
               <p className="text-[10px] font-black uppercase tracking-wider text-inverse-fg/70">
                 Rest · {rest.label}
               </p>
-              <p className="font-display text-3xl leading-none">{formatRestClock(rest.remaining)}</p>
+              <p className="font-display text-3xl leading-none">{formatRestClock(restRemaining)}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-16 overflow-hidden rounded-full bg-white/20 sm:w-24">
                 <div
                   className="h-full rounded-full bg-accent"
-                  style={{ width: `${Math.max(4, (rest.remaining / Math.max(rest.total, 1)) * 100)}%` }}
+                  style={{ width: `${Math.max(4, (restRemaining / Math.max(rest.total, 1)) * 100)}%` }}
                 />
               </div>
               <button
@@ -458,7 +553,7 @@ export function ProgramSessionPanel({
       {rest && (
         <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-2xl bg-inverse px-4 py-3 text-inverse-fg shadow-lg sm:hidden">
           <span className="inline-flex items-center gap-2 text-sm font-black">
-            <Timer size={16} /> {formatRestClock(rest.remaining)}
+            <Timer size={16} /> {formatRestClock(restRemaining)}
           </span>
           <button type="button" onClick={() => setRest(null)} className="text-[11px] font-black">
             Skip rest

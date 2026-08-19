@@ -6,6 +6,11 @@ import {
   type GymPlanDay,
   type GymSession,
 } from "@/lib/gym";
+import {
+  hydrateDraftPlan,
+  remainingTrainingDays,
+  type GymProgramDraft,
+} from "@/lib/gym-program-draft";
 
 export type ShareExportDoc = {
   title: string;
@@ -221,6 +226,7 @@ export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
       focus: plan.focus,
       level: plan.level,
       days_per_week: plan.days_per_week,
+      training_days: plan.training_days ?? [],
       summary: plan.summary,
       recommendations: recs,
       days: plan.days,
@@ -259,6 +265,50 @@ export function gymPlansDoc(plans: GymPlan[]): ShareExportDoc {
   };
 }
 
+export function gymProgramDraftDoc(draft: GymProgramDraft): ShareExportDoc {
+  const keptPlan = hydrateDraftPlan(draft);
+  const remaining = remainingTrainingDays(draft.training_days, draft.kept_days);
+  const remainingLabel = remaining
+    .map((iso) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][iso - 1])
+    .filter(Boolean)
+    .join(", ");
+  const keptDoc = gymPlanDoc({
+    ...keptPlan,
+    title: `${draft.title} — days you kept`,
+  });
+  const previewLines = (draft.preview_days ?? []).flatMap((day) => [
+    `${day.day} — ${humanizeGymLabel(day.focus)}`,
+    ...(day.exercises ?? []).map((ex) => `• ${formatGymExerciseLine(ex)}`),
+    "",
+  ]);
+  return {
+    title: `${draft.title} (in progress)`,
+    filename: filenameSlug(`${draft.title}-draft`),
+    text: heading(`${draft.title} (in progress)`, [
+      remaining.length ? `Still to pick: ${remainingLabel}` : "All training days kept.",
+      "",
+      keptDoc.text.replace(/^VIVRΛNT\n[\s\S]*?\n\n/, "").trimEnd(),
+      "",
+      "Latest generated options",
+      "",
+      ...previewLines,
+    ]),
+    csv: keptDoc.csv,
+    json: jsonPretty({
+      title: draft.title,
+      focus: draft.focus,
+      level: draft.level,
+      training_days: draft.training_days,
+      kept_days: draft.kept_days,
+      preview_days: draft.preview_days,
+      remaining_days: remaining,
+      summary: draft.summary,
+      recommendations: draft.recommendations,
+    }),
+    html: keptDoc.html,
+  };
+}
+
 export function gymSessionsDoc(
   sessions: Pick<
     GymSession,
@@ -267,7 +317,16 @@ export function gymSessionsDoc(
 ): ShareExportDoc {
   const lines = sessions.flatMap((session) => {
     const moves = (session.exercises ?? [])
-      .map((ex) => `  • ${ex.name ?? "Movement"}${ex.sets ? ` · ${ex.sets}` : ""}`)
+      .map((ex) => {
+        const bits = [
+          ex.name ?? "Movement",
+          ex.sets ? ` · ${ex.sets}` : "",
+          ex.weight ? ` · ${ex.weight}` : "",
+          ex.rest ? ` · rest ${ex.rest}` : "",
+          ex.completed_sets != null ? ` · ${ex.completed_sets} sets done` : "",
+        ];
+        return `  • ${bits.join("")}`;
+      })
       .join("\n");
     return [
       `${session.title} · ${humanizeGymLabel(session.focus)} · ${session.duration_minutes ?? 0} min · ${session.calories_burned ?? 0} kcal`,
@@ -288,7 +347,12 @@ export function gymSessionsDoc(
         humanizeGymLabel(session.focus),
         session.duration_minutes ?? "",
         session.calories_burned ?? "",
-        (session.exercises ?? []).map((ex) => `${ex.name ?? ""}${ex.sets ? ` (${ex.sets})` : ""}`).join("; "),
+        (session.exercises ?? [])
+          .map((ex) => {
+            const done = ex.completed_sets != null ? ` ${ex.completed_sets} done` : "";
+            return `${ex.name ?? ""}${ex.sets ? ` (${ex.sets}${done})` : done}`;
+          })
+          .join("; "),
         session.notes ?? "",
         session.logged_at?.slice(0, 10) ?? "",
       ]),

@@ -5,6 +5,7 @@ import {
   formatTrainingDaysLabel,
   nextTrainingDayHint,
   parseTrainingDays,
+  parseWeekdayIsos,
   sanitizeTrainingDays,
 } from "./gym-schedule";
 
@@ -18,7 +19,7 @@ describe("defaultTrainingDaysFromCount", () => {
   });
 });
 
-describe("sanitizeTrainingDays", () => {
+describe("parseTrainingDays", () => {
   it("keeps a custom Mon–Fri + Sunday week", () => {
     expect(sanitizeTrainingDays([1, 2, 3, 4, 5, 7])).toEqual([1, 2, 3, 4, 5, 7]);
   });
@@ -26,6 +27,10 @@ describe("sanitizeTrainingDays", () => {
   it("falls back when the selection is too short", () => {
     expect(parseTrainingDays([1])).toEqual([]);
     expect(sanitizeTrainingDays([1], 3)).toEqual([1, 3, 5]);
+  });
+
+  it("allows a single weekday for remaining-day generation", () => {
+    expect(parseWeekdayIsos([2], { min: 1, max: 6 })).toEqual([2]);
   });
 });
 

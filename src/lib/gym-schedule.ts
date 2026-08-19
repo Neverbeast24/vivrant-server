@@ -23,8 +23,13 @@ export function defaultTrainingDaysFromCount(daysPerWeek: number): number[] {
   return [2, 5];
 }
 
-/** Unique ISO weekdays (1–7), 2–6 long. Empty / invalid input returns []. */
-export function parseTrainingDays(input: unknown): number[] {
+/** Unique ISO weekdays (1–7). Empty / invalid input returns []. */
+export function parseWeekdayIsos(
+  input: unknown,
+  options?: { min?: number; max?: number },
+): number[] {
+  const min = options?.min ?? 1;
+  const max = options?.max ?? 6;
   if (!Array.isArray(input)) return [];
   const seen = new Set<number>();
   const out: number[] = [];
@@ -33,10 +38,15 @@ export function parseTrainingDays(input: unknown): number[] {
     if (!Number.isFinite(n) || n < 1 || n > 7 || seen.has(n)) continue;
     seen.add(n);
     out.push(n);
-    if (out.length >= 6) break;
+    if (out.length >= max) break;
   }
   out.sort((a, b) => a - b);
-  return out.length >= 2 ? out : [];
+  return out.length >= min ? out : [];
+}
+
+/** Unique ISO weekdays (1–7), 2–6 long. Empty / invalid input returns []. */
+export function parseTrainingDays(input: unknown): number[] {
+  return parseWeekdayIsos(input, { min: 2, max: 6 });
 }
 
 /** Unique ISO weekdays (1–7), 2–6 long. Falls back to a count-based spread. */
@@ -82,7 +92,7 @@ export function resolveTrainingDays(input: {
   const explicit = parseTrainingDays(input.training_days);
   if (explicit.length >= 2) return explicit;
   const labeled = trainingDaysFromPlanDays(input.days ?? []);
-  if (labeled.length >= 2) return labeled.slice(0, 6);
+  if (labeled.length >= 1) return labeled.slice(0, 6);
   return defaultTrainingDaysFromCount(Number(input.days_per_week ?? input.days?.length ?? 3));
 }
 

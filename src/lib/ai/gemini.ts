@@ -11,7 +11,7 @@ import {
   parseGymPlanDays,
   type GymPlanDay,
 } from "@/lib/gym";
-import { sanitizeTrainingDays, formatRestDaysLabel, GYM_WEEKDAYS } from "@/lib/gym-schedule";
+import { sanitizeTrainingDays, formatRestDaysLabel, GYM_WEEKDAYS, parseWeekdayIsos } from "@/lib/gym-schedule";
 import {
   clampGymPlanLevel,
   MAX_KNOWN_MACHINE_SLUGS,
@@ -722,6 +722,8 @@ export async function generateGymPlan(
   prefs?: {
     days_per_week?: number;
     training_days?: number[];
+    generate_days?: number[];
+    kept_days?: GymPlanDay[];
     session_minutes?: number;
     level?: GymPlanLevel;
     known_machine_slugs?: string[];
@@ -729,7 +731,10 @@ export async function generateGymPlan(
     avoid_targets?: string[];
   },
 ): Promise<GymPlanPayload> {
-  const trainingDays = sanitizeTrainingDays(prefs?.training_days, prefs?.days_per_week ?? 3);
+  const generateDays = parseWeekdayIsos(prefs?.generate_days, { min: 1, max: 6 });
+  const trainingDays = generateDays.length
+    ? generateDays
+    : sanitizeTrainingDays(prefs?.training_days, prefs?.days_per_week ?? 3);
   const requestedDays = trainingDays.length;
   const requestedSession = prefs?.session_minutes != null
     ? Math.max(15, Math.min(120, Math.round(prefs.session_minutes)))
@@ -764,6 +769,15 @@ export async function generateGymPlan(
     .filter(Boolean)
     .join(", ");
   const restNote = formatRestDaysLabel(trainingDays);
+  const keptDays = Array.isArray(prefs?.kept_days) ? prefs.kept_days : [];
+  const keptNote = keptDays.length
+    ? `The user already kept these sessions. Generate complementary days that do NOT repeat the same focus or main lifts:\n${keptDays
+        .map((day) => {
+          const moves = (day.exercises ?? []).map((ex) => ex.name).filter(Boolean).join(", ");
+          return `- ${day.day}: ${day.focus}${moves ? ` (${moves})` : ""}`;
+        })
+        .join("\n")}`
+    : "No days have been kept yet — generate a fresh complementary week.";
 
   const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training program for this user.
 Use their profile, energy, goals, recent activity, and especially bmi_details + routine_scaling (BMI band + target-date forecast).
@@ -779,6 +793,7 @@ Scale the program explicitly:
 - Mention BMI band and target date (if any) in the summary
 - ${knownMachinesNote}
 - ${avoidTargetsNote}
+- ${keptNote}
 Prefer exercises from the available catalog when possible.
 Return JSON:
 - "title"

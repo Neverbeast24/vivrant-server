@@ -4,39 +4,26 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
 import { buildUserContext } from "@/lib/ai/context";
-import { generateGymPlan, recommendGymMachines } from "@/lib/ai/gemini";
+import { recommendGymMachines } from "@/lib/ai/gemini";
+import type { GymPlanPrefs } from "@/lib/health/body-metrics";
+import { gymSessionFocusFromPlan } from "@/lib/gym";
 import {
-  applyRoutineOverrides,
-  clampGymPlanPrefs,
-  type GymPlanPrefs,
-  type RoutineScaling,
-} from "@/lib/health/body-metrics";
+  dropKeptDay,
+  keepPreviewDay,
+  remainingTrainingDays,
+} from "@/lib/gym-program-draft";
+import { parseGymLiveSession, type GymLiveSessionDraft } from "@/lib/gym-live-session";
 import {
-  buildGymPlanAvailableExercises,
-  constrainGymPlanToKnownMoves,
-  enrichGymPlanDays,
-  GYM_PLAN_CATALOG_FALLBACK,
-  gymSessionFocusFromPlan,
-  hydrateGymPlan,
-  labelGymPlanDaysWithWeekdays,
-  serializeGymPlanDays,
-} from "@/lib/gym";
+  clearGymLiveSessionRow,
+  commitGymProgramDraft,
+  discardGymProgramDraft,
+  loadGymLiveSessionRow,
+  loadGymProgramDraft,
+  previewGymProgram,
+  saveGymLiveSessionRow,
+  saveGymProgramDraftRow,
+} from "@/lib/gym-plan-generate";
 import { createClient } from "@/lib/supabase/server";
-
-function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
-  try {
-    const parsed = JSON.parse(context) as { routine_scaling?: RoutineScaling };
-    if (parsed.routine_scaling) {
-      parsed.routine_scaling = applyRoutineOverrides(parsed.routine_scaling, prefs);
-    }
-    return JSON.stringify({
-      ...parsed,
-      plan_prefs: prefs,
-    });
-  } catch {
-    return context;
-  }
-}
 
 const sessionExerciseSchema = z.object({
   name: z.string().trim().min(1).max(160),
@@ -191,100 +178,124 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  const prefs = clampGymPlanPrefs(input);
-
   try {
-    const [{ data: exercises }, rawContext] = await Promise.all([
-      supabase
-        .from("gym_exercises")
-        .select("slug, name, muscle_group, equipment, difficulty")
-        .order("name"),
-      buildUserContext(user.id),
-    ]);
-
-    const context = withPlanPrefs(rawContext, prefs);
-    const avoidSet = new Set(prefs.avoid_targets);
-    const rows = (exercises ?? []).filter((row) => {
-      if (!avoidSet.size) return true;
-      return !avoidSet.has(String(row.muscle_group).toLowerCase());
-    });
-    const catalogItems = (exercises ?? []).map((row) => ({
-      slug: String(row.slug),
-      name: String(row.name),
-      muscle_group: String(row.muscle_group),
-      equipment: String(row.equipment),
-    }));
-    const { catalogText, knownRows, restrictToKnown } = buildGymPlanAvailableExercises(
-      rows.map((row) => ({
-        slug: String(row.slug),
-        name: String(row.name),
-        muscle_group: String(row.muscle_group),
-        equipment: String(row.equipment),
-        difficulty: String(row.difficulty),
-      })),
-      prefs,
-    );
-
-    const plan = await generateGymPlan(
-      context,
-      catalogText || GYM_PLAN_CATALOG_FALLBACK,
-      prefs,
-    );
-
-    const days = labelGymPlanDaysWithWeekdays(
-      enrichGymPlanDays(
-        constrainGymPlanToKnownMoves(
-          plan.days,
-          knownRows,
-          prefs.known_custom_exercises,
-          catalogItems,
-        ),
-        restrictToKnown ? knownRows : catalogItems,
-        prefs.avoid_targets,
-      ),
-      prefs.training_days,
-    );
-
-    const { data, error } = await supabase
-      .from("gym_plans")
-      .insert({
-        user_id: user.id,
-        title: plan.title,
-        focus: plan.focus,
-        level: plan.level,
-        days_per_week: plan.days_per_week,
-        summary: plan.summary,
-        days: serializeGymPlanDays(days, plan.recommendations, prefs.training_days),
-      })
-      .select("id, title, focus, level, days_per_week, summary, days, created_at")
-      .single();
-    if (error) return { ok: false, message: error.message };
-
-    await writeAuditLog({
-      action: "gym_plan_created",
-      entity: "gym_plans",
-      entityId: data?.id != null ? String(data.id) : undefined,
-        metadata: {
-        title: plan.title,
-        focus: plan.focus,
-        level: plan.level,
-        known_machine_count: prefs.known_machine_slugs.length,
-        known_custom_count: prefs.known_custom_exercises.length,
-        avoid_targets: prefs.avoid_targets,
-      },
-    });
-
+    const draft = await previewGymProgram(supabase, user.id, input);
     revalidatePath("/dashboard/gym");
-    revalidatePath("/dashboard/gym/sessions");
     revalidatePath("/dashboard/gym/plans");
-    revalidatePath("/dashboard/movement/log");
-    revalidatePath("/dashboard");
-    return { ok: true, message: "AI gym program saved.", plan: data ? hydrateGymPlan(data) : data };
+    const remaining = remainingTrainingDays(draft.training_days, draft.kept_days);
+    return {
+      ok: true,
+      message: remaining.length
+        ? `Workouts ready — keep the days you like, then generate the rest.`
+        : "Workouts ready — keep the days you like, then save the program.",
+      draft,
+    };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not create a gym program.";
     return { ok: false, message };
   }
+}
+
+function revalidateGymPlanPaths() {
+  revalidatePath("/dashboard/gym");
+  revalidatePath("/dashboard/gym/plans");
+  revalidatePath("/dashboard/gym/sessions");
+  revalidatePath("/dashboard/movement/log");
+  revalidatePath("/dashboard");
+}
+
+export async function loadGymProgramDraftAction() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in.", draft: null };
+  const draft = await loadGymProgramDraft(supabase, user.id);
+  return { ok: true, draft };
+}
+
+export async function keepGymProgramDay(iso: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const current = await loadGymProgramDraft(supabase, user.id);
+  if (!current) return { ok: false, message: "Generate workouts first." };
+  const draft = keepPreviewDay(current, Math.round(Number(iso)));
+  await saveGymProgramDraftRow(supabase, user.id, draft);
+  revalidateGymPlanPaths();
+  return { ok: true, message: "Day kept for your program.", draft };
+}
+
+export async function dropGymProgramDay(iso: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const current = await loadGymProgramDraft(supabase, user.id);
+  if (!current) return { ok: false, message: "No draft to update." };
+  const draft = dropKeptDay(current, Math.round(Number(iso)));
+  await saveGymProgramDraftRow(supabase, user.id, draft);
+  revalidateGymPlanPaths();
+  return { ok: true, message: "Day removed from your program.", draft };
+}
+
+export async function saveGymProgramFromDraft() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const result = await commitGymProgramDraft(supabase, user.id);
+  if (result.ok) revalidateGymPlanPaths();
+  return result;
+}
+
+export async function discardGymProgramDraftAction() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  await discardGymProgramDraft(supabase, user.id);
+  revalidateGymPlanPaths();
+  return { ok: true, message: "Draft cleared." };
+}
+
+export async function loadGymLiveSessionAction() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in.", session: null };
+  const session = await loadGymLiveSessionRow(supabase, user.id);
+  return { ok: true, session };
+}
+
+export async function saveGymLiveSessionAction(input: unknown) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const parsed = parseGymLiveSession(input);
+  if (!parsed) return { ok: false, message: "Could not save this workout draft." };
+  const draft: GymLiveSessionDraft = { ...parsed, updated_at: new Date().toISOString() };
+  await saveGymLiveSessionRow(supabase, user.id, draft);
+  return { ok: true, session: draft };
+}
+
+export async function clearGymLiveSessionAction() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  await clearGymLiveSessionRow(supabase, user.id);
+  return { ok: true };
 }
 
 export async function recommendMachinesWithAi() {
@@ -306,7 +317,7 @@ export async function recommendMachinesWithAi() {
 
     const catalog = (machines ?? [])
       .map(
-        (row) =>
+        (row: { name: string; slug: string; muscle_group: string; equipment: string; difficulty: string }) =>
           `${row.name} | ${row.slug} | ${row.muscle_group} | ${row.equipment} | ${row.difficulty}`,
       )
       .join("\n");
