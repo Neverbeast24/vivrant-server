@@ -49,6 +49,35 @@ export async function logWorkout(formData: FormData) {
   return { ok: true, message: "Workout logged." };
 }
 
+export async function updateWorkout(formData: FormData) {
+  const parsed = workoutSchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    activity_type: formData.get("activity_type"),
+    duration_minutes: formData.get("duration_minutes"),
+    calories_burned: formData.get("calories_burned") || undefined,
+  });
+  if (!parsed.success) return { ok: false, message: "Please fill in the workout details." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { id, ...fields } = parsed.data;
+  const { error } = await supabase
+    .from("workout_logs")
+    .update(fields)
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard/movement");
+  revalidatePath("/dashboard/movement/log");
+  return { ok: true, message: "Workout updated." };
+}
+
 export async function deleteWorkout(id: number) {
   const supabase = await createClient();
   const {

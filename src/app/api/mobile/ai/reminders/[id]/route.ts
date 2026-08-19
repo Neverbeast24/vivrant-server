@@ -6,7 +6,21 @@ import { jsonError, jsonOk, parseIdParam, readJson } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
 
-const patchSchema = z.object({ enabled: z.boolean() });
+const patchSchema = z.object({
+  enabled: z.boolean().optional(),
+  title: z.string().trim().min(1).max(120).optional(),
+  body: z.string().trim().min(1).max(500).optional(),
+  kind: z.enum(["gym", "plan", "hydration", "sleep", "habit", "mindfulness", "custom"]).optional(),
+  schedule_time: z
+    .string()
+    .transform((v) => v.slice(0, 5))
+    .pipe(z.string().regex(/^\d{2}:\d{2}$/))
+    .optional(),
+  days_of_week: z.array(z.number().int().min(1).max(7)).min(1).max(7).optional(),
+}).refine(
+  (data) => Object.values(data).some((value) => value !== undefined),
+  { message: "Nothing to update." },
+);
 
 export async function PATCH(
   request: Request,
@@ -22,23 +36,26 @@ export async function PATCH(
 
   const body = await readJson(request);
   const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) return jsonError("Provide enabled (boolean).", 400);
+  if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Nothing to update.", 400);
 
-  const patch: Record<string, unknown> = { enabled: parsed.data.enabled };
-  if (parsed.data.enabled) {
-    const { data: row } = await supabase
-      .from("user_reminders")
-      .select("schedule_time, days_of_week, timezone")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (row) {
-      patch.next_fire_at = computeNextFireAt({
-        scheduleTime: String(row.schedule_time).slice(0, 5),
-        daysOfWeek: row.days_of_week ?? [1, 2, 3, 4, 5, 6, 7],
-        timezone: row.timezone || "Asia/Manila",
-      }).toISOString();
-    }
+  const { data: row } = await supabase
+    .from("user_reminders")
+    .select("schedule_time, days_of_week, timezone, enabled")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!row) return jsonError("Reminder not found.", 404);
+
+  const patch: Record<string, unknown> = { ...parsed.data };
+  const scheduleTime = String(parsed.data.schedule_time ?? row.schedule_time).slice(0, 5);
+  const daysOfWeek = parsed.data.days_of_week ?? row.days_of_week ?? [1, 2, 3, 4, 5, 6, 7];
+  const enabled = parsed.data.enabled ?? row.enabled;
+  if (enabled) {
+    patch.next_fire_at = computeNextFireAt({
+      scheduleTime,
+      daysOfWeek,
+      timezone: row.timezone || "Asia/Manila",
+    }).toISOString();
   }
 
   const { data, error } = await supabase
@@ -52,7 +69,7 @@ export async function PATCH(
 
   await writeAuditLog(
     {
-      action: parsed.data.enabled ? "reminder_enabled" : "reminder_disabled",
+      action: "reminder_updated",
       entity: "user_reminders",
       entityId: String(id),
     },

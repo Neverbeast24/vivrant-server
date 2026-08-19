@@ -22,6 +22,7 @@ import {
   previewGymProgram,
   saveGymLiveSessionRow,
   saveGymProgramDraftRow,
+  updateSavedGymPlan,
 } from "@/lib/gym-plan-generate";
 import { createClient } from "@/lib/supabase/server";
 
@@ -145,6 +146,49 @@ export async function logProgramGymSession(input: unknown) {
 
   revalidateGymSessionPaths();
   return { ok: true, message: "Workout saved from your program." };
+}
+
+export async function updateGymSession(formData: FormData) {
+  const parsed = sessionSchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    focus: formData.get("focus"),
+    duration_minutes: formData.get("duration_minutes"),
+    calories_burned: formData.get("calories_burned") || 0,
+    notes: formData.get("notes") || undefined,
+    exercises: formData.get("exercises") || undefined,
+  });
+  if (!parsed.success) return { ok: false, message: "Fill in a valid gym session." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const focus = gymSessionFocusFromPlan(parsed.data.focus);
+  const exerciseLines = (parsed.data.exercises ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => ({ name: line, sets: "as logged" }));
+
+  const { error } = await supabase
+    .from("gym_sessions")
+    .update({
+      title: parsed.data.title,
+      focus,
+      duration_minutes: parsed.data.duration_minutes,
+      calories_burned: parsed.data.calories_burned ?? 0,
+      notes: parsed.data.notes || null,
+      ...(exerciseLines.length ? { exercises: exerciseLines } : {}),
+    })
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidateGymSessionPaths();
+  return { ok: true, message: "Session updated." };
 }
 
 export async function deleteGymSession(id: number) {
@@ -349,6 +393,46 @@ export async function recommendMachinesWithAi() {
   }
 }
 
+export async function updateGymPlan(input: unknown) {
+  const parsed = z
+    .object({
+      id: z.coerce.number().int().positive(),
+      title: z.string().trim().min(1).max(120),
+      summary: z.string().trim().max(800).optional().nullable(),
+      focus: z.string().trim().max(60).optional(),
+      level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+      days: z.array(z.unknown()).min(1).max(7),
+      recommendations: z.array(z.string()).max(8).optional(),
+      training_days: z.array(z.number().int().min(1).max(7)).max(6).optional(),
+    })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Check the program title and days, then save." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const result = await updateSavedGymPlan(supabase, user.id, parsed.data.id, {
+    title: parsed.data.title,
+    summary: parsed.data.summary,
+    focus: parsed.data.focus,
+    level: parsed.data.level,
+    days: parsed.data.days,
+    recommendations: parsed.data.recommendations,
+    training_days: parsed.data.training_days,
+  });
+  if (!result.ok) return result;
+
+  revalidatePath("/dashboard/gym");
+  revalidatePath("/dashboard/gym/plans");
+  revalidatePath("/dashboard/movement/log");
+  revalidatePath("/dashboard/training");
+  revalidatePath("/dashboard");
+  return { ok: true, message: result.message };
+}
+
 export async function deleteGymPlan(id: number) {
   const supabase = await createClient();
   const {
@@ -366,5 +450,7 @@ export async function deleteGymPlan(id: number) {
   });
 
   revalidatePath("/dashboard/gym");
+  revalidatePath("/dashboard/gym/plans");
+  revalidatePath("/dashboard/movement/log");
   return { ok: true, message: "Program removed." };
 }

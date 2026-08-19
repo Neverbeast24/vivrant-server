@@ -5,9 +5,25 @@ import { jsonOk, jsonError, readJson, parseIdParam } from "@/lib/mobile/http";
 
 export const runtime = "nodejs";
 
-const patchSchema = z.object({
-  is_checked: z.boolean(),
-});
+const patchSchema = z
+  .object({
+    is_checked: z.boolean().optional(),
+    name: z.string().trim().min(1).max(120).optional(),
+    quantity: z.string().trim().max(40).optional().nullable(),
+    category: z
+      .enum(["produce", "protein", "dairy", "grains", "pantry", "snacks", "drinks", "household", "other"])
+      .optional(),
+    estimated_price: z.coerce.number().min(0).max(50000).optional().nullable(),
+  })
+  .refine(
+    (data) =>
+      data.is_checked !== undefined ||
+      data.name !== undefined ||
+      data.quantity !== undefined ||
+      data.category !== undefined ||
+      data.estimated_price !== undefined,
+    { message: "Nothing to update." },
+  );
 
 async function restockPantryFromGrocery(
   supabase: SupabaseClient,
@@ -55,7 +71,7 @@ export async function PATCH(
 
   const body = await readJson(request);
   const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) return jsonError("Provide is_checked (boolean).", 400);
+  if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Nothing to update.", 400);
 
   const { data: item } = await supabase
     .from("grocery_items")
@@ -64,9 +80,16 @@ export async function PATCH(
     .eq("user_id", user.id)
     .maybeSingle();
 
+  const patch: Record<string, unknown> = {};
+  if (parsed.data.is_checked !== undefined) patch.is_checked = parsed.data.is_checked;
+  if (parsed.data.name !== undefined) patch.name = parsed.data.name;
+  if (parsed.data.quantity !== undefined) patch.quantity = parsed.data.quantity;
+  if (parsed.data.category !== undefined) patch.category = parsed.data.category;
+  if (parsed.data.estimated_price !== undefined) patch.estimated_price = parsed.data.estimated_price;
+
   const { data, error } = await supabase
     .from("grocery_items")
-    .update({ is_checked: parsed.data.is_checked })
+    .update(patch)
     .eq("id", id)
     .eq("user_id", user.id)
     .select("*")

@@ -67,6 +67,38 @@ export async function addGroceryItem(formData: FormData) {
   return { ok: true, message: `Item added · ${category} · ₱${estimatedPrice}.` };
 }
 
+export async function updateGroceryItem(formData: FormData) {
+  const parsed = itemSchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    quantity: formData.get("quantity") || undefined,
+    category: formData.get("category") || "other",
+    estimated_price: formData.get("estimated_price") || undefined,
+  });
+  if (!parsed.success) return { ok: false, message: "Enter an item name." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { error } = await supabase
+    .from("grocery_items")
+    .update({
+      name: parsed.data.name,
+      quantity: parsed.data.quantity ?? null,
+      category: parsed.data.category,
+      estimated_price: parsed.data.estimated_price ?? null,
+    })
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidateKitchen();
+  return { ok: true, message: "Item updated." };
+}
+
 async function restockPantryFromGrocery(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,

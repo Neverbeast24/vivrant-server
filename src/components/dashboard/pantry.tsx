@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   AlertTriangle,
   Check,
   LayoutDashboard,
   Minus,
   PackagePlus,
+  Pencil,
   Plus,
   Refrigerator,
   ShoppingBasket,
@@ -20,6 +21,7 @@ import {
   addLowStockToGroceryList,
   addPantryItemToGroceryList,
   deletePantryItem,
+  updatePantryItem,
   updatePantryStock,
 } from "@/app/dashboard/pantry/actions";
 import { toggleGroceryItem } from "@/app/dashboard/groceries/actions";
@@ -162,6 +164,42 @@ function StockRow({
   updating: boolean;
   runAction: (action: () => Promise<{ ok: boolean; message: string }>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <form
+        className="grid gap-2 rounded-2xl border border-accent/20 bg-accent-soft/40 p-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+          formData.set("id", String(item.id));
+          runAction(async () => {
+            const result = await updatePantryItem(formData);
+            if (result.ok) setEditing(false);
+            return result;
+          });
+        }}
+      >
+        <input name="name" defaultValue={item.name} required className={fieldClass} />
+        <select name="category" defaultValue={item.category} className={fieldClass}>
+          {PANTRY_CATEGORIES.map((cat) => (
+            <option key={cat.value} value={cat.value}>
+              {cat.label}
+            </option>
+          ))}
+        </select>
+        <input type="hidden" name="stock_level" value={item.stock_level} />
+        <div className="flex gap-2">
+          <PrimaryButton disabled={updating} className="rounded-full px-4">
+            {updating ? "Saving…" : "Save"}
+          </PrimaryButton>
+          <button type="button" onClick={() => setEditing(false)} className="text-xs font-black text-muted">
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
   return (
     <div className="rounded-2xl border border-ink/6 bg-surface/35 p-3">
       <div className="mb-3 flex items-center gap-3">
@@ -171,6 +209,14 @@ function StockRow({
             {categoryLabel(item.category)}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-accent/15 hover:text-accent"
+          aria-label={`Edit ${item.name}`}
+        >
+          <Pencil size={14} />
+        </button>
         <button
           type="button"
           disabled={updating || item.stock_level <= 0}

@@ -51,6 +51,37 @@ export async function logMeal(formData: FormData) {
   return { ok: true, message: "Meal logged." };
 }
 
+export async function updateMeal(formData: FormData) {
+  const parsed = mealSchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    meal_name: formData.get("meal_name"),
+    meal_type: formData.get("meal_type"),
+    calories: formData.get("calories") || undefined,
+    protein_g: formData.get("protein_g") || undefined,
+    carbs_g: formData.get("carbs_g") || undefined,
+    fat_g: formData.get("fat_g") || undefined,
+  });
+  if (!parsed.success) return { ok: false, message: "Please fill in the meal details." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { id, ...fields } = parsed.data;
+  const { error } = await supabase
+    .from("nutrition_logs")
+    .update(fields)
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard/nutrition");
+  revalidatePath("/dashboard/nutrition/log");
+  return { ok: true, message: "Meal updated." };
+}
+
 export async function deleteMeal(id: number) {
   const supabase = await createClient();
   const {

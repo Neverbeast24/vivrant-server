@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Flame, Footprints, Heart, Sparkles, Timer, Trash2 } from "lucide-react";
+import { Flame, Footprints, Heart, Pencil, Sparkles, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { deleteWorkout, logWorkout } from "@/app/dashboard/movement/actions";
+import { deleteWorkout, logWorkout, updateWorkout } from "@/app/dashboard/movement/actions";
 import { suggestWorkoutWithAi } from "@/app/dashboard/movement/ai-actions";
 import {
   EmptyState,
@@ -52,6 +52,7 @@ export function MovementView({
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [suggesting, startSuggest] = useTransition();
   const [title, setTitle] = useState("");
   const [activity, setActivity] = useState("walk");
@@ -223,13 +224,52 @@ export function MovementView({
         >
           <div className="space-y-2">
             {workouts.map((workout) => (
+              editingId === workout.id ? (
+                <form
+                  key={workout.id}
+                  className="grid gap-2 rounded-2xl border border-accent/20 bg-accent-soft/40 p-3 sm:grid-cols-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const formData = new FormData(event.currentTarget);
+                    formData.set("id", String(workout.id));
+                    startDelete(async () => {
+                      const result = await updateWorkout(formData);
+                      if (result.ok) {
+                        toast.success(result.message);
+                        setEditingId(null);
+                      } else toast.error(result.message);
+                    });
+                  }}
+                >
+                  <input name="title" defaultValue={workout.title} required className={fieldClass} />
+                  <select name="activity_type" defaultValue={workout.activity_type} className={fieldClass}>
+                    {["walk", "run", "strength", "cycle", "yoga", "other"].map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <input name="duration_minutes" type="number" min={1} defaultValue={workout.duration_minutes ?? ""} required className={fieldClass} />
+                  <input name="calories_burned" type="number" min={0} defaultValue={workout.calories_burned ?? ""} className={fieldClass} />
+                  <div className="flex gap-2 sm:col-span-2">
+                    <PrimaryButton disabled={deleting} className="rounded-full px-4">{deleting ? "Saving…" : "Save"}</PrimaryButton>
+                    <button type="button" onClick={() => setEditingId(null)} className="text-xs font-black text-muted">Cancel</button>
+                  </div>
+                </form>
+              ) : (
               <ListRow
                 key={workout.id}
                 title={workout.title}
                 meta={workout.activity_type}
                 right={
-                  <span className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
                     <span className="text-xs font-black">{workout.duration_minutes ?? 0} min</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(workout.id)}
+                      className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-accent/15 hover:text-accent"
+                      aria-label={`Edit ${workout.title}`}
+                    >
+                      <Pencil size={14} />
+                    </button>
                     <button
                       type="button"
                       disabled={deleting}
@@ -248,6 +288,7 @@ export function MovementView({
                   </span>
                 }
               />
+              )
             ))}
             {!workouts.length && (
               <EmptyState>

@@ -112,6 +112,59 @@ export async function createReminder(formData: FormData) {
   return { ok: true, message: "Reminder scheduled." };
 }
 
+export async function updateReminder(formData: FormData) {
+  const parsed = reminderSchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    body: formData.get("body"),
+    kind: formData.get("kind") || "custom",
+    schedule_time: formData.get("schedule_time") || "09:00",
+    days_of_week: parseDays(formData),
+    href: formData.get("href") || null,
+    source_id: formData.get("source_id") || null,
+    enabled: formData.get("enabled") !== "off",
+  });
+  if (!parsed.success) return { ok: false, message: "Fill in reminder details." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("timezone")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const timezone = settings?.timezone || "Asia/Manila";
+  const next = computeNextFireAt({
+    scheduleTime: parsed.data.schedule_time,
+    daysOfWeek: parsed.data.days_of_week,
+    timezone,
+  });
+
+  const { error } = await supabase
+    .from("user_reminders")
+    .update({
+      title: parsed.data.title,
+      body: parsed.data.body,
+      kind: parsed.data.kind,
+      schedule_time: parsed.data.schedule_time,
+      days_of_week: parsed.data.days_of_week,
+      href: parsed.data.href,
+      enabled: parsed.data.enabled,
+      timezone,
+      next_fire_at: next.toISOString(),
+    })
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidateReminderPaths();
+  return { ok: true, message: "Reminder updated." };
+}
+
 export async function toggleReminder(id: number, enabled: boolean) {
   const supabase = await createClient();
   const {

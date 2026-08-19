@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bell, BrainCircuit, Dumbbell, MessageCircle, Sparkles, Trash2 } from "lucide-react";
+import { Bell, BrainCircuit, Dumbbell, MessageCircle, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   askVivaQuestion,
@@ -14,6 +14,7 @@ import {
   syncRemindersFromGymPlan,
   syncRemindersFromTodayLeftovers,
   toggleReminder,
+  updateReminder,
 } from "@/app/dashboard/ai/reminder-actions";
 import {
   EmptyState,
@@ -85,6 +86,8 @@ export function AiView({
   const createAction = useModuleAction(createReminder);
   const [chatPending, startChat] = useTransition();
   const [turns, setTurns] = useState<ChatTurn[]>(initialTurns);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [savingReminder, startSaveReminder] = useTransition();
 
   function ask(formData: FormData) {
     startChat(async () => {
@@ -303,6 +306,40 @@ export function AiView({
               {reminders.map((r) => (
                 <li key={r.id} className="rounded-2xl border border-ink/8 p-4">
                   <div className="flex items-start justify-between gap-3">
+                    {editingId === r.id ? (
+                      <form
+                        className="grid min-w-0 flex-1 gap-2"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const formData = new FormData(event.currentTarget);
+                          formData.set("id", String(r.id));
+                          startSaveReminder(async () => {
+                            const result = await updateReminder(formData);
+                            if (result.ok) {
+                              toast.success(result.message);
+                              setEditingId(null);
+                            } else toast.error(result.message);
+                          });
+                        }}
+                      >
+                        <input name="title" defaultValue={r.title} required className={fieldClass} />
+                        <textarea name="body" defaultValue={r.body} required rows={2} className={fieldClass} />
+                        <input name="schedule_time" type="time" defaultValue={String(r.schedule_time).slice(0, 5)} className={fieldClass} />
+                        <select name="kind" defaultValue={r.kind} className={fieldClass}>
+                          {["custom", "gym", "plan", "hydration", "sleep", "habit", "mindfulness"].map((k) => (
+                            <option key={k} value={k}>{k}</option>
+                          ))}
+                        </select>
+                        {(r.days_of_week?.length ? r.days_of_week : [1, 2, 3, 4, 5, 6, 7]).map((d) => (
+                          <input key={d} type="hidden" name="days_of_week" value={d} />
+                        ))}
+                        {r.enabled ? null : <input type="hidden" name="enabled" value="off" />}
+                        <div className="flex gap-2">
+                          <PrimaryButton disabled={savingReminder} className="rounded-full px-4">Save</PrimaryButton>
+                          <button type="button" onClick={() => setEditingId(null)} className="text-xs font-black text-muted">Cancel</button>
+                        </div>
+                      </form>
+                    ) : (
                     <div>
                       <p className="text-sm font-black">{r.title}</p>
                       <p className="mt-1 text-sm text-muted">{r.body}</p>
@@ -315,7 +352,16 @@ export function AiView({
                         {!r.enabled ? " · paused" : ""}
                       </p>
                     </div>
+                    )}
                     <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-muted hover:bg-ink/5"
+                        onClick={() => setEditingId(editingId === r.id ? null : r.id)}
+                        aria-label={`Edit ${r.title}`}
+                      >
+                        <Pencil size={16} />
+                      </button>
                       <button
                         type="button"
                         className="rounded-lg px-2 py-1 text-xs font-bold text-muted hover:bg-ink/5"

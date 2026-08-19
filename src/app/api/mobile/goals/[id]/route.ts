@@ -9,10 +9,16 @@ const patchSchema = z
   .object({
     status: z.enum(["active", "completed", "paused"]).optional(),
     current_value: z.coerce.number().min(0).max(1_000_000).optional(),
+    title: z.string().trim().min(1).max(120).optional(),
+    category: z.enum(["nutrition", "movement", "sleep", "mindfulness", "spending", "other"]).optional(),
+    target_value: z.coerce.number().min(0).optional().nullable(),
+    unit: z.string().trim().max(40).optional().nullable(),
+    target_date: z.string().date().optional().nullable(),
   })
-  .refine((data) => data.status !== undefined || data.current_value !== undefined, {
-    message: "Provide status or current_value.",
-  });
+  .refine(
+    (data) => Object.values(data).some((value) => value !== undefined),
+    { message: "Nothing to update." },
+  );
 
 export async function PATCH(
   request: Request,
@@ -35,6 +41,11 @@ export async function PATCH(
   const patch: Record<string, unknown> = {};
   if (parsed.data.status !== undefined) patch.status = parsed.data.status;
   if (parsed.data.current_value !== undefined) patch.current_value = parsed.data.current_value;
+  if (parsed.data.title !== undefined) patch.title = parsed.data.title;
+  if (parsed.data.category !== undefined) patch.category = parsed.data.category;
+  if (parsed.data.target_value !== undefined) patch.target_value = parsed.data.target_value;
+  if (parsed.data.unit !== undefined) patch.unit = parsed.data.unit;
+  if (parsed.data.target_date !== undefined) patch.target_date = parsed.data.target_date;
 
   const { data, error } = await supabase
     .from("health_goals")

@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Flame,
   Lightbulb,
+  Pencil,
   Play,
   Plus,
   Repeat2,
@@ -33,6 +34,7 @@ import {
   keepGymProgramDay,
   recommendMachinesWithAi,
   saveGymProgramFromDraft,
+  updateGymPlan,
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
@@ -49,6 +51,7 @@ import {
 import { gymPlanDoc, gymPlansDoc } from "@/lib/share-export";
 import { GYM_PROGRAM_DRAFT_KEY, newerDraft, parseGymProgramDraft, type GymProgramDraft } from "@/lib/gym-program-draft";
 import { GymProgramBuilder } from "@/components/dashboard/gym-program-builder";
+import { SavedGymPlanEditor } from "@/components/dashboard/gym-plan-editor";
 import {
   enrichGymPlanDays,
   findExerciseMatch,
@@ -768,6 +771,7 @@ export function GymPlansView({
   const [showCustomize, setShowCustomize] = useState(false);
   const [draft, setDraft] = useState<GymProgramDraft | null>(initialDraft);
   const [savingDraft, startSaveDraft] = useTransition();
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
   const machines = useMemo(
     () => exercises.filter((item) => isMachineGear(item.equipment)),
     [exercises],
@@ -1661,6 +1665,15 @@ export function GymPlansView({
                   <button
                     type="button"
                     disabled={busy}
+                    onClick={() => setEditingPlanId(editingPlanId === plan.id ? null : plan.id)}
+                    aria-label={`Edit ${plan.title}`}
+                    className="grid size-10 place-items-center rounded-full text-muted transition hover:bg-accent/15 hover:text-accent"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
                     onClick={() => run(() => deleteGymPlan(plan.id))}
                     aria-label={`Delete ${plan.title}`}
                     className="grid size-10 place-items-center rounded-full text-muted transition hover:bg-ember/15 hover:text-ember"
@@ -1669,6 +1682,21 @@ export function GymPlansView({
                   </button>
                 </div>
               </div>
+              {editingPlanId === plan.id ? (
+                <SavedGymPlanEditor
+                  plan={plans.find((item) => item.id === plan.id) ?? plan}
+                  busy={busy}
+                  onCancel={() => setEditingPlanId(null)}
+                  onSave={(input) =>
+                    run(async () => {
+                      const result = await updateGymPlan(input);
+                      if (result.ok) setEditingPlanId(null);
+                      return result;
+                    })
+                  }
+                />
+              ) : (
+              <>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {(plan.days ?? []).map((day) => {
                   const isToday = today?.day === day.day;
@@ -1822,6 +1850,8 @@ export function GymPlansView({
                     })}
                   </ul>
                 </div>
+              )}
+              </>
               )}
             </article>
             );

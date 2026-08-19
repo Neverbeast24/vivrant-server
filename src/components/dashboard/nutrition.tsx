@@ -10,11 +10,12 @@ import {
   Hand,
   ImagePlus,
   Sparkles,
+  Pencil,
   Trash2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { addWaterIntake, deleteMeal, logMeal } from "@/app/dashboard/nutrition/actions";
+import { addWaterIntake, deleteMeal, logMeal, updateMeal } from "@/app/dashboard/nutrition/actions";
 import {
   estimateMealWithAi,
   suggestMealWithAi,
@@ -170,6 +171,7 @@ export function NutritionView({
   const reviewRef = useRef<HTMLDivElement>(null);
   const autoSuggestRan = useRef(false);
   const [deleting, startDelete] = useTransition();
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [estimating, startEstimate] = useTransition();
   const [suggesting, startSuggest] = useTransition();
   const [addingWater, startWater] = useTransition();
@@ -757,13 +759,54 @@ export function NutritionView({
           >
             <div className="space-y-2">
               {meals.map((meal) => (
+                editingId === meal.id ? (
+                  <form
+                    key={meal.id}
+                    className="grid gap-2 rounded-2xl border border-accent/20 bg-accent-soft/40 p-3 sm:grid-cols-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const formData = new FormData(event.currentTarget);
+                      formData.set("id", String(meal.id));
+                      startDelete(async () => {
+                        const result = await updateMeal(formData);
+                        if (result.ok) {
+                          toast.success(result.message);
+                          setEditingId(null);
+                        } else toast.error(result.message);
+                      });
+                    }}
+                  >
+                    <input name="meal_name" defaultValue={meal.meal_name} required className={fieldClass} />
+                    <select name="meal_type" defaultValue={meal.meal_type} className={fieldClass}>
+                      {["breakfast", "lunch", "dinner", "snack"].map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                    <input name="calories" type="number" min={0} defaultValue={meal.calories ?? ""} placeholder="kcal" className={fieldClass} />
+                    <input name="protein_g" type="number" min={0} step="0.1" defaultValue={meal.protein_g ?? ""} placeholder="protein g" className={fieldClass} />
+                    <input name="carbs_g" type="number" min={0} step="0.1" defaultValue={meal.carbs_g ?? ""} placeholder="carbs g" className={fieldClass} />
+                    <input name="fat_g" type="number" min={0} step="0.1" defaultValue={meal.fat_g ?? ""} placeholder="fat g" className={fieldClass} />
+                    <div className="flex gap-2 sm:col-span-2">
+                      <PrimaryButton disabled={deleting} className="rounded-full px-4">{deleting ? "Saving…" : "Save"}</PrimaryButton>
+                      <button type="button" onClick={() => setEditingId(null)} className="text-xs font-black text-muted">Cancel</button>
+                    </div>
+                  </form>
+                ) : (
                 <ListRow
                   key={meal.id}
                   title={meal.meal_name}
                   meta={meal.meal_type}
                   right={
-                    <span className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
                       <span className="text-xs font-black">~{meal.calories ?? 0} kcal</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(meal.id)}
+                        className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-accent/15 hover:text-accent"
+                        aria-label={`Edit ${meal.meal_name}`}
+                      >
+                        <Pencil size={14} />
+                      </button>
                       <button
                         type="button"
                         disabled={deleting}
@@ -772,6 +815,7 @@ export function NutritionView({
                             const result = await deleteMeal(meal.id);
                             if (result.ok) toast.success(result.message);
                             else toast.error(result.message);
+                            if (editingId === meal.id) setEditingId(null);
                           })
                         }
                         className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
@@ -782,6 +826,7 @@ export function NutritionView({
                     </span>
                   }
                 />
+                )
               ))}
               {!meals.length && (
                 <EmptyState>

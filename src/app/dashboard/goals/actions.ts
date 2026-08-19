@@ -54,6 +54,37 @@ export async function addHealthGoal(formData: FormData) {
   return { ok: true, message: "Goal added." };
 }
 
+export async function updateHealthGoal(formData: FormData) {
+  const parsed = goalSchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    category: formData.get("category"),
+    target_value: formData.get("target_value") || null,
+    unit: formData.get("unit") || null,
+    target_date: formData.get("target_date"),
+  });
+  if (!parsed.success) return { ok: false, message: "Please fill in a valid goal." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { id, ...fields } = parsed.data;
+  const { error } = await supabase
+    .from("health_goals")
+    .update(fields)
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/goals");
+  return { ok: true, message: "Goal updated." };
+}
+
 export async function updateGoalStatus(id: number, status: "active" | "completed" | "paused") {
   const supabase = await createClient();
   const {

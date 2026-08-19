@@ -47,6 +47,33 @@ export async function addPantryItem(formData: FormData) {
   return { ok: true, message: "Pantry item added." };
 }
 
+export async function updatePantryItem(formData: FormData) {
+  const parsed = pantrySchema.extend({ id: z.coerce.number().int().positive() }).safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    category: formData.get("category"),
+    stock_level: formData.get("stock_level"),
+  });
+  if (!parsed.success) return { ok: false, message: "Please fill in pantry details." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { id, ...fields } = parsed.data;
+  const { error } = await supabase
+    .from("pantry_items")
+    .update(fields)
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePantry();
+  return { ok: true, message: "Pantry item updated." };
+}
+
 export async function updatePantryStock(id: number, stockLevel: number) {
   const parsed = z.number().int().min(0).max(100).safeParse(stockLevel);
   if (!parsed.success) return { ok: false, message: "Stock must be between 0 and 100." };

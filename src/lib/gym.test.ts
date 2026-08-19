@@ -433,3 +433,23 @@ describe("reminderDaysFromGymPlan", () => {
     ]);
   });
 });
+
+describe("saved gym program edit round-trip", () => {
+  it("keeps custom moves when a saved program is re-parsed for edit", () => {
+    const packed = serializeGymPlanDays(
+      [
+        {
+          day: "Day 2: Lower Body Quads & Calves",
+          focus: "Legs",
+          exercises: [{ name: "multi press", sets: "4 x 10", rest: "90s", weight: "30 kg" }],
+        },
+      ],
+      ["Keep 2 reps in reserve."],
+      [1, 2, 3, 4, 5, 7],
+    );
+    const parsed = parseGymPlanDays(packed);
+    expect(parsed.days[0].exercises[0].name).toBe("Multi Press");
+    expect(parsed.days[0].exercises[0].weight).toBe("30 kg");
+    expect(parsed.training_days).toEqual([1, 2, 3, 4, 5, 7]);
+  });
+});

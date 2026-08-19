@@ -5,6 +5,8 @@ import { generateGymPlan, type GymPlanPayload } from "@/lib/ai/gemini";
 import {
   applyRoutineOverrides,
   clampGymPlanPrefs,
+  GYM_PLAN_LEVELS,
+  type GymPlanLevel,
   type GymPlanPrefs,
   type RoutineScaling,
 } from "@/lib/health/body-metrics";
@@ -14,6 +16,10 @@ import {
   enrichGymPlanDays,
   GYM_PLAN_CATALOG_FALLBACK,
   hydrateGymPlan,
+  clampGymPlanRecommendations,
+  parseGymPlanDays,
+  parseTrainingDays,
+  resolveTrainingDays,
   serializeGymPlanDays,
   type GymPlanDay,
 } from "@/lib/gym";
@@ -241,6 +247,84 @@ export async function commitGymProgramDraft(
     ok: true as const,
     message: "Training program saved from the days you kept.",
     plan: data ? hydrateGymPlan(data) : data,
+  };
+}
+
+export type SavedGymPlanUpdate = {
+  title: string;
+  summary?: string | null;
+  focus?: string;
+  level?: string;
+  days: unknown;
+  recommendations?: string[];
+  training_days?: number[];
+};
+
+/** Update a committed gym program without regenerating it. */
+export async function updateSavedGymPlan(
+  supabase: SupabaseClient,
+  userId: string,
+  id: number,
+  input: SavedGymPlanUpdate,
+) {
+  const title = String(input.title ?? "").trim().slice(0, 120);
+  if (title.length < 1) return { ok: false as const, message: "Give the program a name." };
+
+  const parsed = parseGymPlanDays(input.days);
+  if (!parsed.days.length) {
+    return { ok: false as const, message: "Keep at least one training day." };
+  }
+  const recs = clampGymPlanRecommendations(
+    input.recommendations != null ? input.recommendations : parsed.recommendations,
+  );
+  const explicit = parseTrainingDays(
+    input.training_days?.length ? input.training_days : parsed.training_days,
+  );
+  const trainingDays = explicit.length
+    ? explicit
+    : resolveTrainingDays({
+        training_days: parsed.training_days,
+        days: parsed.days,
+        days_per_week: parsed.days.length,
+      });
+  const summaryRaw = String(input.summary ?? "").trim();
+  const summary = summaryRaw ? summaryRaw.slice(0, 800) : null;
+  const focus = String(input.focus ?? "full_body").trim().slice(0, 60) || "full_body";
+  const level: GymPlanLevel = GYM_PLAN_LEVELS.includes(input.level as GymPlanLevel)
+    ? (input.level as GymPlanLevel)
+    : "beginner";
+
+  const { data, error } = await supabase
+    .from("gym_plans")
+    .update({
+      title,
+      summary,
+      focus,
+      level,
+      days_per_week: trainingDays.length || parsed.days.length,
+      days: serializeGymPlanDays(parsed.days, recs, trainingDays),
+    })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("id, title, focus, level, days_per_week, summary, days, created_at")
+    .single();
+  if (error) return { ok: false as const, message: error.message };
+  if (!data) return { ok: false as const, message: "Program not found." };
+
+  await writeAuditLog(
+    {
+      action: "gym_plan_updated",
+      entity: "gym_plans",
+      entityId: String(id),
+      metadata: { title, days: parsed.days.length },
+    },
+    supabase,
+  );
+
+  return {
+    ok: true as const,
+    message: "Program updated.",
+    plan: hydrateGymPlan(data),
   };
 }
 

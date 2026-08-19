@@ -53,6 +53,40 @@ export async function addHabit(formData: FormData) {
   return { ok: true, message: "Habit added." };
 }
 
+export async function updateHabit(formData: FormData) {
+  const parsed = z
+    .object({
+      id: z.coerce.number().int().positive(),
+      title: z.string().trim().min(1).max(120),
+      category: z
+        .enum(["nutrition", "movement", "sleep", "mindfulness", "hydration", "other"])
+        .optional(),
+      frequency: z.enum(["daily", "weekly"]).optional(),
+      target_per_period: z.coerce.number().int().min(1).max(14).optional(),
+    })
+    .safeParse({
+      id: formData.get("id"),
+      title: formData.get("title"),
+      category: formData.get("category") || undefined,
+      frequency: formData.get("frequency") || undefined,
+      target_per_period: formData.get("target_per_period") || undefined,
+    });
+  if (!parsed.success) return { ok: false, message: "Enter a habit title." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const { id, ...fields } = parsed.data;
+  const { error } = await supabase.from("habits").update(fields).eq("id", id).eq("user_id", user.id);
+  if (error) return { ok: false, message: error.message };
+
+  revalidateHabits();
+  return { ok: true, message: "Habit updated." };
+}
+
 export async function toggleHabitToday(habitId: number, done: boolean) {
   const supabase = await createClient();
   const {

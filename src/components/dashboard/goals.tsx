@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Pause, Sparkles, Target, Trash2 } from "lucide-react";
+import { CheckCircle2, Pause, Pencil, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   addHealthGoal,
@@ -9,6 +9,7 @@ import {
   refreshGoalProgress,
   updateGoalProgress,
   updateGoalStatus,
+  updateHealthGoal,
 } from "@/app/dashboard/goals/actions";
 import { acceptSuggestedGoal, suggestGoalsWithAi } from "@/app/dashboard/goals/ai-actions";
 import {
@@ -59,6 +60,7 @@ export function GoalsPanel({
   const [busy, start] = useTransition();
   const [suggesting, startSuggest] = useTransition();
   const [ideas, setIdeas] = useState<SuggestedGoal[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -216,6 +218,36 @@ export function GoalsPanel({
                   <Target size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
+                  {editingId === goal.id ? (
+                    <form
+                      className="grid gap-2 sm:grid-cols-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const formData = new FormData(event.currentTarget);
+                        formData.set("id", String(goal.id));
+                        run(async () => {
+                          const result = await updateHealthGoal(formData);
+                          if (result.ok) setEditingId(null);
+                          return result;
+                        });
+                      }}
+                    >
+                      <input name="title" defaultValue={goal.title} required className={`${fieldClass} sm:col-span-2`} />
+                      <select name="category" defaultValue={goal.category} className={fieldClass}>
+                        {["nutrition", "movement", "sleep", "mindfulness", "spending", "other"].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <input name="target_value" type="number" min={0} step="0.1" defaultValue={goal.target_value ?? ""} className={fieldClass} />
+                      <input name="unit" defaultValue={goal.unit ?? ""} className={fieldClass} placeholder="unit" />
+                      <input name="target_date" type="date" defaultValue={goal.target_date ?? ""} className={fieldClass} />
+                      <div className="flex gap-2 sm:col-span-2">
+                        <PrimaryButton disabled={busy} className="rounded-full px-4">Save</PrimaryButton>
+                        <button type="button" onClick={() => setEditingId(null)} className="text-xs font-black text-muted">Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-black">{goal.title}</p>
                     <span className="rounded-full bg-panel/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-muted">
@@ -259,8 +291,19 @@ export function GoalsPanel({
                       Set progress
                     </button>
                   </form>
+                    </>
+                  )}
                 </div>
                 <div className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setEditingId(editingId === goal.id ? null : goal.id)}
+                    className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-accent/15 hover:text-accent"
+                    title="Edit goal"
+                  >
+                    <Pencil size={15} />
+                  </button>
                   {goal.status !== "completed" && (
                     <button
                       type="button"

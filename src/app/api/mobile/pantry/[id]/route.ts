@@ -5,8 +5,13 @@ import { jsonOk, jsonError, readJson, parseIdParam } from "@/lib/mobile/http";
 export const runtime = "nodejs";
 
 const patchSchema = z.object({
-  stock_level: z.coerce.number().int().min(0).max(100),
-});
+  stock_level: z.coerce.number().int().min(0).max(100).optional(),
+  name: z.string().trim().min(1).max(120).optional(),
+  category: z.string().trim().min(1).max(40).optional(),
+}).refine(
+  (data) => data.stock_level !== undefined || data.name !== undefined || data.category !== undefined,
+  { message: "Nothing to update." },
+);
 
 export async function PATCH(
   request: Request,
@@ -22,11 +27,11 @@ export async function PATCH(
 
   const body = await readJson(request);
   const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) return jsonError("Stock must be between 0 and 100.", 400);
+  if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Nothing to update.", 400);
 
   const { data, error } = await supabase
     .from("pantry_items")
-    .update({ stock_level: parsed.data.stock_level })
+    .update(parsed.data)
     .eq("id", id)
     .eq("user_id", user.id)
     .select("id, name, category, stock_level, created_at")

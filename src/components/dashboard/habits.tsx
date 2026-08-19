@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Flame, Sparkles, Target, Trash2, Trophy } from "lucide-react";
+import { Check, Flame, Pencil, Sparkles, Target, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import {
   addHabit,
@@ -11,6 +11,7 @@ import {
   refreshChallenges,
   suggestHabits,
   toggleHabitToday,
+  updateHabit,
 } from "@/app/dashboard/habits/actions";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
@@ -67,6 +68,8 @@ export function HabitsView({
   const challengeAction = useModuleAction(createChallenge);
   const [suggestPending, startSuggest] = useTransition();
   const [ideas, setIdeas] = useState<{ title: string; category: string; reason: string }[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [savingEdit, startSaveEdit] = useTransition();
   const doneCount = habits.filter((h) => h.doneToday).length;
 
   return (
@@ -162,11 +165,52 @@ export function HabitsView({
                       <Check size={16} />
                     </button>
                     <div className="min-w-0 flex-1">
+                      {editingId === habit.id ? (
+                        <form
+                          className="grid gap-2"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            const formData = new FormData(event.currentTarget);
+                            formData.set("id", String(habit.id));
+                            startSaveEdit(async () => {
+                              const result = await updateHabit(formData);
+                              if (result.ok) {
+                                toast.success(result.message);
+                                setEditingId(null);
+                              } else toast.error(result.message);
+                            });
+                          }}
+                        >
+                          <input name="title" defaultValue={habit.title} required className={fieldClass} />
+                          <select name="category" defaultValue={habit.category} className={fieldClass}>
+                            {["nutrition", "movement", "sleep", "mindfulness", "hydration", "other"].map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                          <div className="flex gap-2">
+                            <PrimaryButton disabled={savingEdit} className="rounded-full px-4">{savingEdit ? "Saving…" : "Save"}</PrimaryButton>
+                            <button type="button" onClick={() => setEditingId(null)} className="text-xs font-black text-muted">Cancel</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
                       <p className="truncate text-sm font-bold">{habit.title}</p>
                       <p className="text-xs text-muted">
                         {habit.category} · {habit.streak} day streak
                       </p>
+                        </>
+                      )}
                     </div>
+                    {editingId !== habit.id && (
+                    <button
+                      type="button"
+                      className="rounded-lg p-2 text-muted hover:bg-ink/5"
+                      onClick={() => setEditingId(habit.id)}
+                      aria-label={`Edit ${habit.title}`}
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    )}
                     <button
                       type="button"
                       className="rounded-lg p-2 text-muted hover:bg-ink/5"

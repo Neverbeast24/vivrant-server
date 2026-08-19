@@ -6,6 +6,7 @@ import {
   Check,
   Package,
   ShoppingBasket,
+  Pencil,
   Sparkles,
   Trash2,
   TrendingUp,
@@ -16,6 +17,7 @@ import {
   clearCompletedGroceries,
   deleteGroceryItem,
   toggleGroceryItem,
+  updateGroceryItem,
 } from "@/app/dashboard/groceries/actions";
 import {
   addPlanItemsToList,
@@ -121,6 +123,7 @@ export function GroceriesView({
   const [price, setPrice] = useState("");
   const [aiTip, setAiTip] = useState<string | null>(null);
   const [trendStaple, setTrendStaple] = useState("rice");
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const done = items.filter((item) => item.is_checked).length;
   const openItems = items.filter((item) => !item.is_checked);
@@ -579,6 +582,35 @@ export function GroceriesView({
                   <div className="space-y-2">
                     <AnimatePresence initial={false}>
                       {group.items.map((item) => (
+                        editingId === item.id ? (
+                          <form
+                            key={item.id}
+                            className="grid gap-2 rounded-2xl border border-accent/20 bg-accent-soft/40 p-3 sm:grid-cols-2"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const formData = new FormData(event.currentTarget);
+                              formData.set("id", String(item.id));
+                              runAction(async () => {
+                                const result = await updateGroceryItem(formData);
+                                if (result.ok) setEditingId(null);
+                                return result;
+                              });
+                            }}
+                          >
+                            <input name="name" defaultValue={item.name} required className={fieldClass} />
+                            <input name="quantity" defaultValue={item.quantity ?? ""} className={fieldClass} placeholder="qty" />
+                            <select name="category" defaultValue={item.category ?? "other"} className={fieldClass}>
+                              {CATEGORY_ORDER.map((key) => (
+                                <option key={key} value={key}>{CATEGORY_META[key].label}</option>
+                              ))}
+                            </select>
+                            <input name="estimated_price" type="number" min={0} defaultValue={item.estimated_price ?? ""} className={fieldClass} />
+                            <div className="flex gap-2 sm:col-span-2">
+                              <PrimaryButton disabled={togglePending} className="rounded-full px-4">Save</PrimaryButton>
+                              <button type="button" onClick={() => setEditingId(null)} className="text-xs font-black text-muted">Cancel</button>
+                            </div>
+                          </form>
+                        ) : (
                         <motion.div
                           key={item.id}
                           layout
@@ -616,6 +648,14 @@ export function GroceriesView({
                           </span>
                           <button
                             type="button"
+                            onClick={() => setEditingId(item.id)}
+                            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-accent/15 hover:text-accent"
+                            aria-label={`Edit ${item.name}`}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
                             disabled={togglePending}
                             onClick={() => runAction(() => deleteGroceryItem(item.id))}
                             className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
@@ -624,6 +664,7 @@ export function GroceriesView({
                             <Trash2 size={14} />
                           </button>
                         </motion.div>
+                        )
                       ))}
                     </AnimatePresence>
                   </div>
