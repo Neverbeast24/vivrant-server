@@ -493,6 +493,36 @@ export function pickTodaysPlanDay(
   return days[index] ?? null;
 }
 
+/** Find a saved program day by its label or weekday name (Monday, Day 1: Push…). */
+export function findPlanDayByLabel(days: GymPlanDay[], label: string | null | undefined): GymPlanDay | null {
+  if (!days.length || label == null) return null;
+  const needle = String(label).trim().toLowerCase();
+  if (!needle) return null;
+  const exact = days.find((day) => String(day.day ?? "").trim().toLowerCase() === needle);
+  if (exact) return exact;
+  const iso = weekdayIsoFromLabel(needle);
+  if (iso == null) return null;
+  return days.find((day) => weekdayIsoFromLabel(String(day.day ?? "")) === iso) ?? null;
+}
+
+/** Today's programmed day, or an explicit saved day when the member picks one. */
+export function resolveSessionPlanDay(
+  days: GymPlanDay[],
+  options?: {
+    label?: string | null;
+    date?: Date;
+    trainingDays?: number[];
+    fallbackFirst?: boolean;
+  },
+): GymPlanDay | null {
+  const labeled = findPlanDayByLabel(days, options?.label);
+  if (labeled) return labeled;
+  const today = pickTodaysPlanDay(days, options?.date, options?.trainingDays);
+  if (today) return today;
+  if (options?.fallbackFirst && days.length) return days[0] ?? null;
+  return null;
+}
+
 export type TodaysProgramSummary = {
   title: string;
   focus: string;

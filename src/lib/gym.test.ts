@@ -13,6 +13,8 @@ import {
   parseRestSeconds,
   parseSetCount,
   pickTodaysPlanDay,
+  findPlanDayByLabel,
+  resolveSessionPlanDay,
   serializeGymPlanDays,
   enrichGymPlanDays,
   summarizeTodaysProgram,
@@ -301,6 +303,30 @@ describe("pickTodaysPlanDay", () => {
     ];
     expect(pickTodaysPlanDay(six, new Date("2026-08-22T12:00:00"))).toBeNull();
     expect(pickTodaysPlanDay(six, new Date("2026-08-23T12:00:00"))?.focus).toBe("Full");
+  });
+});
+
+describe("findPlanDayByLabel", () => {
+  const named = [
+    { day: "Monday · Pull", focus: "Pull", exercises: [] },
+    { day: "Wednesday · Push", focus: "Push", exercises: [] },
+  ];
+
+  it("picks a saved day by weekday even when it is not today", () => {
+    expect(findPlanDayByLabel(named, "Wednesday · Push")?.focus).toBe("Push");
+    expect(findPlanDayByLabel(named, "monday")?.focus).toBe("Pull");
+    expect(resolveSessionPlanDay(named, { label: "Wednesday" })?.focus).toBe("Push");
+  });
+
+  it("picks Day 2 labels without treating them as Tuesday", () => {
+    const numbered = [
+      { day: "Day 1: Upper Body Push & Core", focus: "Push", exercises: [] },
+      { day: "Day 2: Lower Body Quads & Calves", focus: "Legs", exercises: [] },
+    ];
+    expect(findPlanDayByLabel(numbered, "Day 2: Lower Body Quads & Calves")?.focus).toBe("Legs");
+    expect(
+      resolveSessionPlanDay(numbered, { label: "Day 2: Lower Body Quads & Calves" })?.focus,
+    ).toBe("Legs");
   });
 });
 

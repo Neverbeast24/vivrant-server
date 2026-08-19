@@ -50,7 +50,6 @@ import { gymPlanDoc, gymPlansDoc } from "@/lib/share-export";
 import { GYM_PROGRAM_DRAFT_KEY, newerDraft, parseGymProgramDraft, type GymProgramDraft } from "@/lib/gym-program-draft";
 import { GymProgramBuilder } from "@/components/dashboard/gym-program-builder";
 import {
-  constrainGymPlanToKnownMoves,
   enrichGymPlanDays,
   findExerciseMatch,
   findRelatedExerciseMatch,
@@ -59,7 +58,6 @@ import {
   formatRestDaysLabel,
   formatTrainingDaysLabel,
   gymExerciseCardImage,
-  gymPlanEnrichCatalog,
   GYM_WEEKDAYS,
   humanizeGymLabel,
   isMachineGear,
@@ -814,27 +812,12 @@ export function GymPlansView({
   );
   const knownSelectedCount = knownMachineSlugs.length + knownCustomExercises.length;
   const displayPlans = useMemo(
-    () => {
-      const knownCatalog = gymPlanEnrichCatalog(
-        exercises,
-        knownMachineSlugs,
-        knownCustomExercises.length > 0,
-      );
-      return plans.map((plan) => ({
+    () =>
+      plans.map((plan) => ({
         ...plan,
-        days: enrichGymPlanDays(
-          constrainGymPlanToKnownMoves(
-            plan.days ?? [],
-            knownCatalog,
-            knownCustomExercises,
-            exercises,
-          ),
-          knownCatalog,
-          avoidTargets,
-        ),
-      }));
-    },
-    [avoidTargets, exercises, knownCustomExercises, knownMachineSlugs, plans],
+        days: enrichGymPlanDays(plan.days ?? [], exercises),
+      })),
+    [exercises, plans],
   );
 
   useEffect(() => {
@@ -1099,7 +1082,11 @@ export function GymPlansView({
             return (
               <a
                 key={plan.id}
-                href="/dashboard/movement/log"
+                href={
+                  today
+                    ? `/dashboard/movement/log?plan=${plan.id}&day=${encodeURIComponent(today.day)}`
+                    : `/dashboard/movement/log?plan=${plan.id}`
+                }
                 className="rounded-[1.3rem] border border-ink/8 bg-card p-4 transition hover:border-accent/30"
               >
                 <p className="text-[10px] font-black tracking-wider text-accent">SAVED PROGRAM</p>
@@ -1661,7 +1648,11 @@ export function GymPlansView({
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Link
-                    href="/dashboard/movement/log"
+                    href={
+                      today
+                        ? `/dashboard/movement/log?plan=${plan.id}&day=${encodeURIComponent(today.day)}`
+                        : `/dashboard/movement/log?plan=${plan.id}`
+                    }
                     className="inline-flex items-center rounded-full bg-inverse px-3.5 py-2 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
                   >
                     Start {today ? "today’s workout" : "program"}
@@ -1679,9 +1670,19 @@ export function GymPlansView({
                 </div>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {(plan.days ?? []).map((day) => (
-                  <div key={`${plan.id}-${day.day}`} className="rounded-2xl border border-ink/5 bg-panel/80 p-3">
-                    <p className="text-xs font-black text-accent">{day.day}</p>
+                {(plan.days ?? []).map((day) => {
+                  const isToday = today?.day === day.day;
+                  return (
+                  <div
+                    key={`${plan.id}-${day.day}`}
+                    className={`rounded-2xl border p-3 ${
+                      isToday ? "border-accent/30 bg-accent-soft/30" : "border-ink/5 bg-panel/80"
+                    }`}
+                  >
+                    <p className="text-xs font-black text-accent">
+                      {day.day}
+                      {isToday ? " · today" : ""}
+                    </p>
                     <p className="mt-1 text-sm font-bold capitalize">{humanizeGymLabel(day.focus)}</p>
                     <ul className="mt-2 space-y-2">
                       {(day.exercises ?? []).map((ex) => {
@@ -1783,8 +1784,16 @@ export function GymPlansView({
                         </ul>
                       </div>
                     )}
+                    <Link
+                      href={`/dashboard/movement/log?plan=${plan.id}&day=${encodeURIComponent(day.day)}`}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-full bg-inverse px-3 py-2 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
+                    >
+                      <Play size={12} fill="currentColor" />
+                      Start this day
+                    </Link>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {(plan.days ?? []).some(
                 (day) => (day.alternatives ?? []).length > 0 || (day.additionals ?? []).length > 0,

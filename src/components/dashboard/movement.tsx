@@ -39,12 +39,16 @@ export function MovementView({
   stepGoal = 8000,
   mode = "overview",
   plans = [],
+  initialPlanId,
+  initialDayLabel,
 }: {
   workouts: Workout[];
   steps?: number;
   stepGoal?: number;
   mode?: "overview" | "log";
   plans?: GymPlan[];
+  initialPlanId?: number;
+  initialDayLabel?: string;
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
@@ -103,7 +107,13 @@ export function MovementView({
       <ModuleSubNav items={trainingSubNav} />
 
       {(mode === "log" || plans.length > 0) && (
-        <ProgramSessionPanel plans={plans} compact />
+        <ProgramSessionPanel
+          plans={plans}
+          compact
+          allowDayPick={mode === "log"}
+          initialPlanId={initialPlanId}
+          initialDayLabel={initialDayLabel}
+        />
       )}
 
       {mode === "log" && (

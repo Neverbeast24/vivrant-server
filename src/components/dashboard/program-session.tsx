@@ -19,6 +19,7 @@ import {
   parseRestSeconds,
   parseSetCount,
   pickTodaysPlanDay,
+  resolveSessionPlanDay,
   type GymPlan,
   type GymPlanDay,
 } from "@/lib/gym";
@@ -110,11 +111,21 @@ function emptyChecks(items: RunnerItem[]) {
 export function ProgramSessionPanel({
   plans,
   compact = false,
+  allowDayPick = false,
+  initialPlanId,
+  initialDayLabel,
 }: {
   plans: GymPlan[];
   compact?: boolean;
+  allowDayPick?: boolean;
+  initialPlanId?: number;
+  initialDayLabel?: string;
 }) {
-  const [planId, setPlanId] = useState(plans[0]?.id ?? 0);
+  const [planId, setPlanId] = useState(() => {
+    if (initialPlanId && plans.some((item) => item.id === initialPlanId)) return initialPlanId;
+    return plans[0]?.id ?? 0;
+  });
+  const [dayLabel, setDayLabel] = useState(initialDayLabel ?? "");
   const [checks, setChecks] = useState<Record<string, boolean[]>>({});
   const [names, setNames] = useState<Record<string, string>>({});
   const [rest, setRest] = useState<RestState | null>(null);
@@ -126,12 +137,18 @@ export function ProgramSessionPanel({
   const syncTimer = useRef<number | null>(null);
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
-  const today = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
-  const items = useMemo(() => (today ? buildItems(today) : []), [today]);
+  const calendarToday = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
+  const sessionDay = plan
+    ? resolveSessionPlanDay(plan.days ?? [], {
+        label: allowDayPick ? dayLabel : null,
+        trainingDays: plan.training_days,
+      })
+    : null;
+  const items = useMemo(() => (sessionDay ? buildItems(sessionDay) : []), [sessionDay]);
 
   useEffect(() => {
     let cancelled = false;
-    if (!plan || !today) {
+    if (!plan || !sessionDay) {
       queueMicrotask(() => {
         if (cancelled) return;
         setChecks({});
@@ -144,13 +161,13 @@ export function ProgramSessionPanel({
         cancelled = true;
       };
     }
-    const nextItems = buildItems(today);
+    const nextItems = buildItems(sessionDay);
     const nextNames = Object.fromEntries(nextItems.map((item) => [item.key, item.name]));
     const applyDraft = (saved: GymLiveSessionDraft | null) => {
       if (cancelled) return;
       let nextChecks = emptyChecks(nextItems);
       const namesOut = { ...nextNames };
-      if (saved && liveSessionMatches(saved, plan.id, today.day)) {
+      if (saved && liveSessionMatches(saved, plan.id, sessionDay.day)) {
         nextChecks = Object.fromEntries(
           nextItems.map((item) => {
             const row = saved.checks[item.key];
@@ -190,7 +207,7 @@ export function ProgramSessionPanel({
     const local = readLocalLiveSession();
     queueMicrotask(() => {
       if (cancelled) return;
-      applyDraft(liveSessionMatches(local, plan.id, today.day) ? local : null);
+      applyDraft(liveSessionMatches(local, plan.id, sessionDay.day) ? local : null);
     });
 
     void (async () => {
@@ -198,10 +215,10 @@ export function ProgramSessionPanel({
         const remote = await loadGymLiveSessionAction();
         if (cancelled || !remote.ok) return;
         const merged = newerLiveSession(
-          liveSessionMatches(local, plan.id, today.day) ? local : null,
+          liveSessionMatches(local, plan.id, sessionDay.day) ? local : null,
           remote.session,
         );
-        if (merged && liveSessionMatches(merged, plan.id, today.day)) {
+        if (merged && liveSessionMatches(merged, plan.id, sessionDay.day)) {
           applyDraft(merged);
         }
       } catch {
@@ -212,13 +229,13 @@ export function ProgramSessionPanel({
     return () => {
       cancelled = true;
     };
-  }, [plan, today]);
+  }, [plan, sessionDay]);
 
   useEffect(() => {
-    if (!hydrated || !plan || !today || !Object.keys(checks).length) return;
+    if (!hydrated || !plan || !sessionDay || !Object.keys(checks).length) return;
     const draft: GymLiveSessionDraft = {
       plan_id: plan.id,
-      day_label: today.day,
+      day_label: sessionDay.day,
       session_date: todaySessionDate(),
       checks,
       names,
@@ -238,7 +255,7 @@ export function ProgramSessionPanel({
     return () => {
       if (syncTimer.current) window.clearTimeout(syncTimer.current);
     };
-  }, [checks, hydrated, names, plan, rest, startedAt, today]);
+  }, [checks, hydrated, names, plan, rest, startedAt, sessionDay]);
 
   useEffect(() => {
     if (!rest) return;
@@ -326,7 +343,7 @@ export function ProgramSessionPanel({
   }
 
   function save() {
-    if (!plan || !today) return;
+    if (!plan || !sessionDay) return;
     const logged = items
       .map((item) => {
         const row = checks[item.key] ?? [];
@@ -351,8 +368,8 @@ export function ProgramSessionPanel({
         ? Math.min(180, Math.max(5, Math.round((Date.now() - startedAt) / 60_000)))
         : 45;
       const result = await logProgramGymSession({
-        title: `${today.day}: ${humanizeGymLabel(today.focus)}`,
-        focus: gymSessionFocusFromPlan(today.focus),
+        title: `${sessionDay.day}: ${humanizeGymLabel(sessionDay.focus)}`,
+        focus: gymSessionFocusFromPlan(sessionDay.focus),
         duration_minutes: minutes,
         notes: `From program: ${plan.title}`,
         exercises: logged,
@@ -385,12 +402,39 @@ export function ProgramSessionPanel({
     );
   }
 
-  if (!plan || !today) {
+  if (!plan || !sessionDay) {
     return (
-      <Panel title="Today’s program" className={compact ? "mb-4" : ""}>
-        <EmptyState>
-          Rest day — no gym session on your schedule today. Enjoy recovery, or log a walk below.
-        </EmptyState>
+      <Panel title={allowDayPick ? "Saved program day" : "Today’s program"} className={compact ? "mb-4" : ""}>
+        {allowDayPick && plan && (plan.days ?? []).length > 0 ? (
+          <div>
+            <p className="mb-3 text-sm text-muted">
+              Rest day on the calendar — pick a saved day to train anyway.
+            </p>
+            <label className="block">
+              <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted">
+                Start a saved day
+              </span>
+              <select
+                value=""
+                onChange={(event) => setDayLabel(event.target.value)}
+                className="w-full rounded-xl border border-ink/10 bg-surface/70 px-3.5 py-2.5 text-sm outline-none focus:border-accent/45"
+              >
+                <option value="" disabled>
+                  Choose a day
+                </option>
+                {(plan.days ?? []).map((day) => (
+                  <option key={day.day} value={day.day}>
+                    {day.day} · {humanizeGymLabel(day.focus)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <EmptyState>
+            Rest day — no gym session on your schedule today. Enjoy recovery, or log a walk below.
+          </EmptyState>
+        )}
       </Panel>
     );
   }
@@ -398,7 +442,7 @@ export function ProgramSessionPanel({
   return (
     <>
       <Panel
-        title="Today’s program"
+        title={allowDayPick ? "Program session" : "Today’s program"}
         className={compact ? "mb-4" : ""}
         right={
           <span className="rounded-full bg-accent-soft px-3 py-1 text-[11px] font-black text-accent">
@@ -422,7 +466,10 @@ export function ProgramSessionPanel({
             </span>
             <select
               value={plan.id}
-              onChange={(event) => setPlanId(Number(event.target.value))}
+              onChange={(event) => {
+                setPlanId(Number(event.target.value));
+                setDayLabel("");
+              }}
               className="w-full rounded-xl border border-ink/10 bg-surface/70 px-3.5 py-2.5 text-sm outline-none focus:border-accent/45"
             >
               {plans.map((item) => (
@@ -433,9 +480,29 @@ export function ProgramSessionPanel({
             </select>
           </label>
         )}
+        {allowDayPick && (plan.days ?? []).length > 1 && (
+          <label className="mb-3 block">
+            <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted">
+              Day
+            </span>
+            <select
+              value={sessionDay.day}
+              onChange={(event) => setDayLabel(event.target.value)}
+              className="w-full rounded-xl border border-ink/10 bg-surface/70 px-3.5 py-2.5 text-sm outline-none focus:border-accent/45"
+            >
+              {(plan.days ?? []).map((day) => (
+                <option key={day.day} value={day.day}>
+                  {day.day} · {humanizeGymLabel(day.focus)}
+                  {calendarToday?.day === day.day ? " · today" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="mb-3 rounded-2xl border border-accent/15 bg-accent-soft/50 px-3.5 py-3">
           <p className="text-[11px] font-black text-accent">
-            {today.day} · {humanizeGymLabel(today.focus)}
+            {sessionDay.day} · {humanizeGymLabel(sessionDay.focus)}
+            {calendarToday?.day === sessionDay.day ? " · today" : ""}
           </p>
           <p className="mt-0.5 text-sm font-black">{plan.title}</p>
         </div>

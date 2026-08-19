@@ -5,8 +5,13 @@ import { requireUser } from "@/lib/auth/roles";
 
 export const metadata: Metadata = { title: "Log Workout" };
 
-export default async function MovementLogPage() {
+type MovementLogPageProps = {
+  searchParams: Promise<{ plan?: string; day?: string }>;
+};
+
+export default async function MovementLogPage({ searchParams }: MovementLogPageProps) {
   const { supabase, user } = await requireUser();
+  const query = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
@@ -40,6 +45,8 @@ export default async function MovementLogPage() {
       steps={checkinRes.data?.steps ?? 0}
       stepGoal={profile.data?.daily_step_goal ?? 8000}
       plans={gym.plans}
+      initialPlanId={Number(query.plan) || undefined}
+      initialDayLabel={query.day?.trim() || undefined}
     />
   );
 }
