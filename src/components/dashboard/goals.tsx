@@ -23,6 +23,8 @@ import {
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { goalsDoc } from "@/lib/share-export";
+import { DragGrip, ItemDragRow } from "@/components/dashboard/drag-list";
+import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 
 export type HealthGoal = {
   id: number;
@@ -46,6 +48,7 @@ type SuggestedGoal = {
 export function GoalsPanel({
   goals,
   today,
+  listOrder = [],
 }: {
   goals: HealthGoal[];
   today?: {
@@ -55,12 +58,14 @@ export function GoalsPanel({
     workouts: number;
     sleepMinutes: number | null;
   };
+  listOrder?: number[];
 }) {
   const { pending, submit } = useModuleAction(addHealthGoal);
   const [busy, start] = useTransition();
   const [suggesting, startSuggest] = useTransition();
   const [ideas, setIdeas] = useState<SuggestedGoal[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { items: orderedGoals, move } = useSavedListOrder("goals", goals, listOrder);
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -201,7 +206,8 @@ export function GoalsPanel({
       </form>
 
       <div className="space-y-3">
-        {goals.map((goal) => {
+        <p className="text-[11px] font-bold leading-4 text-muted">Drag the grips to reorder goals.</p>
+        {orderedGoals.map((goal, index) => {
           const progress =
             goal.target_value && goal.target_value > 0
               ? Math.min(100, Math.round((Number(goal.current_value) / Number(goal.target_value)) * 100))
@@ -209,10 +215,14 @@ export function GoalsPanel({
                 ? 100
                 : 0;
           return (
-            <div
+            <ItemDragRow
               key={goal.id}
+              index={index}
+              onMove={move}
               className="rounded-2xl border border-ink/6 bg-surface/40 p-4"
             >
+              <div className="flex items-start gap-2">
+                <DragGrip label={`Reorder ${goal.title}`} />
               <div className="flex items-start gap-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                   <Target size={16} />
@@ -348,10 +358,11 @@ export function GoalsPanel({
                   </button>
                 </div>
               </div>
-            </div>
+              </div>
+            </ItemDragRow>
           );
         })}
-        {!goals.length && <EmptyState>No goals yet. Add one above to track progress.</EmptyState>}
+        {!orderedGoals.length && <EmptyState>No goals yet. Add one above to track progress.</EmptyState>}
       </div>
     </Panel>
   );

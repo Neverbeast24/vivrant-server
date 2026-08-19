@@ -1,16 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import { Check, Sparkles, Trash2 } from "lucide-react";
+import { GymPlanDaysEditor, cloneGymPlanDays } from "@/components/dashboard/gym-plan-days-editor";
+import { DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
 import { Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { formatGymExerciseLine, GYM_WEEKDAYS, humanizeGymLabel } from "@/lib/gym";
 import {
+  assembleKeptPlanDays,
   keptIsoList,
+  moveKeptDay,
   remainingTrainingDays,
+  replaceKeptDaysFromPlan,
+  reorderKeptExercises,
+  reorderPreviewExercises,
   weekdayKey,
   type GymProgramDraft,
 } from "@/lib/gym-program-draft";
 import { gymProgramDraftDoc } from "@/lib/share-export";
+
+const SLOT_TYPE = "application/x-viva-slot";
 
 export function GymProgramBuilder({
   draft,
@@ -21,6 +31,7 @@ export function GymProgramBuilder({
   onGenerate,
   onSave,
   onDiscard,
+  onUpdate,
 }: {
   draft: GymProgramDraft;
   planning: boolean;
@@ -30,6 +41,7 @@ export function GymProgramBuilder({
   onGenerate: () => void;
   onSave: () => void;
   onDiscard: () => void;
+  onUpdate: (draft: GymProgramDraft) => void;
 }) {
   const keptIsos = keptIsoList(draft.kept_days);
   const remaining = remainingTrainingDays(draft.training_days, draft.kept_days);
@@ -37,6 +49,18 @@ export function GymProgramBuilder({
     .map((iso) => GYM_WEEKDAYS.find((item) => item.iso === iso)?.short)
     .filter(Boolean)
     .join(", ");
+  const [editingKept, setEditingKept] = useState(false);
+  const [keptDraftDays, setKeptDraftDays] = useState(() => cloneGymPlanDays(assembleKeptPlanDays(draft)));
+
+  function startCustomize() {
+    setKeptDraftDays(cloneGymPlanDays(assembleKeptPlanDays(draft)));
+    setEditingKept(true);
+  }
+
+  function applyCustomize() {
+    onUpdate(replaceKeptDaysFromPlan(draft, keptDraftDays));
+    setEditingKept(false);
+  }
 
   return (
     <Panel
@@ -45,7 +69,7 @@ export function GymProgramBuilder({
       right={<ShareExportMenu compact doc={gymProgramDraftDoc(draft)} />}
     >
       <p className="mb-3 text-sm leading-6 text-muted">
-        Keep the days you like. Skip the rest, generate again, and pick the next day — nothing goes on
+        Keep the days you like, then drag workouts between weekdays or reorder moves. Nothing goes on
         your program list until you save.
       </p>
       <p className="mb-4 text-xs font-black text-accent">
@@ -60,19 +84,48 @@ export function GymProgramBuilder({
           return (
             <div
               key={`slot-${iso}`}
+              draggable={Boolean(kept)}
+              onDragStart={(event) => {
+                if (!kept) return;
+                event.dataTransfer.setData(SLOT_TYPE, String(iso));
+                event.dataTransfer.setData("text/plain", String(iso));
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const from = Number(event.dataTransfer.getData(SLOT_TYPE) || event.dataTransfer.getData("text/plain"));
+                if (Number.isFinite(from) && from >= 1) onUpdate(moveKeptDay(draft, from, iso));
+              }}
               className={`rounded-2xl border px-3 py-3 ${
                 kept ? "border-accent/30 bg-accent-soft/40" : "border-ink/8 bg-surface/60"
               }`}
             >
               <p className="text-[10px] font-black uppercase tracking-wider text-muted">
                 {weekday?.full ?? `Day ${iso}`}
+                {kept ? " · drag to another day" : ""}
               </p>
               {kept ? (
                 <>
                   <p className="mt-1 text-sm font-black">{humanizeGymLabel(kept.focus)}</p>
-                  <p className="mt-0.5 text-[11px] leading-4 text-muted">
-                    {(kept.exercises ?? []).slice(0, 2).map((ex) => ex.name).join(" · ") || "Kept"}
-                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {(kept.exercises ?? []).map((ex, exIndex) => (
+                      <ExerciseDragRow
+                        key={`${iso}-${exIndex}-${ex.name}`}
+                        index={exIndex}
+                        onMove={(from, to) => onUpdate(reorderKeptExercises(draft, iso, from, to))}
+                        className="text-xs leading-5 text-muted"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <DragGrip label={`Reorder ${ex.name}`} />
+                          {formatGymExerciseLine(ex)}
+                        </span>
+                      </ExerciseDragRow>
+                    ))}
+                  </ul>
                   <button
                     type="button"
                     onClick={() => onDrop(iso)}
@@ -82,12 +135,42 @@ export function GymProgramBuilder({
                   </button>
                 </>
               ) : (
-                <p className="mt-1 text-sm text-muted">Not picked yet</p>
+                <p className="mt-1 text-sm text-muted">Drop a kept day here, or keep one below</p>
               )}
             </div>
           );
         })}
       </div>
+
+      {keptIsos.length > 0 && (
+        <div className="mb-4">
+          {editingKept ? (
+            <div className="rounded-2xl border border-accent/20 bg-accent-soft/30 p-3">
+              <GymPlanDaysEditor days={keptDraftDays} onChange={setKeptDraftDays} />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <PrimaryButton type="button" onClick={applyCustomize} className="rounded-full px-4">
+                  Apply customization
+                </PrimaryButton>
+                <button
+                  type="button"
+                  onClick={() => setEditingKept(false)}
+                  className="text-xs font-black text-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={startCustomize}
+              className="text-[11px] font-black text-accent"
+            >
+              Customize kept days
+            </button>
+          )}
+        </div>
+      )}
 
       {draft.preview_days.length > 0 && (
         <>
@@ -95,7 +178,7 @@ export function GymProgramBuilder({
             Latest generated workouts
           </p>
           <div className="space-y-3">
-            {draft.preview_days.map((day) => {
+            {draft.preview_days.map((day, dayIndex) => {
               const iso =
                 GYM_WEEKDAYS.find((item) => day.day.toLowerCase().includes(item.full.toLowerCase()))
                   ?.iso ?? null;
@@ -126,10 +209,18 @@ export function GymProgramBuilder({
                     )}
                   </div>
                   <ul className="mt-2 space-y-1">
-                    {(day.exercises ?? []).map((ex) => (
-                      <li key={`${day.day}-${ex.name}`} className="text-xs leading-5 text-muted">
-                        {formatGymExerciseLine(ex)}
-                      </li>
+                    {(day.exercises ?? []).map((ex, exIndex) => (
+                      <ExerciseDragRow
+                        key={`${day.day}-${exIndex}-${ex.name}`}
+                        index={exIndex}
+                        onMove={(from, to) => onUpdate(reorderPreviewExercises(draft, dayIndex, from, to))}
+                        className="text-xs leading-5 text-muted"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <DragGrip label={`Reorder ${ex.name}`} />
+                          {formatGymExerciseLine(ex)}
+                        </span>
+                      </ExerciseDragRow>
                     ))}
                   </ul>
                 </article>

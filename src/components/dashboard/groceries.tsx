@@ -40,6 +40,8 @@ import {
 } from "@/components/dashboard/ui";
 import { groceryListDoc, groceryPlanDoc } from "@/lib/share-export";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { DragGrip, ItemDragRow } from "@/components/dashboard/drag-list";
+import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 import {
   formatPhp,
   suggestGroceryCategory,
@@ -104,6 +106,7 @@ export function GroceriesView({
   priceMonthLabel,
   stapleTrends = [],
   lowStock = [],
+  listOrder = [],
 }: {
   items: GroceryItem[];
   monthlyBudget?: number;
@@ -111,6 +114,7 @@ export function GroceriesView({
   priceMonthLabel?: string;
   stapleTrends?: StapleTrend[];
   lowStock?: Pick<PantryItem, "id" | "name" | "stock_level" | "category">[];
+  listOrder?: number[];
 }) {
   const { pending, submit } = useModuleAction(addGroceryItem);
   const [togglePending, startToggle] = useTransition();
@@ -124,6 +128,7 @@ export function GroceriesView({
   const [aiTip, setAiTip] = useState<string | null>(null);
   const [trendStaple, setTrendStaple] = useState("rice");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { items: orderedItems, move } = useSavedListOrder("groceries", items, listOrder);
 
   const done = items.filter((item) => item.is_checked).length;
   const openItems = items.filter((item) => !item.is_checked);
@@ -136,7 +141,7 @@ export function GroceriesView({
   const grouped = CATEGORY_ORDER.map((key) => ({
     key,
     ...CATEGORY_META[key],
-    items: items.filter((item) => (item.category ?? "other") === key),
+    items: orderedItems.filter((item) => (item.category ?? "other") === key),
   })).filter((group) => group.items.length > 0);
 
   const categorySpend = useMemo(() => {
@@ -611,11 +616,16 @@ export function GroceriesView({
                             </div>
                           </form>
                         ) : (
-                        <motion.div
+                        <ItemDragRow
                           key={item.id}
+                          index={orderedItems.findIndex((row) => row.id === item.id)}
+                          onMove={move}
+                        >
+                        <motion.div
                           layout
                           className="flex w-full items-center gap-3 rounded-2xl border border-ink/6 bg-surface/45 p-2 text-left transition hover:border-ink/12 hover:bg-card"
                         >
+                          <DragGrip label={`Reorder ${item.name}`} />
                           <button
                             type="button"
                             disabled={togglePending}
@@ -664,6 +674,7 @@ export function GroceriesView({
                             <Trash2 size={14} />
                           </button>
                         </motion.div>
+                        </ItemDragRow>
                         )
                       ))}
                     </AnimatePresence>

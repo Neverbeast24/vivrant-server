@@ -26,6 +26,8 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { DragGrip, ItemDragRow } from "@/components/dashboard/drag-list";
+import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 
 const habitsSubNav = [
   { href: "/dashboard/habits", label: "Overview" },
@@ -58,11 +60,13 @@ export function HabitsView({
   bestStreak,
   section = "overview",
   challenges = [],
+  listOrder = [],
 }: {
   habits: Habit[];
   bestStreak: number;
   section?: "overview" | "challenges";
   challenges?: ChallengeRow[];
+  listOrder?: number[];
 }) {
   const { pending, submit } = useModuleAction(addHabit);
   const challengeAction = useModuleAction(createChallenge);
@@ -70,7 +74,8 @@ export function HabitsView({
   const [ideas, setIdeas] = useState<{ title: string; category: string; reason: string }[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [savingEdit, startSaveEdit] = useTransition();
-  const doneCount = habits.filter((h) => h.doneToday).length;
+  const { items: orderedHabits, move } = useSavedListOrder("habits", habits, listOrder);
+  const doneCount = orderedHabits.filter((h) => h.doneToday).length;
 
   return (
     <>
@@ -120,7 +125,7 @@ export function HabitsView({
             <div className="mb-6 grid gap-4 sm:grid-cols-3">
               <StatCard
                 label="Done today"
-                value={`${doneCount}/${habits.length || 0}`}
+                value={`${doneCount}/${orderedHabits.length || 0}`}
                 detail="Daily checkboxes"
                 icon={Check}
                 tone="ink"
@@ -134,7 +139,7 @@ export function HabitsView({
               />
               <StatCard
                 label="Active habits"
-                value={String(habits.length)}
+                value={String(orderedHabits.length)}
                 detail="Small and steady"
                 icon={Target}
               />
@@ -143,12 +148,18 @@ export function HabitsView({
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Panel title="Today">
-              <ul className="space-y-2">
-                {habits.map((habit) => (
-                  <li
+              <p className="mb-2 text-[11px] font-bold leading-4 text-muted">
+                Drag the grips to reorder habits.
+              </p>
+              <div className="space-y-2">
+                {orderedHabits.map((habit, index) => (
+                  <ItemDragRow
                     key={habit.id}
+                    index={index}
+                    onMove={move}
                     className="flex items-center gap-3 rounded-2xl border border-ink/8 px-3 py-3"
                   >
+                    <DragGrip label={`Reorder ${habit.title}`} />
                     <button
                       type="button"
                       onClick={async () => {
@@ -222,15 +233,15 @@ export function HabitsView({
                     >
                       <Trash2 size={16} />
                     </button>
-                  </li>
+                  </ItemDragRow>
                 ))}
-                {!habits.length && (
+                {!orderedHabits.length && (
                   <EmptyState>
                     Add your first habit — try “Drink water” or “Stretch 5 minutes”, or tap{" "}
                     <span className="font-black">AI habit ideas</span> above.
                   </EmptyState>
                 )}
-              </ul>
+              </div>
             </Panel>
 
             <Panel title="Add habit">

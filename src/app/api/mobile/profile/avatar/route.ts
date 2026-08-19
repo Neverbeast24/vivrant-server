@@ -1,13 +1,12 @@
-export const runtime = "nodejs";
-
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
+import { AVATAR_MAX_BYTES, imageUploadError, mimeFromUpload } from "@/lib/uploads";
 
-const MAX_BYTES = 5 * 1024 * 1024;
-const ALLOWED_EXT: Record<string, string> = {
+export const runtime = "nodejs";
+
+const EXT: Record<string, string> = {
   "image/jpeg": "jpg",
-  "image/jpg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
@@ -30,25 +29,28 @@ export async function POST(request: Request) {
     return jsonError("Choose an image to upload.", 400);
   }
 
-  const ext = ALLOWED_EXT[file.type];
-  if (!ext) {
-    return jsonError("Use a JPG, PNG, WEBP, or GIF image.", 400);
+  const mime = mimeFromUpload(file);
+  if (!mime) {
+    return jsonError(imageUploadError(file), 400);
   }
-  if (file.size > MAX_BYTES) {
-    return jsonError("Image must be 5MB or smaller.", 400);
+  if (file.size > AVATAR_MAX_BYTES) {
+    return jsonError("Image must be 4MB or smaller.", 400);
   }
 
+  const ext = EXT[mime] ?? "jpg";
   const path = `${user.id}/avatar.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await supabase.storage
     .from("avatars")
     .upload(path, buffer, {
-      contentType: file.type,
+      contentType: mime,
       upsert: true,
       cacheControl: "3600",
     });
-  if (uploadError) return jsonError(uploadError.message, 400);
+  if (uploadError) {
+    return jsonError("Could not save that photo. Try a smaller JPG or PNG.", 400);
+  }
 
   const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
   const avatarUrl = `${publicUrl.publicUrl}?v=${Date.now()}`;

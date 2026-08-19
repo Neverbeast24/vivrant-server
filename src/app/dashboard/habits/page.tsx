@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { HabitsView } from "@/components/dashboard/habits";
+import { parseListOrder } from "@/lib/reorder";
 
 export const metadata: Metadata = { title: "Habits" };
 
@@ -25,7 +26,7 @@ export default async function HabitsPage() {
   if (!user) return null;
 
   const today = new Date().toISOString().slice(0, 10);
-  const [{ data: habits }, { data: logs }, { data: challenges }, { data: progress }] =
+  const [{ data: habits }, { data: logs }, { data: challenges }, { data: progress }, { data: settings }] =
     await Promise.all([
     supabase
       .from("habits")
@@ -49,6 +50,7 @@ export default async function HabitsPage() {
       .from("challenge_progress")
       .select("challenge_id, current_value, completed")
       .eq("user_id", user.id),
+    supabase.from("user_settings").select("list_order").eq("user_id", user.id).maybeSingle(),
   ]);
 
   const logRows = logs ?? [];
@@ -81,6 +83,7 @@ export default async function HabitsPage() {
       bestStreak={bestStreak}
       section="overview"
       challenges={challengeRows}
+      listOrder={parseListOrder(settings?.list_order).habits ?? []}
     />
   );
 }

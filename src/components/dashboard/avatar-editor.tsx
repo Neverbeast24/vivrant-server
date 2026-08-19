@@ -78,7 +78,7 @@ export function AvatarEditor({
       <div className="min-w-0 flex-1 text-center sm:text-left">
         <p className="text-sm font-black">{displayName}</p>
         <p className="mt-1 text-xs leading-5 text-muted">
-          Upload a square photo (JPG, PNG, WEBP, or GIF · max 5MB). Saved to Supabase Storage.
+          Upload a square photo (JPG, PNG, WEBP, or GIF · max 4MB).
         </p>
         <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
           <PrimaryButton

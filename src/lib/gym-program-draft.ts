@@ -139,6 +139,73 @@ export function dropKeptDay(draft: GymProgramDraft, iso: number): GymProgramDraf
   return { ...draft, kept_days: next, updated_at: new Date().toISOString() };
 }
 
+function stampNow(draft: GymProgramDraft): GymProgramDraft {
+  return { ...draft, updated_at: new Date().toISOString() };
+}
+
+export function reorderPreviewExercises(
+  draft: GymProgramDraft,
+  dayIndex: number,
+  from: number,
+  to: number,
+): GymProgramDraft {
+  const preview = draft.preview_days.map((day, index) =>
+    index !== dayIndex ? day : { ...day, exercises: movePreview(day.exercises, from, to) },
+  );
+  return stampNow({ ...draft, preview_days: preview });
+}
+
+export function reorderKeptExercises(
+  draft: GymProgramDraft,
+  iso: number,
+  from: number,
+  to: number,
+): GymProgramDraft {
+  const key = weekdayKey(iso);
+  const day = draft.kept_days[key];
+  if (!day) return draft;
+  return stampNow({
+    ...draft,
+    kept_days: {
+      ...draft.kept_days,
+      [key]: { ...day, exercises: movePreview(day.exercises, from, to) },
+    },
+  });
+}
+
+/** Swap or move a kept workout onto another weekday slot. */
+export function moveKeptDay(draft: GymProgramDraft, fromIso: number, toIso: number): GymProgramDraft {
+  if (fromIso === toIso) return draft;
+  const fromKey = weekdayKey(fromIso);
+  const toKey = weekdayKey(toIso);
+  const fromDay = draft.kept_days[fromKey];
+  if (!fromDay) return draft;
+  const toDay = draft.kept_days[toKey];
+  const next = { ...draft.kept_days };
+  next[toKey] = stampDayWeekday(fromDay, toIso);
+  if (toDay) next[fromKey] = stampDayWeekday(toDay, fromIso);
+  else delete next[fromKey];
+  return stampNow({ ...draft, kept_days: next });
+}
+
+export function replaceKeptDaysFromPlan(draft: GymProgramDraft, days: GymPlanDay[]): GymProgramDraft {
+  const kept: Record<string, GymPlanDay> = {};
+  const training = draft.training_days.length ? draft.training_days : days.map((_, i) => i + 1);
+  days.forEach((day, index) => {
+    const iso = weekdayIsoFromLabel(day.day) ?? training[index] ?? index + 1;
+    kept[weekdayKey(iso)] = stampDayWeekday(day, iso);
+  });
+  return stampNow({ ...draft, kept_days: kept });
+}
+
+function movePreview<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
+  const next = list.slice();
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
 export function assembleKeptPlanDays(draft: GymProgramDraft): GymPlanDay[] {
   const isos = keptIsoList(draft.kept_days);
   return isos.map((iso) => stampDayWeekday(draft.kept_days[weekdayKey(iso)], iso));

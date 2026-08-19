@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SettingsView } from "@/components/dashboard/settings";
 import { requireUser } from "@/lib/auth/roles";
 import { syncGoalProgress } from "@/lib/goals/progress";
+import { parseListOrder } from "@/lib/reorder";
 
 export const metadata: Metadata = { title: "Goals" };
 
@@ -76,6 +77,7 @@ export default async function GoalsSettingsPage() {
         sleepMinutes:
           checkinRes.data?.sleep_minutes != null ? Number(checkinRes.data.sleep_minutes) : null,
       }}
+      goalListOrder={parseListOrder(data?.list_order).goals ?? []}
     />
   );
 }

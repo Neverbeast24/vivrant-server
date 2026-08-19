@@ -9,16 +9,9 @@ import {
   maybeSweepRateLimits,
   rateLimitResponse,
 } from "@/lib/security/rate-limit";
+import { MEAL_PHOTO_MAX_BYTES, imageUploadError, mimeFromUpload } from "@/lib/uploads";
 
 export const runtime = "nodejs";
-
-const ALLOWED_IMAGE = new Set([
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
 
 const estimateSchema = z.object({
   description: z.string().trim().max(240).optional().default(""),
@@ -27,15 +20,16 @@ const estimateSchema = z.object({
 async function readMealImage(formData: FormData): Promise<MealImageInput | undefined> {
   const file = formData.get("photo") ?? formData.get("image") ?? formData.get("file");
   if (!(file instanceof File) || file.size === 0) return undefined;
-  if (!ALLOWED_IMAGE.has(file.type)) {
-    throw new Error("Use a JPG, PNG, WEBP, or GIF photo of the meal.");
+  const mime = mimeFromUpload(file);
+  if (!mime) {
+    throw new Error(imageUploadError(file));
   }
-  if (file.size > 4 * 1024 * 1024) {
+  if (file.size > MEAL_PHOTO_MAX_BYTES) {
     throw new Error("Meal photo must be under 4MB.");
   }
   const buffer = Buffer.from(await file.arrayBuffer());
   return {
-    mimeType: file.type === "image/jpg" ? "image/jpeg" : file.type,
+    mimeType: mime,
     base64: buffer.toString("base64"),
   };
 }

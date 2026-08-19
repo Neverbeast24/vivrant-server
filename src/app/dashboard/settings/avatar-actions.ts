@@ -3,20 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
+import { AVATAR_MAX_BYTES, imageUploadError, mimeFromUpload } from "@/lib/uploads";
 
-const MAX_BYTES = 5 * 1024 * 1024;
-const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
 export async function uploadAvatar(formData: FormData) {
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, message: "Choose an image to upload." };
   }
-  if (!ALLOWED.has(file.type)) {
-    return { ok: false, message: "Use a JPG, PNG, WEBP, or GIF image." };
+  const mime = mimeFromUpload(file);
+  if (!mime) {
+    return { ok: false, message: imageUploadError(file) };
   }
-  if (file.size > MAX_BYTES) {
-    return { ok: false, message: "Image must be 5MB or smaller." };
+  if (file.size > AVATAR_MAX_BYTES) {
+    return { ok: false, message: "Image must be 4MB or smaller." };
   }
 
   const supabase = await createClient();
@@ -25,23 +31,18 @@ export async function uploadAvatar(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  const ext =
-    file.type === "image/png"
-      ? "png"
-      : file.type === "image/webp"
-        ? "webp"
-        : file.type === "image/gif"
-          ? "gif"
-          : "jpg";
+  const ext = EXT[mime] ?? "jpg";
   const path = `${user.id}/avatar.${ext}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error: uploadError } = await supabase.storage.from("avatars").upload(path, buffer, {
-    contentType: file.type,
+    contentType: mime,
     upsert: true,
     cacheControl: "3600",
   });
-  if (uploadError) return { ok: false, message: uploadError.message };
+  if (uploadError) {
+    return { ok: false, message: "Could not save that photo. Try a smaller JPG or PNG." };
+  }
 
   const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
   const avatarUrl = `${publicUrl.publicUrl}?v=${Date.now()}`;

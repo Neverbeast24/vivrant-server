@@ -27,6 +27,8 @@ import {
 } from "@/components/dashboard/ui";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
+import { DragGrip, ItemDragRow } from "@/components/dashboard/drag-list";
+import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 import { formatScheduleLabel } from "@/lib/reminders/schedule";
 
 type Insight = {
@@ -76,11 +78,13 @@ export function AiView({
   section = "ask",
   initialTurns = [],
   reminders = [],
+  listOrder = [],
 }: {
   insights: Insight[];
   section?: "ask" | "insights" | "reminders";
   initialTurns?: ChatTurn[];
   reminders?: Reminder[];
+  listOrder?: number[];
 }) {
   const { pending, submit } = useModuleAction(generateInsight);
   const createAction = useModuleAction(createReminder);
@@ -88,6 +92,7 @@ export function AiView({
   const [turns, setTurns] = useState<ChatTurn[]>(initialTurns);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [savingReminder, startSaveReminder] = useTransition();
+  const { items: orderedReminders, move } = useSavedListOrder("reminders", reminders, listOrder);
 
   function ask(formData: FormData) {
     startChat(async () => {
@@ -302,10 +307,14 @@ export function AiView({
           </Panel>
 
           <Panel title="Your schedule">
-            <ul className="space-y-3">
-              {reminders.map((r) => (
-                <li key={r.id} className="rounded-2xl border border-ink/8 p-4">
+            <p className="mb-3 text-[11px] font-bold leading-4 text-muted">
+              Drag the grips to reorder reminders.
+            </p>
+            <div className="space-y-3">
+              {orderedReminders.map((r, index) => (
+                <ItemDragRow key={r.id} index={index} onMove={move} className="rounded-2xl border border-ink/8 p-4">
                   <div className="flex items-start justify-between gap-3">
+                    <DragGrip label={`Reorder ${r.title}`} />
                     {editingId === r.id ? (
                       <form
                         className="grid min-w-0 flex-1 gap-2"
@@ -386,12 +395,12 @@ export function AiView({
                       </button>
                     </div>
                   </div>
-                </li>
+                </ItemDragRow>
               ))}
-              {!reminders.length && (
+              {!orderedReminders.length && (
                 <EmptyState>No reminders yet. Draft with AI or sync your gym plan.</EmptyState>
               )}
-            </ul>
+            </div>
           </Panel>
         </div>
       )}

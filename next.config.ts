@@ -44,6 +44,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   allowedDevOrigins: ["192.168.254.118"],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
   turbopack: {
     root: path.join(__dirname),
   },

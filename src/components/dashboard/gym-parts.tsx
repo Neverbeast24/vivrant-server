@@ -35,6 +35,7 @@ import {
   recommendMachinesWithAi,
   saveGymProgramFromDraft,
   updateGymPlan,
+  updateGymProgramDraft,
 } from "@/app/dashboard/gym/actions";
 import type { MachineRecommendationPayload } from "@/lib/ai/gemini";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
@@ -1029,6 +1030,18 @@ export function GymPlansView({
     });
   }
 
+  function updateDraft(next: GymProgramDraft) {
+    persistDraft(next);
+    startSaveDraft(async () => {
+      const result = await updateGymProgramDraft(next);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      if (result.draft) persistDraft(result.draft);
+    });
+  }
+
   function saveDraftProgram() {
     startSaveDraft(async () => {
       const result = await saveGymProgramFromDraft();
@@ -1231,6 +1244,7 @@ export function GymPlansView({
           onGenerate={generatePlan}
           onSave={saveDraftProgram}
           onDiscard={discardDraft}
+          onUpdate={updateDraft}
         />
       )}
 

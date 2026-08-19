@@ -4,7 +4,9 @@ import {
   dropKeptDay,
   keepPreviewDay,
   mapPreviewToWeekdays,
+  moveKeptDay,
   remainingTrainingDays,
+  reorderPreviewExercises,
   type GymProgramDraft,
 } from "./gym-program-draft";
 import { restEndsAtFromSeconds, restRemainingSeconds } from "./gym-live-session";
@@ -51,6 +53,31 @@ describe("program builder days", () => {
     const next = dropKeptDay(kept, 1);
     expect(next.kept_days["1"]).toBeUndefined();
     expect(assembleKeptPlanDays(next)).toEqual([]);
+  });
+
+  it("swaps a kept workout onto another weekday", () => {
+    const kept = keepPreviewDay(draft(), 1);
+    const next = moveKeptDay(kept, 1, 3);
+    expect(next.kept_days["1"]).toBeUndefined();
+    expect(next.kept_days["3"]?.exercises[0]?.name).toBe("Lat pulldown");
+    expect(next.kept_days["3"]?.day).toMatch(/Wednesday/);
+  });
+
+  it("reorders moves inside a generated preview day", () => {
+    const withMoves = draft({
+      preview_days: [
+        {
+          day: "Monday · Pull",
+          focus: "Pull",
+          exercises: [
+            { name: "Lat pulldown", sets: "4 x 10", rest: "90s" },
+            { name: "Row", sets: "3 x 12", rest: "60s" },
+          ],
+        },
+      ],
+    });
+    const next = reorderPreviewExercises(withMoves, 0, 0, 1);
+    expect(next.preview_days[0].exercises.map((ex) => ex.name)).toEqual(["Row", "Lat pulldown"]);
   });
 
   it("maps a generated batch onto remaining weekdays", () => {

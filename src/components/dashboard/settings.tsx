@@ -193,6 +193,7 @@ export function SettingsView({
   history = [],
   section = "profile",
   todayProgress,
+  goalListOrder = [],
 }: {
   settings: Settings;
   profile: HealthProfile;
@@ -206,6 +207,7 @@ export function SettingsView({
     workouts: number;
     sleepMinutes: number | null;
   };
+  goalListOrder?: number[];
 }) {
   const preferencesAction = useModuleAction(saveSettings);
   const profileAction = useModuleAction(saveHealthProfile);
@@ -446,7 +448,7 @@ export function SettingsView({
       </div>
       )}
 
-      {section === "goals" && <GoalsPanel goals={goals} today={todayProgress} />}
+      {section === "goals" && <GoalsPanel goals={goals} today={todayProgress} listOrder={goalListOrder} />}
 
       {section === "history" && <HealthHistoryPanel entries={history} />}
 

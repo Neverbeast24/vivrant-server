@@ -8,31 +8,23 @@ import {
   type MealImageInput,
 } from "@/lib/ai/gemini";
 import { createClient } from "@/lib/supabase/server";
-
-const ALLOWED_IMAGE_TYPES = new Set([
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+import { MEAL_PHOTO_MAX_BYTES, imageUploadError, mimeFromUpload } from "@/lib/uploads";
 
 async function readMealImage(formData: FormData): Promise<MealImageInput | undefined> {
-  const file = formData.get("photo");
+  const file = formData.get("photo") ?? formData.get("image") ?? formData.get("file");
   if (!(file instanceof File) || file.size === 0) return undefined;
 
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    throw new Error("Use a JPG, PNG, WEBP, or GIF photo of the meal.");
+  const mime = mimeFromUpload(file);
+  if (!mime) {
+    throw new Error(imageUploadError(file));
   }
-  if (file.size > MAX_IMAGE_BYTES) {
+  if (file.size > MEAL_PHOTO_MAX_BYTES) {
     throw new Error("Meal photo must be under 4MB.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   return {
-    mimeType: file.type === "image/jpg" ? "image/jpeg" : file.type,
+    mimeType: mime,
     base64: buffer.toString("base64"),
   };
 }

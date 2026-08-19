@@ -33,6 +33,8 @@ import {
 } from "@/app/dashboard/pantry/shared";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
+import { DragGrip, ItemDragRow } from "@/components/dashboard/drag-list";
+import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 import {
   EmptyState,
   FormField,
@@ -270,13 +272,16 @@ function StockRow({
 function PantryOverview({
   items,
   groceries = [],
+  listOrder = [],
 }: {
   items: PantryItem[];
   groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+  listOrder?: number[];
 }) {
   const { updating, runAction } = usePantryActions();
-  const lowStock = items.filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD);
-  const categories = new Set(items.map((item) => item.category)).size;
+  const { items: orderedItems } = useSavedListOrder("pantry", items, listOrder);
+  const lowStock = orderedItems.filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD);
+  const categories = new Set(orderedItems.map((item) => item.category)).size;
   const wellStocked = items.filter((item) => item.stock_level > LOW_STOCK_THRESHOLD).length;
   const groceryOpen = groceries.filter((g) => !g.is_checked);
 
@@ -478,11 +483,14 @@ function PantryOverview({
 function PantryItems({
   items,
   groceries = [],
+  listOrder = [],
 }: {
   items: PantryItem[];
   groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+  listOrder?: number[];
 }) {
   const { updating, runAction } = usePantryActions();
+  const { items: orderedItems, move } = useSavedListOrder("pantry", items, listOrder);
 
   return (
     <>
@@ -507,8 +515,15 @@ function PantryItems({
         right={items.length > 0 ? <ShareExportMenu compact doc={pantryDoc(items)} /> : undefined}
       >
         <div className="space-y-4">
-          {items.map((item) => (
-            <StockRow key={item.id} item={item} updating={updating} runAction={runAction} />
+          {orderedItems.map((item, index) => (
+            <ItemDragRow key={item.id} index={index} onMove={move}>
+              <div className="flex items-start gap-1">
+                <DragGrip label={`Reorder ${item.name}`} />
+                <div className="min-w-0 flex-1">
+                  <StockRow item={item} updating={updating} runAction={runAction} />
+                </div>
+              </div>
+            </ItemDragRow>
           ))}
           {!items.length && (
             <EmptyState>
@@ -600,12 +615,15 @@ function PantryCategories({
 function PantryLowStock({
   items,
   groceries = [],
+  listOrder = [],
 }: {
   items: PantryItem[];
   groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
+  listOrder?: number[];
 }) {
   const { updating, runAction } = usePantryActions();
-  const lowStock = items
+  const { items: orderedItems } = useSavedListOrder("pantry", items, listOrder);
+  const lowStock = orderedItems
     .filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD)
     .sort((a, b) => a.stock_level - b.stock_level);
 
@@ -708,15 +726,17 @@ export function PantryView({
   items,
   groceries = [],
   defaultCategory,
+  listOrder = [],
 }: {
   mode?: PantryMode;
   items: PantryItem[];
   groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
   defaultCategory?: string;
+  listOrder?: number[];
 }) {
-  if (mode === "items") return <PantryItems items={items} groceries={groceries} />;
+  if (mode === "items") return <PantryItems items={items} groceries={groceries} listOrder={listOrder} />;
   if (mode === "categories") return <PantryCategories items={items} groceries={groceries} />;
-  if (mode === "low-stock") return <PantryLowStock items={items} groceries={groceries} />;
+  if (mode === "low-stock") return <PantryLowStock items={items} groceries={groceries} listOrder={listOrder} />;
   if (mode === "add") return <PantryAdd defaultCategory={defaultCategory} items={items} groceries={groceries} />;
-  return <PantryOverview items={items} groceries={groceries} />;
+  return <PantryOverview items={items} groceries={groceries} listOrder={listOrder} />;
 }

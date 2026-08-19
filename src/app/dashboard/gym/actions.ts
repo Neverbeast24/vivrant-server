@@ -287,6 +287,23 @@ export async function dropGymProgramDay(iso: number) {
   return { ok: true, message: "Day removed from your program.", draft };
 }
 
+export async function updateGymProgramDraft(input: unknown) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+  const { parseGymProgramDraft } = await import("@/lib/gym-program-draft");
+  const draft = parseGymProgramDraft(input);
+  if (!draft) return { ok: false, message: "Could not save that program draft." };
+  await saveGymProgramDraftRow(supabase, user.id, {
+    ...draft,
+    updated_at: new Date().toISOString(),
+  });
+  revalidateGymPlanPaths();
+  return { ok: true, message: "Draft updated.", draft };
+}
+
 export async function saveGymProgramFromDraft() {
   const supabase = await createClient();
   const {

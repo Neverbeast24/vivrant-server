@@ -8,6 +8,7 @@ import {
   suggestGroceryCategory,
 } from "@/lib/groceries/ph-price-catalog";
 import { requireUser } from "@/lib/auth/roles";
+import { parseListOrder } from "@/lib/reorder";
 
 export const metadata: Metadata = { title: "Groceries" };
 
@@ -15,7 +16,7 @@ export default async function GroceriesPage() {
   const { supabase, user } = await requireUser();
   const ph = getPhCalendarDate();
 
-  const [groceriesRes, profileRes, expensesRes, pantryRes] = await Promise.all([
+  const [groceriesRes, profileRes, expensesRes, pantryRes, settingsRes] = await Promise.all([
     supabase
       .from("grocery_items")
       .select("*")
@@ -37,6 +38,7 @@ export default async function GroceriesPage() {
       .eq("user_id", user.id)
       .lte("stock_level", LOW_STOCK_THRESHOLD)
       .order("stock_level", { ascending: true }),
+    supabase.from("user_settings").select("list_order").eq("user_id", user.id).maybeSingle(),
   ]);
 
   // Reprice in memory for the response; persist patches without blocking render.
@@ -96,6 +98,7 @@ export default async function GroceriesPage() {
       priceMonthLabel={ph.monthLabel}
       stapleTrends={stapleTrends}
       lowStock={pantryRes.data ?? []}
+      listOrder={parseListOrder(settingsRes.data?.list_order).groceries ?? []}
     />
   );
 }

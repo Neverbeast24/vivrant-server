@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireUser } from "@/lib/auth/roles";
 import type { PantryItem } from "@/app/dashboard/pantry/shared";
+import { parseListOrder } from "@/lib/reorder";
 
 export async function loadPantryItems() {
   const { supabase, user } = await requireUser();
@@ -12,6 +13,16 @@ export async function loadPantryItems() {
     .order("created_at", { ascending: false });
 
   return (data ?? []) as PantryItem[];
+}
+
+export async function loadPantryListOrder() {
+  const { supabase, user } = await requireUser();
+  const { data } = await supabase
+    .from("user_settings")
+    .select("list_order")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return parseListOrder(data?.list_order).pantry ?? [];
 }
 
 export async function loadOpenGroceries() {
