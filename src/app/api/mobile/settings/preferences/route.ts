@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { z } from "zod";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson } from "@/lib/mobile/http";
+import { parseListOrder } from "@/lib/reorder";
 
 const bodySchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
@@ -70,11 +71,7 @@ export async function PATCH(request: Request) {
     .select("list_order")
     .eq("user_id", user.id)
     .maybeSingle();
-  const current =
-    row?.list_order && typeof row.list_order === "object" && !Array.isArray(row.list_order)
-      ? (row.list_order as Record<string, unknown>)
-      : {};
-  const next = { ...current, [parsed.data.module]: parsed.data.ids };
+  const next = { ...parseListOrder(row?.list_order), [parsed.data.module]: parsed.data.ids };
 
   const { data: settings, error } = await supabase
     .from("user_settings")

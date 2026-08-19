@@ -4,6 +4,7 @@ import { z } from "zod";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 const goalSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -24,14 +25,17 @@ export async function GET(request: Request) {
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
 
-  const { data, error } = await supabase
-    .from("health_goals")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const [{ data, error }, listOrder] = await Promise.all([
+    supabase
+      .from("health_goals")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    fetchListOrder(supabase, user.id),
+  ]);
 
   if (error) return jsonError(error.message, 500);
-  return jsonOk({ goals: data ?? [] });
+  return jsonOk({ goals: applyIdOrder(data ?? [], listOrder.goals) });
 }
 
 export async function POST(request: Request) {

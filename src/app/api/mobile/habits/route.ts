@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, readJson, todayDate } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   const { supabase, user } = auth;
 
   const today = todayDate();
-  const [{ data: habits, error }, { data: logs }] = await Promise.all([
+  const [{ data: habits, error }, { data: logs }, listOrder] = await Promise.all([
     supabase
       .from("habits")
       .select("*")
@@ -32,12 +33,13 @@ export async function GET(request: Request) {
       .select("habit_id")
       .eq("user_id", user.id)
       .eq("logged_on", today),
+    fetchListOrder(supabase, user.id),
   ]);
 
   if (error) return jsonError(error.message, 500);
 
   const doneIds = new Set((logs ?? []).map((l) => l.habit_id));
-  const enriched = (habits ?? []).map((habit) => ({
+  const enriched = applyIdOrder(habits ?? [], listOrder.habits).map((habit) => ({
     ...habit,
     done_today: doneIds.has(habit.id),
   }));

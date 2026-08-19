@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, readJson } from "@/lib/mobile/http";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 export const runtime = "nodejs";
 
@@ -35,10 +36,13 @@ export async function GET(request: Request) {
     query = query.eq("category", category);
   }
 
-  const { data, error } = await query;
+  const [{ data, error }, listOrder] = await Promise.all([
+    query,
+    fetchListOrder(supabase, user.id),
+  ]);
   if (error) return jsonError(error.message, 500);
 
-  return jsonOk({ items: data ?? [] });
+  return jsonOk({ items: applyIdOrder(data ?? [], listOrder.pantry) });
 }
 
 export async function POST(request: Request) {

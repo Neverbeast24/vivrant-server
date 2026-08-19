@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TodayView, type TodayData } from "@/components/dashboard/today";
 import { requireUser } from "@/lib/auth/roles";
 import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan } from "@/lib/gym";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 export const metadata: Metadata = {
   title: "Today",
@@ -43,6 +44,7 @@ export default async function DashboardPage() {
     allMealsRes,
     plansRes,
     groceryRes,
+    listOrder,
   ] = await Promise.all([
     supabase
       .from("daily_checkins")
@@ -127,8 +129,8 @@ export default async function DashboardPage() {
       .select("id, name, quantity")
       .eq("user_id", user.id)
       .eq("is_checked", false)
-      .order("created_at", { ascending: false })
-      .limit(8),
+      .order("created_at", { ascending: false }),
+    fetchListOrder(supabase, user.id),
   ]);
 
   const energyByDate = new Map(
@@ -151,7 +153,7 @@ export default async function DashboardPage() {
 
   const meals = mealsRes.data ?? [];
   const caloriesToday = meals.reduce((sum, row) => sum + Number(row.calories ?? 0), 0);
-  const habits = habitsRes.data ?? [];
+  const habits = applyIdOrder(habitsRes.data ?? [], listOrder.habits);
   const logs = habitLogsRes.data ?? [];
   const habitsDoneToday = habits.filter((h) =>
     logs.some((l) => l.habit_id === h.id && l.logged_on === today),
@@ -231,7 +233,7 @@ export default async function DashboardPage() {
             }
           : null,
         habits: habitRows,
-        groceries: groceryRes.data ?? [],
+        groceries: applyIdOrder(groceryRes.data ?? [], listOrder.groceries).slice(0, 8),
         caloriesToday,
       }}
     />

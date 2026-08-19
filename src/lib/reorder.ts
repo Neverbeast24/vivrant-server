@@ -59,3 +59,16 @@ export function parseListOrder(raw: unknown): Partial<Record<ListOrderModule, nu
   }
   return out;
 }
+
+/** Shared web + mobile lookup so both surfaces use the same saved order. */
+export async function fetchListOrder(
+  supabase: { from: (table: string) => { select: (columns: string) => any } },
+  userId: string,
+) {
+  const { data } = await supabase
+    .from("user_settings")
+    .select("list_order")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return parseListOrder(data?.list_order);
+}

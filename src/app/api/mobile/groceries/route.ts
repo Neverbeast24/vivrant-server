@@ -2,6 +2,7 @@ import { z } from "zod";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, readJson } from "@/lib/mobile/http";
 import { estimateGroceryPrice, suggestGroceryCategory } from "@/lib/groceries/ph-price-catalog";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 export const runtime = "nodejs";
 
@@ -20,14 +21,17 @@ export async function GET(request: Request) {
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
 
-  const { data, error } = await supabase
-    .from("grocery_items")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const [{ data, error }, listOrder] = await Promise.all([
+    supabase
+      .from("grocery_items")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    fetchListOrder(supabase, user.id),
+  ]);
 
   if (error) return jsonError(error.message, 500);
-  return jsonOk({ items: data ?? [] });
+  return jsonOk({ items: applyIdOrder(data ?? [], listOrder.groceries) });
 }
 
 export async function POST(request: Request) {

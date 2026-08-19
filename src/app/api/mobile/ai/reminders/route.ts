@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
 import { processDueReminders } from "@/lib/reminders/process";
 import { safeAppPath } from "@/lib/security/safe-path";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 const kindEnum = z.enum([
   "gym",
@@ -51,14 +52,17 @@ export async function GET(request: Request) {
   // Process due reminders for this member (daily cron alone is too coarse).
   await processDueReminders({ userId: user.id, client: supabase, limit: 20 });
 
-  const { data, error } = await supabase
-    .from("user_reminders")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("next_fire_at", { ascending: true });
+  const [{ data, error }, listOrder] = await Promise.all([
+    supabase
+      .from("user_reminders")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("next_fire_at", { ascending: true }),
+    fetchListOrder(supabase, user.id),
+  ]);
 
   if (error) return jsonError(error.message, 500);
-  return jsonOk({ reminders: data ?? [] });
+  return jsonOk({ reminders: applyIdOrder(data ?? [], listOrder.reminders) });
 }
 
 export async function POST(request: Request) {

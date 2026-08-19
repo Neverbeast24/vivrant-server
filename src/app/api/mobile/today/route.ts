@@ -4,6 +4,7 @@ import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { dayStartIso, jsonOk, todayDate } from "@/lib/mobile/http";
 import { processDueReminders } from "@/lib/reminders/process";
 import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan } from "@/lib/gym";
+import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
 
 export async function GET(request: Request) {
   const auth = await requireMobileUser(request);
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
     habitsRes,
     habitLogsRes,
     groceryRes,
+    listOrder,
   ] = await Promise.all([
       supabase
         .from("daily_checkins")
@@ -73,8 +75,8 @@ export async function GET(request: Request) {
         .select("id, name, quantity")
         .eq("user_id", user.id)
         .eq("is_checked", false)
-        .order("created_at", { ascending: false })
-        .limit(8),
+        .order("created_at", { ascending: false }),
+    fetchListOrder(supabase, user.id),
     ]);
 
   const checkin = checkinRes.data ?? null;
@@ -87,7 +89,7 @@ export async function GET(request: Request) {
     (sum, row) => sum + Number(row.duration_minutes ?? 0),
     0,
   );
-  const habits = habitsRes.data ?? [];
+  const habits = applyIdOrder(habitsRes.data ?? [], listOrder.habits);
   const habitLogs = habitLogsRes.data ?? [];
   const habits_total = habits.length;
   const habits_done_today = habits.filter((habit) =>
@@ -113,7 +115,7 @@ export async function GET(request: Request) {
       title: habit.title,
       done_today: doneIds.has(habit.id),
     })),
-    groceries: groceryRes.data ?? [],
+    groceries: applyIdOrder(groceryRes.data ?? [], listOrder.groceries).slice(0, 8),
     program: summarizeTodaysProgram(
       ((plansRes.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row)),
     ),
