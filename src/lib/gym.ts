@@ -172,6 +172,48 @@ export function humanizeGymLabel(value: string) {
     .trim();
 }
 
+/** Title-case a typed gym move and strip stray commas / punctuation. */
+export function formatGymMoveName(raw: string) {
+  const cleaned = String(raw ?? "")
+    .replace(/[,;|/]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[^A-Za-z0-9(]+/, "")
+    .replace(/[^A-Za-z0-9)]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  if (cleaned.length < 2) return cleaned;
+  return cleaned.replace(/[A-Za-z][A-Za-z0-9']*/g, (word) => {
+    const lower = word.toLowerCase();
+    return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
+  });
+}
+
+export function splitCustomGymMoves(raw: string): string[] {
+  return String(raw ?? "")
+    .split(",")
+    .map((part) => formatGymMoveName(part))
+    .filter((name) => name.length >= 2);
+}
+
+export type GymMoveDetails = {
+  displayName: string;
+  muscle_group: string;
+  equipment: string;
+  cues: string;
+};
+
+export function gymMoveDetails(name: string): GymMoveDetails {
+  const displayName = formatGymMoveName(name) || "Movement";
+  return {
+    displayName,
+    muscle_group: inferCustomMuscleGroup(displayName),
+    equipment: inferCustomEquipment(displayName),
+    cues: customGymMoveCue(displayName),
+  };
+}
+
 /** Map a program day focus (Pull, Legs, HIIT…) onto gym_sessions.focus. */
 export function gymSessionFocusFromPlan(focus: string): GymSessionFocus {
   const raw = String(focus ?? "")
@@ -277,8 +319,8 @@ export function parseGymPlanSwaps(raw: unknown): GymPlanSwap[] {
       insteadOf = String(row.instead_of ?? row.from ?? "").replace(/\s+/g, " ").trim();
       use = String(row.use ?? row.to ?? row.name ?? "").replace(/\s+/g, " ").trim();
     }
-    insteadOf = insteadOf.slice(0, 80);
-    use = use.slice(0, 80);
+    insteadOf = formatGymMoveName(insteadOf).slice(0, 80);
+    use = formatGymMoveName(use).slice(0, 80);
     if (insteadOf.length < 2 || use.length < 2) continue;
     const key = `${insteadOf.toLowerCase()}=>${use.toLowerCase()}`;
     if (seen.has(key)) continue;
@@ -303,7 +345,7 @@ export function parseGymPlanAddons(raw: unknown): GymPlanAddon[] {
       name = String(row.name ?? row.use ?? "").replace(/\s+/g, " ").trim();
       sets = String(row.sets ?? "").replace(/\s+/g, " ").trim().slice(0, 40);
     }
-    name = name.slice(0, 80);
+    name = formatGymMoveName(name).slice(0, 80);
     if (name.length < 2) continue;
     const key = name.toLowerCase();
     if (seen.has(key)) continue;
@@ -325,7 +367,7 @@ export function parseGymPlanExercise(raw: unknown): GymPlanExercise {
     .trim()
     .slice(0, 120);
   return {
-    name: String(ex.name ?? "Movement").slice(0, 80),
+    name: (formatGymMoveName(String(ex.name ?? "Movement")) || "Movement").slice(0, 80),
     sets: String(ex.sets ?? "3 x 10").slice(0, 40),
     rest: String(ex.rest ?? "60s").slice(0, 20),
     ...(weight ? { weight } : {}),
@@ -413,7 +455,7 @@ export function formatGymExerciseLine(
   const parts = [ex.sets];
   if (ex.weight) parts.push(ex.weight);
   parts.push(`rest ${ex.rest}`);
-  return `${ex.name} · ${parts.join(" · ")}`;
+  return `${formatGymMoveName(ex.name) || ex.name} · ${parts.join(" · ")}`;
 }
 
 export function labelGymPlanDaysWithWeekdays(days: GymPlanDay[], trainingDays: number[]): GymPlanDay[] {
@@ -550,17 +592,40 @@ function addonSetsFor(item: GymCatalogItem) {
   return "2–3 x 12-15";
 }
 
+function presentGymPlanDay(day: GymPlanDay, catalog: GymCatalogItem[]): GymPlanDay {
+  return {
+    ...day,
+    exercises: day.exercises.map((ex) => {
+      const name = formatGymMoveName(ex.name) || ex.name;
+      const match = findExerciseMatch(name, catalog);
+      const notes = String(ex.notes ?? "").trim();
+      if (notes || match) return { ...ex, name, ...(notes ? { notes } : {}) };
+      return { ...ex, name, notes: gymMoveDetails(name).cues };
+    }),
+    alternatives: day.alternatives?.map((swap) => ({
+      instead_of: formatGymMoveName(swap.instead_of) || swap.instead_of,
+      use: formatGymMoveName(swap.use) || swap.use,
+    })),
+    additionals: day.additionals?.map((addon) => ({
+      ...addon,
+      name: formatGymMoveName(addon.name) || addon.name,
+    })),
+  };
+}
+
 /** Fill missing alternatives / add-ons from the demo catalog so saved Gemini programs still show extras. */
 export function enrichGymPlanDays(
   days: GymPlanDay[],
   catalog: GymCatalogItem[],
   avoidTargets: string[] = [],
 ): GymPlanDay[] {
-  if (!days.length || !catalog.length) return days;
+  if (!days.length) return days;
+  const presented = days.map((day) => presentGymPlanDay(day, catalog));
+  if (!catalog.length) return presented;
   const avoid = new Set(avoidTargets.map((item) => item.toLowerCase()));
   const usable = catalog.filter((item) => !avoid.has(item.muscle_group.toLowerCase()));
 
-  return days.map((day) => {
+  return presented.map((day) => {
     const used = new Set(
       [
         ...day.exercises.map((ex) => ex.name),
@@ -708,16 +773,101 @@ function inferCustomMuscleGroup(name: string) {
   const n = name.toLowerCase();
   if (/\b(sit\s*-?ups?|crunch|plank|ab\b|core|glider)\b/.test(n)) return "core";
   if (/\b(treadmill|bike|cardio|run|jog|elliptical)\b/.test(n)) return "cardio";
-  if (/\b(tricep|bicep|arm)\b/.test(n) && !/\bleg\b/.test(n)) return "arms";
-  if (/\b(chest|bench|pec)\b/.test(n)) return "chest";
+  if (/\b(tricep|bicep|arm|pushdown|rope)\b/.test(n) && !/\bleg\b/.test(n)) return "arms";
+  if (/\b(shoulder|delt|overhead press)\b/.test(n)) return "shoulders";
+  if (/\b(chest|bench|pec|fly)\b/.test(n)) return "chest";
+  if (/\bpress\b/.test(n) && !/\b(leg|calf)\b/.test(n)) return "chest";
   if (/\b(lat|pulldown|row)\b/.test(n) || /\bback\b/.test(n)) return "back";
-  if (/\b(shoulder|delt)\b/.test(n)) return "shoulders";
   if (/\b(glute|hip thrust|kickback)\b/.test(n)) return "glutes";
   if (/\b(hamstring|rdl|deadlift|leg curl)\b/.test(n)) return "hamstrings";
   if (/\b(calf)\b/.test(n)) return "calves";
   if (/\b(inner thigh|adductor|abductor)\b/.test(n)) return "inner_thighs";
   if (/\b(leg|squat|lunge|thigh)\b/.test(n)) return "legs";
   return "full_body";
+}
+
+function inferCustomEquipment(name: string) {
+  const n = name.toLowerCase();
+  if (/\b(cable|rope|pushdown|pulldown|face pull)\b/.test(n)) return "cable";
+  if (/\b(dumbbell|barbell|kettlebell|landmine)\b/.test(n)) return "free_weight";
+  if (/\b(plank|sit\s*-?ups?|crunch|push\s*-?ups?)\b/.test(n)) return "bodyweight";
+  if (/\b(machine|press|curl|extension|pec|deck|fly)\b/.test(n)) return "machine";
+  return "free_weight";
+}
+
+function customGymMoveCue(name: string) {
+  const n = name.toLowerCase();
+  if (/\bpress\b/.test(n)) return "Brace your core, keep a controlled path, and stop just short of lockout.";
+  if (/\b(tricep|pushdown|rope|extension)\b/.test(n) && !/\bleg\b/.test(n)) {
+    return "Keep elbows pinned and finish with a full squeeze.";
+  }
+  if (/\bcurl\b/.test(n)) return "Move through a full range and squeeze at the top without swinging.";
+  if (/\b(row|pulldown)\b/.test(n)) return "Pull with your back, keep the chest open, and control the return.";
+  if (/\b(hip thrust|glute)\b/.test(n)) return "Tuck the chin, drive through the heels, and squeeze at the top.";
+  if (/\b(squat|lunge|leg)\b/.test(n)) return "Brace your core, track knees over toes, and push through a full range.";
+  switch (inferCustomMuscleGroup(name)) {
+    case "chest":
+      return "Keep your chest high and control both the press and the return.";
+    case "back":
+      return "Lead with the elbows and keep the shoulders packed.";
+    case "arms":
+      return "Lock the upper arms in place and squeeze at the end of the rep.";
+    case "shoulders":
+      return "Brace your core and lift without shrugging.";
+    case "core":
+      return "Keep the ribs down and breathe through a tight midline.";
+    case "cardio":
+      return "Stay smooth and keep an easy, repeatable pace.";
+    default:
+      return "Use a full range of motion and keep the weight under control.";
+  }
+}
+
+const SKIP_MOVE_TOKENS = new Set([
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "of",
+  "to",
+  "with",
+  "machine",
+  "trainer",
+  "exercise",
+  "exercises",
+]);
+
+function significantMoveTokens(name: string) {
+  return normalizeGymMoveName(name)
+    .split(" ")
+    .filter((token) => token.length >= 4 && !SKIP_MOVE_TOKENS.has(token));
+}
+
+/** Closest catalog demo for a typed custom move (same muscle + shared token). */
+export function findRelatedExerciseMatch<T extends { name: string; muscle_group?: string }>(
+  name: string,
+  exercises: T[],
+) {
+  const exact = findExerciseMatch(name, exercises);
+  if (exact) return exact;
+  const tokens = significantMoveTokens(name);
+  if (!tokens.length) return undefined;
+  const muscle = inferCustomMuscleGroup(name);
+  let best: T | undefined;
+  let bestScore = 0;
+  for (const item of exercises) {
+    const overlap = significantMoveTokens(item.name).filter((token) => tokens.includes(token)).length;
+    if (!overlap) continue;
+    const itemMuscle = String(item.muscle_group ?? "");
+    if (itemMuscle && itemMuscle !== muscle) continue;
+    const score = overlap + (itemMuscle === muscle ? 2 : 0);
+    if (score > bestScore) {
+      best = item;
+      bestScore = score;
+    }
+  }
+  return best;
 }
 
 type KnownMovePoolItem = {
@@ -791,10 +941,13 @@ export function constrainGymPlanToKnownMoves(
   if (!knownMoves.length && !customExercises.length) return days;
   const pool: KnownMovePoolItem[] = [
     ...knownMoves,
-    ...customExercises.map((name) => ({
-      name,
-      muscle_group: muscleForMoveName(name, fullCatalog.length ? fullCatalog : knownMoves),
-    })),
+    ...customExercises.map((name) => {
+      const formatted = formatGymMoveName(name) || name;
+      return {
+        name: formatted,
+        muscle_group: muscleForMoveName(formatted, fullCatalog.length ? fullCatalog : knownMoves),
+      };
+    }),
   ];
   const catalog = fullCatalog.length ? fullCatalog : knownMoves;
 

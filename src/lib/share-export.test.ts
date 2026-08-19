@@ -52,14 +52,14 @@ describe("gymPlanDoc", () => {
   it("includes title, days, and csv rows", () => {
     const doc = gymPlanDoc(samplePlan);
     expect(doc.title).toContain("Fat Loss");
-    expect(doc.text).toContain("Lat pulldown machine");
+    expect(doc.text).toContain("Lat Pulldown Machine");
     expect(doc.text).toContain("15–20 kg");
     expect(doc.text).toContain("Assisted pull-up machine");
     expect(doc.text).toContain("Face pulls");
     expect(doc.text).toContain("Start at the light end");
     expect(doc.csv).toContain("Weight");
     expect(doc.text).toContain("Day 1");
-    expect(doc.csv).toContain("Lat pulldown machine");
+    expect(doc.csv).toContain("Lat Pulldown Machine");
     expect(doc.csv.split("\n")).toHaveLength(3);
     expect(JSON.parse(doc.json).days_per_week).toBe(6);
     expect(JSON.parse(doc.json).training_days).toEqual([]);
@@ -67,15 +67,15 @@ describe("gymPlanDoc", () => {
 
   it("builds print-only html with emphasis and color-coded chips", () => {
     const doc = gymPlanDoc(samplePlan);
-    expect(doc.html).toContain('class="move-name">Lat pulldown machine');
+    expect(doc.html).toContain('class="move-name">Lat Pulldown Machine');
     expect(doc.html).toContain('class="chip sets">4 sets of 10-12 reps');
     expect(doc.html).toContain('class="chip weight">15–20 kg');
     expect(doc.html).toContain('class="chip rest">rest 90s');
     expect(doc.html).toContain("<em>Fat Loss</em>");
     expect(doc.html).toContain("<strong>Beginner</strong>");
-    expect(doc.html).toContain("<strong>Assisted pull-up machine</strong>");
+    expect(doc.html).toContain("<strong>Assisted Pull-Up Machine</strong>");
     expect(doc.html).toContain("<em>instead of</em>");
-    expect(doc.html).toContain("<strong>Face pulls</strong>");
+    expect(doc.html).toContain("<strong>Face Pulls</strong>");
     expect(doc.html).toContain('class="summary">Built for an overweight BMI band.');
     expect(doc.html).toContain('class="move-notes">Keep the chest tall.');
     expect(doc.text).not.toContain("class=");

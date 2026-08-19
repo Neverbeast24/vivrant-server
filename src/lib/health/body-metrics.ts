@@ -1,4 +1,5 @@
 import { sanitizeTrainingDays } from "@/lib/gym-schedule";
+import { formatGymMoveName, splitCustomGymMoves } from "@/lib/gym";
 
 export type BmiBand = "underweight" | "normal" | "overweight" | "obese";
 
@@ -97,16 +98,17 @@ function sanitizeCustomExercises(input: unknown): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of input) {
-    const name = String(raw ?? "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 80);
-    if (name.length < 2) continue;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(name);
-    if (out.length >= 20) break;
+    const parts = String(raw ?? "").includes(",")
+      ? splitCustomGymMoves(String(raw ?? ""))
+      : [formatGymMoveName(String(raw ?? ""))];
+    for (const name of parts) {
+      if (name.length < 2) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+      if (out.length >= 20) return out;
+    }
   }
   return out;
 }

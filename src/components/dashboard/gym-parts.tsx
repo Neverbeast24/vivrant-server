@@ -53,6 +53,9 @@ import {
   constrainGymPlanToKnownMoves,
   enrichGymPlanDays,
   findExerciseMatch,
+  findRelatedExerciseMatch,
+  formatGymMoveName,
+  gymMoveDetails,
   formatRestDaysLabel,
   formatTrainingDaysLabel,
   gymExerciseCardImage,
@@ -521,7 +524,7 @@ function TodaysProgramMoves({
                 key={ex.name}
                 className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted"
               >
-                {ex.name}
+                {formatGymMoveName(ex.name) || ex.name}
               </span>
             ))}
             {!programmed.length && (
@@ -1682,31 +1685,43 @@ export function GymPlansView({
                     <p className="mt-1 text-sm font-bold capitalize">{humanizeGymLabel(day.focus)}</p>
                     <ul className="mt-2 space-y-2">
                       {(day.exercises ?? []).map((ex) => {
-                        const linked = findExerciseMatch(ex.name, exercises);
+                        const details = gymMoveDetails(ex.name);
+                        const linked =
+                          findExerciseMatch(ex.name, exercises) ??
+                          findRelatedExerciseMatch(ex.name, exercises);
+                        const cue = ex.notes || linked?.cues || details.cues;
                         return (
                           <li key={`${day.day}-${ex.name}`} className="text-xs text-muted">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex min-w-0 items-center gap-2">
-                                {linked && (
-                                  <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-soft ring-1 ring-ink/8">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-soft ring-1 ring-ink/8">
+                                  {linked ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                       src={gymExerciseCardImage(linked) ?? "/vivrant-mark.png"}
                                       alt=""
                                       className="size-full object-cover"
                                       loading="lazy"
                                     />
-                                  </span>
-                                )}
+                                  ) : (
+                                    <span className="grid size-full place-items-center text-accent">
+                                      <Dumbbell size={14} />
+                                    </span>
+                                  )}
+                                </span>
                                 <div className="min-w-0">
-                                  <p className="font-bold text-ink">{ex.name}</p>
+                                  <p className="font-bold text-ink">{details.displayName}</p>
+                                  <p className="capitalize">
+                                    {humanizeGymLabel(linked?.muscle_group ?? details.muscle_group)} ·{" "}
+                                    {humanizeGymLabel(linked?.equipment ?? details.equipment)}
+                                  </p>
                                   <p>
                                     {[ex.sets, ex.weight, `rest ${ex.rest}`]
                                       .filter(Boolean)
                                       .join(" · ")}
                                   </p>
-                                  {ex.notes && (
-                                    <p className="mt-0.5 text-[11px] leading-4 text-muted/90">{ex.notes}</p>
+                                  {cue && (
+                                    <p className="mt-0.5 text-[11px] leading-4 text-muted/90">{cue}</p>
                                   )}
                                 </div>
                               </div>
@@ -1715,7 +1730,7 @@ export function GymPlansView({
                                   type="button"
                                   onClick={() => setActiveDemo(linked)}
                                   className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-1 text-[10px] font-black text-accent transition hover:bg-accent hover:text-inverse-fg"
-                                  aria-label={`Watch ${ex.name} demo`}
+                                  aria-label={`Watch ${details.displayName} demo`}
                                 >
                                   <Play size={10} fill="currentColor" />
                                   Demo

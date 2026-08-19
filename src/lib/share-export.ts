@@ -1,5 +1,6 @@
 import {
   formatGymExerciseLine,
+  formatGymMoveName,
   formatTrainingDaysLabel,
   humanizeGymLabel,
   type GymPlan,
@@ -88,7 +89,7 @@ function gymDayPrintHtml(day: GymPlanDay) {
       return `<li>
         <span class="n">${index + 1}</span>
         <div>
-          <p class="move-name">${escapeHtml(ex.name)}</p>
+          <p class="move-name">${escapeHtml(formatGymMoveName(ex.name) || ex.name)}</p>
           <p class="move-meta">
             ${printChip("sets", ex.sets)}
             ${ex.weight ? printChip("weight", ex.weight) : ""}
@@ -105,7 +106,7 @@ function gymDayPrintHtml(day: GymPlanDay) {
         <ul>${alts
           .map(
             (swap) =>
-              `<li><strong>${escapeHtml(swap.use)}</strong> <em>instead of</em> ${escapeHtml(swap.instead_of)}</li>`,
+              `<li><strong>${escapeHtml(formatGymMoveName(swap.use) || swap.use)}</strong> <em>instead of</em> ${escapeHtml(formatGymMoveName(swap.instead_of) || swap.instead_of)}</li>`,
           )
           .join("")}</ul>
       </div>`
@@ -116,7 +117,7 @@ function gymDayPrintHtml(day: GymPlanDay) {
         <ul>${addons
           .map(
             (addon) =>
-              `<li><strong>${escapeHtml(addon.name)}</strong>${addon.sets ? ` <em>· ${escapeHtml(addon.sets)}</em>` : ""}</li>`,
+              `<li><strong>${escapeHtml(formatGymMoveName(addon.name) || addon.name)}</strong>${addon.sets ? ` <em>· ${escapeHtml(addon.sets)}</em>` : ""}</li>`,
           )
           .join("")}</ul>
       </div>`
@@ -208,7 +209,7 @@ export function gymPlanDoc(plan: GymPlan): ShareExportDoc {
       (day.exercises ?? []).map((ex) => [
         day.day,
         humanizeGymLabel(day.focus),
-        ex.name,
+        formatGymMoveName(ex.name) || ex.name,
         ex.sets,
         ex.weight ?? "",
         ex.rest,
@@ -246,7 +247,7 @@ export function gymPlansDoc(plans: GymPlan[]): ShareExportDoc {
           plan.title,
           day.day,
           humanizeGymLabel(day.focus),
-          ex.name,
+          formatGymMoveName(ex.name) || ex.name,
           ex.sets,
           ex.weight ?? "",
           ex.rest,

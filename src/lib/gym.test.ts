@@ -3,6 +3,8 @@ import {
   buildGymPlanAvailableExercises,
   constrainGymPlanToKnownMoves,
   formatGymExerciseLine,
+  formatGymMoveName,
+  findRelatedExerciseMatch,
   formatRestClock,
   gymSessionFocusFromPlan,
   hydrateGymPlan,
@@ -33,9 +35,9 @@ describe("parseGymPlanDays", () => {
     expect(parsed.recommendations).toEqual(["Start at the light end of each range."]);
     expect(parsed.days[0].exercises[0].weight).toBe("15–20 kg");
     expect(parsed.days[0].alternatives).toEqual([
-      { instead_of: "Lat pulldown", use: "Assisted pull-up" },
+      { instead_of: "Lat Pulldown", use: "Assisted Pull-Up" },
     ]);
-    expect(parsed.days[0].additionals).toEqual([{ name: "Face pulls", sets: "3 x 15" }]);
+    expect(parsed.days[0].additionals).toEqual([{ name: "Face Pulls", sets: "3 x 15" }]);
   });
 
   it("parses string swaps", () => {
@@ -48,8 +50,8 @@ describe("parseGymPlanDays", () => {
       },
     ]);
     expect(parsed.days[0].alternatives).toEqual([
-      { instead_of: "lat pulldown", use: "Seated row" },
-      { instead_of: "Leg press", use: "goblet squat" },
+      { instead_of: "Lat Pulldown", use: "Seated Row" },
+      { instead_of: "Leg Press", use: "Goblet Squat" },
     ]);
   });
 });
@@ -116,7 +118,7 @@ describe("enrichGymPlanDays", () => {
       catalog,
     );
     expect(days[0].alternatives?.[0]).toMatchObject({
-      instead_of: "Lat pulldown machine",
+      instead_of: "Lat Pulldown Machine",
       use: "Seated cable row",
     });
     expect(days[0].additionals?.some((item) => item.name === "Cable face pull")).toBe(true);
@@ -214,7 +216,41 @@ describe("formatGymExerciseLine", () => {
   it("includes weight when set", () => {
     expect(
       formatGymExerciseLine({ name: "Lat pulldown", sets: "4 x 10", rest: "90s", weight: "18 kg" }),
-    ).toBe("Lat pulldown · 4 x 10 · 18 kg · rest 90s");
+    ).toBe("Lat Pulldown · 4 x 10 · 18 kg · rest 90s");
+  });
+});
+
+describe("formatGymMoveName", () => {
+  it("title-cases typed moves and strips stray commas", () => {
+    expect(formatGymMoveName("multi press")).toBe("Multi Press");
+    expect(formatGymMoveName(", tricep rope,")).toBe("Tricep Rope");
+    expect(formatGymMoveName("leg curl (extension)")).toBe("Leg Curl (Extension)");
+  });
+});
+
+describe("custom moves on saved programs", () => {
+  it("adds cues for unmatched custom names on old programs", () => {
+    const days = enrichGymPlanDays(
+      [
+        {
+          day: "Day 1",
+          focus: "Push",
+          exercises: [{ name: "multi press", sets: "4 x 10–12", rest: "90s", weight: "30–40 kg" }],
+        },
+      ],
+      [{ name: "Pec deck / fly machine", muscle_group: "chest", equipment: "machine" }],
+    );
+    expect(days[0].exercises[0].name).toBe("Multi Press");
+    expect(days[0].exercises[0].notes).toMatch(/controlled path|Brace your core/i);
+  });
+
+  it("finds a related catalog demo for a typed press", () => {
+    const related = findRelatedExerciseMatch("multi press", [
+      { name: "Pec deck / fly machine", muscle_group: "chest" },
+      { name: "Chest press machine", muscle_group: "chest" },
+      { name: "Leg press machine", muscle_group: "legs" },
+    ]);
+    expect(related?.name).toBe("Chest press machine");
   });
 });
 

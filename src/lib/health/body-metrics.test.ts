@@ -86,7 +86,15 @@ describe("parseRoutineDefaults", () => {
       clampGymPlanPrefs({
         known_custom_exercises: ["  Hip thrust ", "hip thrust", "a", "Landmine press"],
       }).known_custom_exercises,
-    ).toEqual(["Hip thrust", "Landmine press"]);
+    ).toEqual(["Hip Thrust", "Landmine Press"]);
+  });
+
+  it("splits comma lists and strips stray punctuation on custom moves", () => {
+    expect(
+      clampGymPlanPrefs({
+        known_custom_exercises: [", tricep rope,", "hip thrust, landmine press"],
+      }).known_custom_exercises,
+    ).toEqual(["Tricep Rope", "Hip Thrust", "Landmine Press"]);
   });
 
   it("defaults and sanitizes experience level", () => {

@@ -13,6 +13,7 @@ import {
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import {
   formatRestClock,
+  formatGymMoveName,
   gymSessionFocusFromPlan,
   humanizeGymLabel,
   parseRestSeconds,
@@ -76,8 +77,8 @@ function writeLocalLiveSession(draft: GymLiveSessionDraft | null) {
 function buildItems(day: GymPlanDay): RunnerItem[] {
   const mains: RunnerItem[] = (day.exercises ?? []).map((ex, index) => ({
     key: `main-${index}`,
-    name: ex.name,
-    originalName: ex.name,
+    name: formatGymMoveName(ex.name) || ex.name,
+    originalName: formatGymMoveName(ex.name) || ex.name,
     setsLabel: ex.sets,
     rest: ex.rest,
     restSeconds: parseRestSeconds(ex.rest),
@@ -91,8 +92,8 @@ function buildItems(day: GymPlanDay): RunnerItem[] {
   }));
   const addons: RunnerItem[] = (day.additionals ?? []).map((addon, index) => ({
     key: `addon-${index}`,
-    name: addon.name,
-    originalName: addon.name,
+    name: formatGymMoveName(addon.name) || addon.name,
+    originalName: formatGymMoveName(addon.name) || addon.name,
     setsLabel: addon.sets ?? "2 x 12",
     rest: "45s",
     restSeconds: 45,
@@ -494,7 +495,7 @@ export function ProgramSessionPanel({
                   </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <p className="text-sm font-black">{displayName}</p>
+                      <p className="text-sm font-black">{formatGymMoveName(displayName)}</p>
                       {item.kind === "addon" && (
                         <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
                           Extra
