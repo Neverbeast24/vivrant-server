@@ -17,7 +17,7 @@ export default async function ResetPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col px-5 py-6 sm:px-10">
+    <main className="flex min-h-screen flex-col px-4 py-6 sm:px-6 lg:px-7">
       <Brand />
       <div className="animate-rise mx-auto my-auto w-full max-w-md py-14">
         <p className="text-xs font-black tracking-[0.18em] text-accent">ALMOST THERE</p>

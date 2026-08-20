@@ -65,7 +65,7 @@ export default function PricingPage() {
       </div>
 
       <nav className="sticky top-0 z-50 border-b border-ink/6 bg-surface/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-7">
           <Brand />
           <div className="flex items-center gap-3 text-sm font-semibold text-ink/80 sm:gap-6">
             <Link href="/about" className="transition-colors hover:text-accent">
@@ -85,7 +85,7 @@ export default function PricingPage() {
         </div>
       </nav>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 pt-16 md:px-8 md:pt-20">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 pt-16 lg:px-7 md:pt-20">
         <div className="mb-12 text-center">
           <p className="text-[11px] font-black tracking-[0.2em] text-accent">PRICING</p>
           <h1 className="font-display mt-4 text-5xl leading-tight text-ink sm:text-6xl">

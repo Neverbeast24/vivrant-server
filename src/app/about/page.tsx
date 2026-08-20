@@ -36,7 +36,7 @@ export default function AboutPage() {
       </div>
 
       <nav className="sticky top-0 z-50 border-b border-ink/6 bg-surface/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-7">
           <Brand />
           <div className="flex items-center gap-3 text-sm font-semibold text-ink/80 sm:gap-6">
             <Link href="/pricing" className="transition-colors hover:text-accent">
@@ -56,7 +56,7 @@ export default function AboutPage() {
         </div>
       </nav>
 
-      <section className="mx-auto max-w-7xl px-5 pb-16 pt-16 md:px-8 md:pt-24">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-16 pt-16 lg:px-7 md:pt-24">
         <p className="text-[11px] font-black tracking-[0.2em] text-accent">ABOUT VIVRΛNT</p>
         <h1 className="font-display mt-4 max-w-3xl text-5xl leading-[1.05] text-ink sm:text-6xl">
           Long live life —{" "}
@@ -70,7 +70,7 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-20 lg:px-7">
         <div className="grid gap-4 lg:grid-cols-2">
           <article className="rounded-[2rem] bg-solid p-8 text-solid-fg sm:p-10">
             <span className="text-xs font-black tracking-[0.2em] text-cyan">OUR MISSION</span>
@@ -95,7 +95,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-20 lg:px-7">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-black tracking-[0.2em] text-accent">WHAT WE STAND FOR</p>
@@ -119,7 +119,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="rounded-[2rem] border border-ink/8 bg-card/85 p-8 sm:p-10">
           <p className="text-xs font-black tracking-[0.2em] text-accent">CONTACT</p>
           <h2 className="font-display mt-3 text-3xl text-ink">Talk to the team</h2>
@@ -146,7 +146,7 @@ export default function AboutPage() {
       </section>
 
       <footer className="border-t border-ink/8 bg-card/60">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-8 text-xs font-semibold text-muted md:flex-row md:px-8">
+        <div className="mx-auto flex max-w-[96rem] flex-col items-center justify-between gap-4 px-4 py-8 sm:px-6 text-xs font-semibold text-muted md:flex-row lg:px-7">
           <Brand />
           <div className="flex flex-wrap gap-5">
             <Link href="/" className="hover:text-accent">

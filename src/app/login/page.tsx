@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_.95fr]">
       <HeroPanel />
 
-      <section className="relative flex min-h-screen flex-col overflow-hidden px-5 py-5 sm:px-10 lg:px-16">
+      <section className="relative flex min-h-screen flex-col overflow-hidden px-4 py-5 sm:px-6 lg:px-7">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10 opacity-90"

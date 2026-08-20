@@ -254,7 +254,7 @@ export function AdminShell({
           </AnimatePresence>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="p-5 sm:p-8">
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="w-full p-4 sm:p-6 lg:px-7 lg:py-6">
               {children}
             </motion.div>
           </div>

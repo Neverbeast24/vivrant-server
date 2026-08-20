@@ -326,7 +326,7 @@ export function LandingPage() {
       </div>
 
       <nav className="sticky top-0 z-50 border-b border-ink/6 bg-surface/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-7">
           <Brand />
           <div className="hidden items-center gap-6 text-sm font-semibold text-ink/75 lg:flex">
             <a href="#experience" className="transition-colors hover:text-accent">
@@ -355,7 +355,7 @@ export function LandingPage() {
         </div>
       </nav>
 
-      <section className="mx-auto grid max-w-7xl items-center gap-16 px-5 pb-24 pt-16 md:px-8 lg:grid-cols-[1.03fr_.97fr] lg:pt-24">
+      <section className="mx-auto grid max-w-[96rem] items-center gap-16 px-4 sm:px-6 pb-24 pt-16 lg:px-7 lg:grid-cols-[1.03fr_.97fr] lg:pt-24">
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
@@ -490,7 +490,7 @@ export function LandingPage() {
         </motion.div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-20 lg:px-7">
         <div className="grid gap-px overflow-hidden rounded-[1.8rem] border border-ink/8 bg-ink/8 sm:grid-cols-2 lg:grid-cols-4">
           {heroStats.map(([value, label], index) => (
             <motion.div
@@ -534,7 +534,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-10 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 py-10 lg:px-7">
         <div className="flex flex-wrap items-center justify-center gap-3 rounded-[1.5rem] border border-accent/15 bg-gradient-to-r from-accent-soft/80 via-card/90 to-accent-soft/80 px-5 py-4 shadow-sm">
           <span className="relative flex size-2.5">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-40" />
@@ -546,7 +546,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-24 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 py-24 lg:px-7">
         <div className="grid gap-4 lg:grid-cols-2">
           <motion.article
             initial={{ opacity: 0, y: 18 }}
@@ -586,7 +586,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="modules" className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section id="modules" className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <span className="text-xs font-black tracking-[0.2em] text-accent">
@@ -703,7 +703,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="noise relative overflow-hidden rounded-[2.3rem] bg-solid px-6 py-10 text-solid-fg sm:px-10 lg:px-14 lg:py-14">
           <div className="absolute -right-24 -top-32 size-96 rounded-full bg-accent/30 blur-[100px]" />
           <div className="absolute -bottom-40 left-1/3 size-80 rounded-full bg-[#20d8dd]/15 blur-[100px]" />
@@ -757,7 +757,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <span className="inline-flex items-center gap-2 text-xs font-black tracking-[0.2em] text-accent">
@@ -801,7 +801,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="pricing" className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section id="pricing" className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="mb-12 text-center">
           <span className="inline-flex items-center gap-2 text-xs font-black tracking-[0.2em] text-accent">
             <WalletCards size={14} /> SIMPLE PRICING
@@ -880,7 +880,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="mb-10 text-center">
           <span className="text-xs font-black tracking-[0.2em] text-accent">
             HOW IT FLOWS
@@ -909,7 +909,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="principles" className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section id="principles" className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <div className="grid overflow-hidden rounded-[2rem] border border-ink/8 bg-card/60 md:grid-cols-3">
           {features.map(([title, copy], index) => (
             <motion.div
@@ -949,7 +949,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-24 md:px-8">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-24 lg:px-7">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -990,7 +990,7 @@ export function LandingPage() {
       </section>
 
       <footer className="border-t border-ink/8 bg-card/60">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-5 py-10 md:flex-row md:px-8">
+        <div className="mx-auto flex max-w-[96rem] flex-col items-center justify-between gap-6 px-4 py-10 sm:px-6 md:flex-row lg:px-7">
           <Brand />
           <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold text-ink/70 md:justify-start">
             <a href="#experience" className="transition-colors hover:text-accent">Experience</a>

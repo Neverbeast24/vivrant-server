@@ -56,7 +56,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
       </div>
 
       <nav className="sticky top-0 z-50 border-b border-ink/6 bg-surface/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-7">
           <Brand />
           <div className="flex items-center gap-3 text-sm font-semibold text-ink/80 sm:gap-6">
             <Link href="/about" className="transition-colors hover:text-accent">
@@ -76,7 +76,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
         </div>
       </nav>
 
-      <section className="mx-auto max-w-7xl px-5 pb-10 pt-16 md:px-8 md:pt-20">
+      <section className="mx-auto max-w-[96rem] px-4 sm:px-6 pb-10 pt-16 lg:px-7 md:pt-20">
         <p className="text-[11px] font-black tracking-[0.2em] text-accent">{copy.eyebrow}</p>
         <h1 className="font-display mt-4 max-w-3xl text-5xl leading-[1.05] text-ink sm:text-6xl">
           {copy.title}
@@ -84,7 +84,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
         <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">{copy.blurb}</p>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-5 pb-24 md:px-8 lg:grid-cols-[1.15fr_.85fr]">
+      <section className="mx-auto grid max-w-[96rem] gap-6 px-4 sm:px-6 pb-24 lg:px-7 lg:grid-cols-[1.15fr_.85fr]">
         <InquiryForm defaultPlan={plan} />
 
         <div className="space-y-3">

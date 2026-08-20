@@ -24,7 +24,7 @@ export default async function ContactSentPage({ searchParams }: SentPageProps) {
       </div>
 
       <nav className="sticky top-0 z-50 border-b border-ink/6 bg-surface/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-7">
           <Brand />
           <Link
             href="/login"
@@ -36,7 +36,7 @@ export default async function ContactSentPage({ searchParams }: SentPageProps) {
         </div>
       </nav>
 
-      <section className="mx-auto flex max-w-xl flex-col items-center px-5 py-24 text-center md:px-8">
+      <section className="mx-auto flex max-w-xl flex-col items-center px-4 sm:px-6 py-24 text-center lg:px-7">
         <span className="grid size-16 place-items-center rounded-full bg-accent-soft text-accent">
           <CheckCircle2 size={32} />
         </span>
