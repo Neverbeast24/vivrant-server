@@ -18,6 +18,7 @@
 # misc
 .DS_Store
 *.pem
+.cursor/
 
 # debug
 npm-debug.log*
@@ -35,3 +36,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*
+
+# local compiler / extract dumps
+tsc-out.txt
+build-out.txt
+docs/_sdlc_extract.txt

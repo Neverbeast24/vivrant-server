@@ -15,6 +15,21 @@ function weekStartDate() {
   return d.toISOString().slice(0, 10);
 }
 
+/** audit_logs.metadata is jsonb, but some exports store it as a JSON string. */
+function completeAuditLogs(rows: unknown[] | null) {
+  return (rows ?? []).map((row) => {
+    if (!row || typeof row !== "object") return row;
+    const record = row as Record<string, unknown>;
+    const metadata = record.metadata;
+    if (typeof metadata !== "string") return record;
+    try {
+      return { ...record, metadata: JSON.parse(metadata) as unknown };
+    } catch {
+      return record;
+    }
+  });
+}
+
 export async function buildUserContext(
   userId: string,
   options?: { memberId?: string; supabase?: SupabaseClient },
@@ -24,7 +39,7 @@ export async function buildUserContext(
   const since = dayStartIso();
   const weekStart = weekStartDate();
 
-  const [profile, checkins, meals, workouts, expenses, pantry, groceries, goals, history, gymSessions, habits, journal, reminders, challenges] =
+  const [profile, checkins, meals, workouts, expenses, pantry, groceries, goals, history, gymSessions, habits, journal, reminders, challenges, audit, gymPlans] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -43,76 +58,87 @@ export async function buildUserContext(
         .from("nutrition_logs")
         .select("meal_name, meal_type, calories, protein_g, carbs_g, fat_g, logged_at")
         .eq("user_id", targetId)
-        .gte("logged_at", since)
         .order("logged_at", { ascending: false })
-        .limit(8),
+        .limit(40),
       supabase
         .from("workout_logs")
         .select("title, activity_type, duration_minutes, calories_burned, logged_at")
         .eq("user_id", targetId)
-        .gte("logged_at", since)
         .order("logged_at", { ascending: false })
-        .limit(8),
+        .limit(40),
       supabase
         .from("expenses")
         .select("title, category, amount, spent_at")
         .eq("user_id", targetId)
         .order("spent_at", { ascending: false })
-        .limit(8),
+        .limit(40),
       supabase
         .from("pantry_items")
         .select("name, category, stock_level")
         .eq("user_id", targetId)
         .order("stock_level", { ascending: true })
-        .limit(12),
+        .limit(80),
       supabase
         .from("grocery_items")
         .select("name, quantity, category, is_checked, estimated_price")
         .eq("user_id", targetId)
         .eq("is_checked", false)
-        .limit(12),
+        .limit(80),
       supabase
         .from("health_goals")
         .select("title, category, target_value, current_value, unit, target_date, status")
         .eq("user_id", targetId)
         .eq("status", "active")
-        .limit(8),
+        .limit(20),
       supabase
         .from("health_history")
         .select("recorded_at, weight_kg, height_cm, body_fat_pct, waist_cm, note")
         .eq("user_id", targetId)
         .order("recorded_at", { ascending: false })
-        .limit(6),
+        .limit(40),
       supabase
         .from("gym_sessions")
         .select("title, focus, duration_minutes, calories_burned, logged_at")
         .eq("user_id", targetId)
         .order("logged_at", { ascending: false })
-        .limit(5),
+        .limit(20),
       supabase
         .from("habits")
         .select("id, title, category, frequency, active")
         .eq("user_id", targetId)
         .eq("active", true)
-        .limit(12),
+        .limit(40),
       supabase
         .from("journal_entries")
-        .select("entry_date, title, mood")
+        .select("entry_date, title, body, mood")
         .eq("user_id", targetId)
         .order("entry_date", { ascending: false })
-        .limit(5),
+        .limit(20),
       supabase
         .from("user_reminders")
         .select("title, kind, schedule_time, enabled, next_fire_at")
         .eq("user_id", targetId)
         .eq("enabled", true)
-        .limit(8),
+        .is("deleted_at", null)
+        .limit(20),
       supabase
         .from("challenges")
         .select("title, metric, target_value, starts_on, ends_on")
         .eq("user_id", targetId)
         .gte("ends_on", new Date().toISOString().slice(0, 10))
-        .limit(5),
+        .limit(12),
+      supabase
+        .from("audit_logs")
+        .select("id, actor_id, action, entity, entity_id, metadata, created_at")
+        .eq("actor_id", targetId)
+        .order("created_at", { ascending: false })
+        .limit(80),
+      supabase
+        .from("gym_plans")
+        .select("title, focus, level, days_per_week, summary, days, created_at")
+        .eq("user_id", targetId)
+        .order("created_at", { ascending: false })
+        .limit(6),
     ]);
 
   const profileData = profile.data ?? null;
@@ -156,41 +182,53 @@ export async function buildUserContext(
     available: routine_scaling.bmi != null,
   };
 
-  // Compact JSON (no pretty-print) keeps Gemini prompt tokens smaller/faster.
-  return JSON.stringify({
-    today: ph.isoDate,
-    timezone: market.timezone,
-    ph_calendar: {
-      year: ph.year,
-      month: ph.month,
-      month_label: ph.monthLabel,
-      month_start: ph.monthStart,
+  const mealRows = meals.data ?? [];
+  const workoutRows = workouts.data ?? [];
+
+  // Pretty-printed complete context so Gemini receives every field, including audit history.
+  return `COMPLETE USER CONTEXT (use every section; do not ignore BMI, logs, gym plans, or audit history)
+${JSON.stringify(
+    {
+      today: ph.isoDate,
+      timezone: market.timezone,
+      ph_calendar: {
+        year: ph.year,
+        month: ph.month,
+        month_label: ph.monthLabel,
+        month_start: ph.monthStart,
+      },
+      grocery_price_market: market,
+      health_profile: profileData,
+      bmi_details,
+      routine_scaling,
+      budget_for_groceries: {
+        currency: "PHP",
+        monthly_health_budget: monthlyBudget,
+        spent_this_month: Math.round(spentThisMonth),
+        remaining_budget: Math.round(remainingBudget),
+        open_list_estimated_total: Math.round(openListTotal),
+        room_for_new_items: Math.max(0, Math.round(remainingBudget - openListTotal)),
+        budget_month: ph.monthLabel,
+      },
+      checkins_last_7_days: checkins.data ?? [],
+      meals_today: mealRows.filter((row) => String(row.logged_at ?? "") >= since),
+      recent_meals: mealRows,
+      workouts_today: workoutRows.filter((row) => String(row.logged_at ?? "") >= since),
+      recent_workouts: workoutRows,
+      recent_expenses: expenseRows,
+      pantry_items: pantry.data ?? [],
+      open_grocery_list: groceryRows,
+      active_goals: goalsData,
+      health_history: history.data ?? [],
+      recent_gym_sessions: gymSessions.data ?? [],
+      gym_plans: gymPlans.data ?? [],
+      active_habits: habits.data ?? [],
+      recent_journal: journal.data ?? [],
+      scheduled_reminders: reminders.data ?? [],
+      active_challenges: challenges.data ?? [],
+      audit_logs: completeAuditLogs(audit.data ?? []),
     },
-    grocery_price_market: market,
-    health_profile: profileData,
-    bmi_details,
-    routine_scaling,
-    budget_for_groceries: {
-      currency: "PHP",
-      monthly_health_budget: monthlyBudget,
-      spent_this_month: Math.round(spentThisMonth),
-      remaining_budget: Math.round(remainingBudget),
-      open_list_estimated_total: Math.round(openListTotal),
-      room_for_new_items: Math.max(0, Math.round(remainingBudget - openListTotal)),
-      budget_month: ph.monthLabel,
-    },
-    checkins_last_7_days: checkins.data ?? [],
-    meals_today: meals.data ?? [],
-    workouts_today: workouts.data ?? [],
-    recent_expenses: expenseRows,
-    pantry_items: pantry.data ?? [],
-    open_grocery_list: groceryRows,
-    active_goals: goalsData,
-    health_history: history.data ?? [],
-    recent_gym_sessions: gymSessions.data ?? [],
-    active_habits: habits.data ?? [],
-    recent_journal: journal.data ?? [],
-    scheduled_reminders: reminders.data ?? [],
-    active_challenges: challenges.data ?? [],
-  });
+    null,
+    2,
+  )}`;
 }

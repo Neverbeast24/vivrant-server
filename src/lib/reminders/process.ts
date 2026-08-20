@@ -58,6 +58,7 @@ export async function processDueReminders(options?: {
       )
       .eq("user_id", options.userId)
       .eq("enabled", true)
+      .is("deleted_at", null)
       .lte("next_fire_at", nowIso)
       .order("next_fire_at", { ascending: true })
       .limit(limit);
@@ -82,6 +83,7 @@ export async function processDueReminders(options?: {
         "id, user_id, title, body, kind, schedule_time, days_of_week, href, timezone, enabled",
       )
       .eq("enabled", true)
+      .is("deleted_at", null)
       .lte("next_fire_at", nowIso)
       .order("next_fire_at", { ascending: true })
       .limit(limit);
@@ -113,6 +115,8 @@ export async function processDueReminders(options?: {
       })
       .eq("id", row.id)
       .eq("user_id", row.user_id)
+      .eq("enabled", true)
+      .is("deleted_at", null)
       .lte("next_fire_at", nowIso)
       .select("id")
       .maybeSingle();

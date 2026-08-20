@@ -69,7 +69,7 @@ export function TodayDoNow({
                   onClick={() => run(() => toggleHabitToday(habit.id, !habit.doneToday))}
                   className={`grid size-8 place-items-center rounded-lg border ${
                     habit.doneToday
-                      ? "border-accent bg-accent text-white"
+                      ? "border-accent bg-accent text-accent-fg"
                       : "border-ink/15 text-muted"
                   }`}
                   aria-label={habit.doneToday ? `Uncheck ${habit.title}` : `Check ${habit.title}`}

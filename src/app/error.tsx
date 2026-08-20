@@ -16,7 +16,7 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#ede8df] p-5">
+    <main className="grid min-h-screen place-items-center bg-paper p-5">
       <section className="w-full max-w-lg overflow-hidden rounded-[1.6rem] border border-panel/75 bg-card/90 shadow-[0_30px_90px_rgba(54,43,34,.16)] backdrop-blur-xl">
         <div className="flex h-11 items-center border-b border-ink/6 bg-panel/35 px-4">
           <div className="flex gap-2" aria-hidden>
@@ -31,12 +31,12 @@ export default function AppError({
             <TriangleAlert size={21} />
           </span>
           <h1 className="font-display mt-6 text-3xl">This page took a pause.</h1>
-          <p className="mt-3 text-sm leading-6 text-[#77717d]">
+          <p className="mt-3 text-sm leading-6 text-muted">
             VIVRΛNT could not finish loading this view. Your saved health data is safe;
             retry the request or return to your dashboard.
           </p>
           {error.digest && (
-            <p className="mt-3 font-mono text-[10px] text-[#aaa4ae]">
+            <p className="mt-3 font-mono text-[10px] text-muted">
               Reference: {error.digest}
             </p>
           )}
@@ -50,7 +50,7 @@ export default function AppError({
             </button>
             <Link
               href="/dashboard"
-              className="focus-ring rounded-xl border border-ink/8 bg-panel/60 px-4 py-3 text-sm font-black text-[#4e4854] transition hover:bg-panel"
+              className="focus-ring rounded-xl border border-ink/8 bg-panel/60 px-4 py-3 text-sm font-black text-ink transition hover:bg-panel"
             >
               Back to dashboard
             </Link>

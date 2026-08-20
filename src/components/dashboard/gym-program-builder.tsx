@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Sparkles, Trash2 } from "lucide-react";
+import { confirmAction } from "@/components/dashboard/confirm-dialog";
 import { GymPlanDaysEditor, cloneGymPlanDays } from "@/components/dashboard/gym-plan-days-editor";
 import { DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
 import { Panel, PrimaryButton } from "@/components/dashboard/ui";
@@ -199,7 +200,7 @@ export function GymProgramBuilder({
                         onClick={() => onKeep(iso)}
                         className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-black ${
                           alreadyKept
-                            ? "bg-accent text-inverse-fg"
+                            ? "bg-accent text-accent-fg"
                             : "border border-ink/10 bg-surface text-accent hover:border-accent/40"
                         }`}
                       >
@@ -248,7 +249,17 @@ export function GymProgramBuilder({
         </PrimaryButton>
         <button
           type="button"
-          onClick={onDiscard}
+          onClick={async () => {
+            if (
+              !(await confirmAction({
+                title: "Clear this draft?",
+                body: "Unsaved generated days will be discarded.",
+                confirmLabel: "Clear",
+              }))
+            )
+              return;
+            onDiscard();
+          }}
           className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-xs font-black text-muted hover:text-ink"
         >
           <Trash2 size={12} />

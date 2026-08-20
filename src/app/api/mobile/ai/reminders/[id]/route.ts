@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { z } from "zod";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, parseIdParam, readJson } from "@/lib/mobile/http";
+import { archiveRecord } from "@/lib/archive";
 import { writeAuditLog } from "@/lib/audit";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
 
@@ -91,17 +92,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid reminder id.", 400);
 
-  const { error } = await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
-  await writeAuditLog(
-    { action: "reminder_deleted", entity: "user_reminders", entityId: String(id) },
-    supabase,
-  );
-
+  const result = await archiveRecord(supabase, {
+    table: "user_reminders",
+    id,
+    userId: user.id,
+    auditAction: "reminder_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

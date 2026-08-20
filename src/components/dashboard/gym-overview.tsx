@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { Weight } from "lucide-react";
 import { GymJumpCards, GymOverviewStats } from "@/components/dashboard/gym-parts";
-import { ProgramSessionPanel } from "@/components/dashboard/program-session";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { PageHeader, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { trainingSubNav } from "@/lib/nav";
-import type { GymPlan } from "@/lib/gym";
 
 export function GymOverview({
   sessionCount,
@@ -16,7 +14,6 @@ export function GymOverview({
   machineCount,
   demoCount,
   planCount,
-  plans = [],
 }: {
   sessionCount: number;
   totalMinutes: number;
@@ -24,7 +21,6 @@ export function GymOverview({
   machineCount: number;
   demoCount: number;
   planCount: number;
-  plans?: GymPlan[];
 }) {
   return (
     <>
@@ -33,9 +29,6 @@ export function GymOverview({
         New to the gym? Start with bodyweight demos, then try machines when you feel ready.
       </p>
       <ModuleSubNav items={trainingSubNav} />
-      <div className="mb-4">
-        <ProgramSessionPanel plans={plans} compact />
-      </div>
       <GymOverviewStats
         sessionCount={sessionCount}
         totalMinutes={totalMinutes}

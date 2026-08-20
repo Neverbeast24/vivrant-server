@@ -59,7 +59,7 @@ export function ResetPasswordForm() {
       )}
 
       <label className="block">
-        <span className="mb-2 block text-xs font-bold text-[#615d69]">New password</span>
+        <span className="mb-2 block text-xs font-bold text-muted">New password</span>
         <span className={inputShell}>
           <LockKeyhole size={17} className="text-muted" />
           <input
@@ -76,7 +76,7 @@ export function ResetPasswordForm() {
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-xs font-bold text-[#615d69]">Confirm password</span>
+        <span className="mb-2 block text-xs font-bold text-muted">Confirm password</span>
         <span className={inputShell}>
           <LockKeyhole size={17} className="text-muted" />
           <input

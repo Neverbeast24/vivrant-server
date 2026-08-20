@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { archiveRecord } from "@/lib/archive";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, parseIdParam, readJson } from "@/lib/mobile/http";
 
@@ -51,12 +52,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id === null) return jsonError("Invalid workout id.");
 
-  const { error } = await supabase
-    .from("workout_logs")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-
-  if (error) return jsonError(error.message, 500);
+  const result = await archiveRecord(supabase, {
+    table: "workout_logs",
+    id,
+    userId: user.id,
+    auditAction: "workout_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

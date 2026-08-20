@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import { fieldClass } from "@/components/dashboard/ui";
 import { DayDragRow, DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
 import type { GymPlanDay, GymPlanExercise } from "@/lib/gym";
@@ -145,7 +146,10 @@ export function GymPlanDaysEditor({
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeExercise(dayIndex, exIndex)}
+                    onClick={async () => {
+                      if (!(await confirmDelete(ex.name || "this move"))) return;
+                      removeExercise(dayIndex, exIndex);
+                    }}
                     className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-ember/15 hover:text-ember"
                     aria-label="Remove move"
                   >

@@ -1,3 +1,5 @@
+import { listUserActivity } from "@/lib/activity";
+import type { ActivityItem } from "@/lib/activity-format";
 import { requireUser } from "@/lib/auth/roles";
 import {
   buildRoutineScaling,
@@ -18,13 +20,14 @@ const emptyGymData = {
   totalMinutes: 0,
   totalCalories: 0,
   scaling: null as RoutineScaling | null,
+  programHistory: [] as ActivityItem[],
 };
 
 export async function loadGymData() {
   const { supabase, user } = await requireUser();
 
   try {
-    const [exercises, sessions, plans, profile, goals, draft] = await Promise.all([
+    const [exercises, sessions, plans, profile, goals, draft, programHistory] = await Promise.all([
       supabase
         .from("gym_exercises")
         .select(
@@ -55,6 +58,7 @@ export async function loadGymData() {
         .eq("status", "active")
         .limit(12),
       loadGymProgramDraft(supabase, user.id).catch(() => null),
+      listUserActivity(supabase, user.id, { entity: "gym_plans", limit: 40 }),
     ]);
 
     if (exercises.error) {
@@ -94,6 +98,7 @@ export async function loadGymData() {
       totalMinutes: sessionRows.reduce((sum, row) => sum + (row.duration_minutes ?? 0), 0),
       totalCalories: sessionRows.reduce((sum, row) => sum + (row.calories_burned ?? 0), 0),
       scaling,
+      programHistory: programHistory.items,
     };
   } catch (error) {
     console.error("[gym] loadGymData failed:", error);

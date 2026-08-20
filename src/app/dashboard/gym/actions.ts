@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { archiveGymPlan, archiveRecord } from "@/lib/archive";
 import { buildUserContext } from "@/lib/ai/context";
 import { recommendGymMachines } from "@/lib/ai/gemini";
 import type { GymPlanPrefs } from "@/lib/health/body-metrics";
@@ -198,21 +199,16 @@ export async function deleteGymSession(id: number) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  const { error } = await supabase
-    .from("gym_sessions")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
-
-  await writeAuditLog({
-    action: "gym_session_deleted",
-    entity: "gym_sessions",
-    entityId: String(id),
+  const result = await archiveRecord(supabase, {
+    table: "gym_sessions",
+    id,
+    userId: user.id,
+    auditAction: "gym_session_deleted",
   });
+  if (!result.ok) return result;
 
   revalidateGymSessionPaths();
-  return { ok: true, message: "Session removed." };
+  return result;
 }
 
 export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
@@ -457,17 +453,11 @@ export async function deleteGymPlan(id: number) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  const { error } = await supabase.from("gym_plans").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
-
-  await writeAuditLog({
-    action: "gym_plan_deleted",
-    entity: "gym_plans",
-    entityId: String(id),
-  });
+  const result = await archiveGymPlan(supabase, { id, userId: user.id });
+  if (!result.ok) return result;
 
   revalidatePath("/dashboard/gym");
   revalidatePath("/dashboard/gym/plans");
   revalidatePath("/dashboard/movement/log");
-  return { ok: true, message: "Program removed." };
+  return result;
 }

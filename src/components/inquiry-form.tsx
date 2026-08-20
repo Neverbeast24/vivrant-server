@@ -119,7 +119,7 @@ export function InquiryForm({ defaultPlan = "general" }: { defaultPlan?: Contact
       <button
         type="submit"
         disabled={pending}
-        className="focus-ring mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-accent-deep disabled:opacity-60 sm:w-auto"
+        className="focus-ring mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-black text-accent-fg transition hover:-translate-y-0.5 hover:bg-accent-deep disabled:opacity-60 sm:w-auto"
       >
         <Send size={15} />
         {pending ? "Sending…" : "Send inquiry"}

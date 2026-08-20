@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { archiveRecord } from "@/lib/archive";
 import { buildUserContext } from "@/lib/ai/context";
 import { generateHabitSuggestions } from "@/lib/ai/gemini";
 import { defaultWeekChallengeDates, syncChallengeProgress } from "@/lib/challenges/progress";
@@ -18,6 +19,7 @@ const habitSchema = z.object({
 
 function revalidateHabits() {
   revalidatePath("/dashboard/habits");
+  revalidatePath("/dashboard/habits/add");
   revalidatePath("/dashboard/habits/challenges");
   revalidatePath("/dashboard");
 }
@@ -123,10 +125,15 @@ export async function deleteHabit(id: number) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase.from("habits").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "habits",
+    id,
+    userId: user.id,
+    auditAction: "habit_deleted",
+  });
+  if (!result.ok) return result;
   revalidateHabits();
-  return { ok: true, message: "Habit removed." };
+  return result;
 }
 
 export async function suggestHabits() {
@@ -208,10 +215,15 @@ export async function deleteChallenge(id: number) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase.from("challenges").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "challenges",
+    id,
+    userId: user.id,
+    auditAction: "challenge_deleted",
+  });
+  if (!result.ok) return result;
   revalidateHabits();
-  return { ok: true, message: "Challenge removed." };
+  return result;
 }
 
 export async function refreshChallenges() {

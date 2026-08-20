@@ -1,3 +1,4 @@
+import { archiveMatching } from "@/lib/archive";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError } from "@/lib/mobile/http";
 
@@ -9,12 +10,12 @@ export async function POST(request: Request) {
   if (isMobileAuthError(auth)) return auth;
   const { supabase, user } = auth;
 
-  const { error } = await supabase
-    .from("grocery_items")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("is_checked", true);
-  if (error) return jsonError(error.message, 500);
-
+  const result = await archiveMatching(supabase, {
+    table: "grocery_items",
+    userId: user.id,
+    match: { is_checked: true },
+    auditAction: "grocery_item_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

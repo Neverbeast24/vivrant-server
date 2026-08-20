@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, readJson, parseIdParam } from "@/lib/mobile/http";
+import { archiveRecord } from "@/lib/archive";
 import { writeAuditLog } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -62,17 +63,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid expense id.", 400);
 
-  const { error } = await supabase
-    .from("expenses")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
-  await writeAuditLog(
-    { action: "expense_deleted", entity: "expenses", entityId: String(id) },
-    supabase,
-  );
-
+  const result = await archiveRecord(supabase, {
+    table: "expenses",
+    id,
+    userId: user.id,
+    auditAction: "expense_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

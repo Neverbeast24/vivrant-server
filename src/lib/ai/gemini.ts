@@ -193,7 +193,11 @@ async function generateContentWithFallback(
 ): Promise<string> {
   const models = getModelChain();
   let lastError: unknown;
-  const textPrompt = `${WELLNESS_GUIDE}\n\n${prompt}`;
+  const textPrompt = `COMPLETE PROMPT — use every instruction and the full USER CONTEXT below. Do not drop or summarize away any provided logs, BMI details, audit history, or constraints.
+
+${WELLNESS_GUIDE}
+
+${prompt}`;
 
   for (const modelName of models) {
     for (let attempt = 0; attempt < 2; attempt++) {

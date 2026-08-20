@@ -270,7 +270,7 @@ export function TodayView({ data }: { data: TodayData }) {
                 </div>
                 <span
                   className={`size-4 rounded-full border-2 ${
-                    step.done ? "border-accent bg-accent" : "border-[#cfdcd4]"
+                    step.done ? "border-accent bg-accent" : "border-ink/20"
                   }`}
                 />
               </Link>
@@ -346,20 +346,12 @@ export function TodayView({ data }: { data: TodayData }) {
                 {data.program.planCount > 1 ? ` · ${data.program.planCount} saved` : ""}
               </p>
               {data.program.today ? (
-                <div className="mt-3 rounded-2xl border border-ink/6 bg-surface/60 px-3 py-2.5">
-                  <p className="text-[11px] font-black text-accent">
-                    Today · {data.program.today.day} · {humanizeGymLabel(data.program.today.focus)}
-                  </p>
-                  <ul className="mt-1.5 space-y-1">
-                    {data.program.today.exercises.map((ex) => (
-                      <li key={ex.name} className="text-xs text-muted">
-                        <span className="font-bold text-ink">{ex.name}</span>
-                        {ex.sets ? ` · ${ex.sets}` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-2 text-[11px] font-black text-accent">Tap to start · checkboxes + rest timer</p>
-                </div>
+                <p className="mt-3 text-sm text-muted">
+                  Today · {data.program.today.day} · {humanizeGymLabel(data.program.today.focus)} ·{" "}
+                  {data.program.today.exercises.length} move
+                  {data.program.today.exercises.length === 1 ? "" : "s"}. Tap to start with
+                  checkboxes and a rest timer.
+                </p>
               ) : (
                 <p className="mt-3 text-sm text-muted">
                   Rest day
@@ -504,20 +496,20 @@ export function TodayView({ data }: { data: TodayData }) {
 
               <motion.article
                 variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-                className="relative overflow-hidden rounded-[1.6rem] bg-[#16352c] p-6 text-white"
+                className="relative overflow-hidden rounded-[1.6rem] bg-solid p-6 text-solid-fg"
               >
                 <Link href="/dashboard/sleep" className="absolute inset-0 z-10" aria-label="Open sleep" />
                 <div className="absolute -right-10 -top-10 size-36 rounded-full bg-accent/40 blur-3xl" />
                 <div className="relative">
                   <span className="grid size-10 place-items-center rounded-xl bg-panel/10">
-                    <Moon size={19} className="text-[#7ec8b8]" />
+                    <Moon size={19} className="text-cyan" />
                   </span>
-                  <p className="mt-8 text-xs font-bold text-white/45">SLEEP WINDOW</p>
+                  <p className="mt-8 text-xs font-bold text-solid-fg/45">SLEEP WINDOW</p>
                   <p className="mt-2 text-3xl font-black">{formatSleep(data.sleepMinutes)}</p>
                   <div className="mt-5">
                     <Progress value={sleep.value} />
                   </div>
-                  <p className="mt-3 text-xs text-white/45">{sleep.label}</p>
+                  <p className="mt-3 text-xs text-solid-fg/45">{sleep.label}</p>
                 </div>
               </motion.article>
             </div>
@@ -547,7 +539,7 @@ export function TodayView({ data }: { data: TodayData }) {
                     </div>
                     <span
                       className={`size-4 rounded-full border-2 ${
-                        item.done ? "border-accent bg-accent" : "border-[#cfdcd4]"
+                        item.done ? "border-accent bg-accent" : "border-ink/20"
                       }`}
                     />
                   </Link>

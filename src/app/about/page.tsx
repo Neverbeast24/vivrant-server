@@ -47,7 +47,7 @@ export default function AboutPage() {
             </Link>
             <Link
               href="/login"
-              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-accent-deep"
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-accent-fg transition hover:bg-accent-deep"
             >
               Get started
               <ArrowUpRight size={14} />
@@ -109,7 +109,7 @@ export default function AboutPage() {
               key={item.title}
               className="rounded-[1.6rem] border border-ink/8 bg-card/90 p-6 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)]"
             >
-              <span className="grid size-10 place-items-center rounded-xl bg-accent text-white">
+              <span className="grid size-10 place-items-center rounded-xl bg-accent text-accent-fg">
                 <item.icon size={18} />
               </span>
               <h3 className="mt-5 text-lg font-black text-ink">{item.title}</h3>
@@ -130,7 +130,7 @@ export default function AboutPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/contact"
-              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-black text-white transition hover:bg-accent-deep"
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-black text-accent-fg transition hover:bg-accent-deep"
             >
               Send an inquiry
               <ArrowUpRight size={15} />

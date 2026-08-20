@@ -63,26 +63,31 @@ export async function GET(request: Request) {
     admin
       .from("nutrition_logs")
       .select("id, user_id, meal_name, meal_type, calories, protein_g, logged_at")
+      .is("deleted_at", null)
       .order("logged_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("workout_logs")
       .select("id, user_id, title, activity_type, duration_minutes, calories_burned, logged_at")
+      .is("deleted_at", null)
       .order("logged_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("expenses")
       .select("id, user_id, title, category, amount, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("grocery_items")
       .select("id, user_id, name, quantity, category, is_checked, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("pantry_items")
       .select("id, user_id, name, category, stock_level, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
@@ -93,36 +98,43 @@ export async function GET(request: Request) {
     admin
       .from("gym_sessions")
       .select("id, user_id, title, focus, duration_minutes, calories_burned, logged_at")
+      .is("deleted_at", null)
       .order("logged_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("gym_plans")
       .select("id, user_id, title, focus, level, days_per_week, summary, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("health_history")
       .select("id, user_id, recorded_at, weight_kg, note, source, created_at")
+      .is("deleted_at", null)
       .order("recorded_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("health_goals")
       .select("id, user_id, title, category, target_value, current_value, unit, status, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("journal_entries")
       .select("id, user_id, title, body, mood, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("habits")
       .select("id, user_id, title, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin
       .from("user_reminders")
       .select("id, user_id, title, kind, enabled, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT),
     admin

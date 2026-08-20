@@ -25,6 +25,21 @@ export function categoryLabel(value: string) {
   return PANTRY_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 }
 
+/** Map grocery-list categories onto pantry shelves. */
+export function groceryToPantryCategory(category: string) {
+  const c = String(category ?? "").toLowerCase();
+  if (c === "produce") return "vegetables";
+  if (c === "protein" || c === "dairy" || c === "grains" || c === "snacks" || c === "drinks") {
+    return c;
+  }
+  if (c === "pantry") return "condiments";
+  return "other";
+}
+
+export function isPantryCategory(value: string) {
+  return PANTRY_CATEGORIES.some((cat) => cat.value === value);
+}
+
 /** Map pantry shelves onto grocery-list categories. */
 export function pantryToGroceryCategory(category: string) {
   const c = String(category ?? "").toLowerCase();

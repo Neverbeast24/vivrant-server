@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, parseIdParam, readJson } from "@/lib/mobile/http";
-import { writeAuditLog } from "@/lib/audit";
+import { archiveGymPlan } from "@/lib/archive";
 import { updateSavedGymPlan } from "@/lib/gym-plan-generate";
 
 export const runtime = "nodejs";
@@ -50,13 +50,7 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid plan id.", 400);
 
-  const { error } = await supabase.from("gym_plans").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
-  await writeAuditLog(
-    { action: "gym_plan_deleted", entity: "gym_plans", entityId: String(id) },
-    supabase,
-  );
-
+  const result = await archiveGymPlan(supabase, { id, userId: user.id });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

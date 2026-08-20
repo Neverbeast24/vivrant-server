@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, parseIdParam } from "@/lib/mobile/http";
+import { archiveRecord } from "@/lib/archive";
 import { writeAuditLog } from "@/lib/audit";
 
 export async function DELETE(
@@ -16,17 +17,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid entry id.", 400);
 
-  const { error } = await supabase
-    .from("health_history")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
-  await writeAuditLog(
-    { action: "health_history_deleted", entity: "health_history", entityId: String(id) },
-    supabase,
-  );
-
+  const result = await archiveRecord(supabase, {
+    table: "health_history",
+    id,
+    userId: user.id,
+    auditAction: "health_history_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

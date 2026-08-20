@@ -36,6 +36,7 @@ const dashboardDestinations = [
   { label: "Today", detail: "Daily health overview and quick check-in", href: "/dashboard", icon: LayoutDashboard, keywords: "home overview mood energy water steps" },
   { label: "Nutrition", detail: "Meal overview and macros", href: "/dashboard/nutrition", icon: Apple, keywords: "food meal calorie protein diet suggest" },
   { label: "Log meal", detail: "Add a meal or get an AI suggestion", href: "/dashboard/nutrition/log", icon: Apple, keywords: "log food meal suggest estimate" },
+  { label: "Meal sheet", detail: "Excel-style meal log", href: "/dashboard/nutrition/sheet", icon: Apple, keywords: "excel sheet table meals calories paste" },
   { label: "Training", detail: "Daily activity and gym in one place", href: "/dashboard/training", icon: Dumbbell, keywords: "exercise workout calories minutes steps gym movement training" },
   { label: "Log workout", detail: "Today’s program, checkboxes, and rest timer — or a walk", href: "/dashboard/movement/log", icon: Dumbbell, keywords: "log workout movement program session rest timer gym" },
   { label: "Gym demos", detail: "Free-weight and bodyweight videos", href: "/dashboard/gym/demos", icon: Weight, keywords: "demo video form gym" },
@@ -47,11 +48,17 @@ const dashboardDestinations = [
   { label: "Mindfulness", detail: "Mood check-ins and calm tips", href: "/dashboard/mindfulness", icon: Wind, keywords: "mood calm stress breathe" },
   { label: "Journal", detail: "Notes and weekly reflection", href: "/dashboard/journal", icon: BookOpen, keywords: "journal notes diary reflect" },
   { label: "Habits", detail: "Daily streaks and checkboxes", href: "/dashboard/habits", icon: Flame, keywords: "habit streak routine" },
+  { label: "Add habit", detail: "Start a new daily streak", href: "/dashboard/habits/add", icon: Flame, keywords: "habit add new streak" },
   { label: "Challenges", detail: "Weekly personal targets", href: "/dashboard/habits/challenges", icon: Flame, keywords: "challenge weekly goal gamification" },
   { label: "Kitchen", detail: "Shopping list and pantry stock", href: "/dashboard/kitchen", icon: Refrigerator, keywords: "kitchen groceries pantry shopping inventory" },
   { label: "Shopping", detail: "Manage your grocery list", href: "/dashboard/groceries", icon: ShoppingBasket, keywords: "shopping food list buy groceries" },
+  { label: "Add groceries", detail: "Form or paste a grocery list", href: "/dashboard/groceries/add", icon: ShoppingBasket, keywords: "add grocery paste list" },
+  { label: "Shopping sheet", detail: "Excel-style grocery list", href: "/dashboard/groceries/sheet", icon: ShoppingBasket, keywords: "excel sheet table grocery list paste" },
+  { label: "Grocery meal plan", detail: "AI shopping list from meals", href: "/dashboard/groceries/plan", icon: ShoppingBasket, keywords: "plan meals grocery ai shop" },
+  { label: "Grocery prices", detail: "Budget and PH staple trends", href: "/dashboard/groceries/insights", icon: ShoppingBasket, keywords: "price budget trend grocery" },
   { label: "Pantry", detail: "Stock overview", href: "/dashboard/pantry", icon: Refrigerator, keywords: "inventory kitchen stock pantry" },
   { label: "Pantry items", detail: "Full inventory and stock levels", href: "/dashboard/pantry/items", icon: Refrigerator, keywords: "pantry inventory items" },
+  { label: "Pantry sheet", detail: "Excel-style pantry table", href: "/dashboard/pantry/sheet", icon: Refrigerator, keywords: "excel sheet table pantry paste stock" },
   { label: "Pantry categories", detail: "Browse stock by food type", href: "/dashboard/pantry/categories", icon: Refrigerator, keywords: "pantry category vegetables grains" },
   { label: "Low stock", detail: "Items that need restocking", href: "/dashboard/pantry/low-stock", icon: Refrigerator, keywords: "pantry low restock empty" },
   { label: "Add pantry item", detail: "Log something new on the shelf", href: "/dashboard/pantry/add", icon: Refrigerator, keywords: "pantry add stock" },
@@ -65,7 +72,8 @@ const dashboardDestinations = [
   { label: "AI reminders", detail: "Scheduled nudges and gym schedule", href: "/dashboard/ai/reminders", icon: BrainCircuit, keywords: "reminder notification gym plan schedule" },
   { label: "Health profile", detail: "Avatar and body stats", href: "/dashboard/settings", icon: Settings2, keywords: "profile weight height bmi avatar" },
   { label: "Goals", detail: "Health targets", href: "/dashboard/settings/goals", icon: Settings2, keywords: "goals targets" },
-  { label: "Health history", detail: "Body measurements over time", href: "/dashboard/settings/history", icon: Settings2, keywords: "history measurements weight" },
+  { label: "Activity", detail: "Your gym and module change history", href: "/dashboard/activity", icon: Activity, keywords: "audit logs history gym plan activity" },
+  { label: "Archived", detail: "Restore items you removed", href: "/dashboard/archive", icon: Inbox, keywords: "archive restore deleted history backup" },
   { label: "Preferences", detail: "Theme and notifications", href: "/dashboard/settings/preferences", icon: Settings2, keywords: "settings theme timezone" },
   { label: "Support / Help", detail: "Questions and bug reports", href: "/dashboard/support", icon: LifeBuoy, keywords: "bug ticket help feedback report issue support" },
 ] as const;
@@ -239,7 +247,7 @@ export function CommandSearch({
       <button
         type="button"
         onClick={openSearch}
-        className="focus-ring group hidden min-w-0 items-center gap-3 rounded-xl border border-ink/6 bg-card/90 px-3.5 py-2 text-left shadow-[0_5px_16px_rgba(55,45,37,.06)] transition hover:-translate-y-0.5 hover:border-accent/20 sm:flex sm:w-80"
+        className="focus-ring group hidden min-w-0 items-center gap-3 rounded-xl border border-ink/6 bg-card/90 px-3.5 py-2 text-left shadow-[0_5px_16px_rgba(var(--shadow-color),.06)] transition hover:-translate-y-0.5 hover:border-accent/20 sm:flex sm:w-80"
         aria-label="Global search"
       >
         <Search size={15} className="shrink-0 text-muted group-hover:text-accent" />
@@ -276,7 +284,7 @@ export function CommandSearch({
                   role="dialog"
                   aria-modal="true"
                   aria-label="Global search"
-                  className="w-full max-w-2xl overflow-hidden rounded-[1.4rem] border border-panel/70 bg-card/95 shadow-[0_35px_100px_rgba(20,15,35,.35)] backdrop-blur-2xl"
+                  className="w-full max-w-2xl overflow-hidden rounded-[1.4rem] border border-panel/70 bg-card/95 shadow-[0_35px_100px_rgba(var(--shadow-color),.35)] backdrop-blur-2xl"
                 >
                   <div className="flex items-center gap-3 border-b border-ink/6 px-5">
                     {loading ? (
@@ -309,7 +317,7 @@ export function CommandSearch({
                         onClick={() => visit(item.href)}
                         className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition ${
                           activeIndex === index
-                            ? "bg-accent text-white shadow-[0_8px_24px_rgba(14,124,102,.22)]"
+                            ? "bg-accent text-accent-fg shadow-[0_8px_24px_rgba(14,124,102,.22)]"
                             : "text-ink hover:bg-panel/65"
                         }`}
                       >
@@ -318,11 +326,11 @@ export function CommandSearch({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-black">{item.label}</span>
-                          <span className={`block truncate text-xs ${activeIndex === index ? "text-white/65" : "text-muted"}`}>
+                          <span className={`block truncate text-xs ${activeIndex === index ? "text-accent-fg/65" : "text-muted"}`}>
                             {item.detail}
                           </span>
                         </span>
-                        <span className={`shrink-0 text-[10px] font-black uppercase tracking-wider ${activeIndex === index ? "text-white/55" : "text-muted"}`}>
+                        <span className={`shrink-0 text-[10px] font-black uppercase tracking-wider ${activeIndex === index ? "text-accent-fg/55" : "text-muted"}`}>
                           {item.category}
                         </span>
                       </button>

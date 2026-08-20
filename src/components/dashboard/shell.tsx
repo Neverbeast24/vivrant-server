@@ -51,7 +51,7 @@ function Avatar({
   }
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-cyan text-xs font-black text-white shadow-sm"
+      className="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-cyan text-xs font-black text-accent-fg shadow-sm"
       style={{ width: size, height: size }}
     >
       {initials}
@@ -133,7 +133,7 @@ export function DashboardShell({
             {expanded && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl bg-gradient-to-br from-solid to-accent-deep p-4 text-solid-fg">
                 <p className="text-sm font-bold">Your weekly summary is ready.</p>
-                <Link href="/dashboard/reports" className="mt-3 flex items-center gap-1 text-xs font-bold text-white/60 transition hover:text-white">
+                <Link href="/dashboard/reports" className="mt-3 flex items-center gap-1 text-xs font-bold text-solid-fg/60 transition hover:text-solid-fg">
                   Open report <ChevronRight size={13} />
                 </Link>
               </motion.div>
@@ -248,7 +248,7 @@ export function DashboardShell({
           </AnimatePresence>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="p-5 sm:p-8">
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="mx-auto max-w-6xl p-6 sm:p-10 lg:p-12">
               {children}
             </motion.div>
           </div>

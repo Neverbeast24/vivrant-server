@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { archiveRecord } from "@/lib/archive";
 import { buildUserContext } from "@/lib/ai/context";
 import { analyzeHealthHistory } from "@/lib/ai/gemini";
 import { createClient } from "@/lib/supabase/server";
@@ -92,22 +93,17 @@ export async function deleteHealthHistoryEntry(id: number) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  const { error } = await supabase
-    .from("health_history")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
-
-  await writeAuditLog({
-    action: "health_history_deleted",
-    entity: "health_history",
-    entityId: String(id),
+  const result = await archiveRecord(supabase, {
+    table: "health_history",
+    id,
+    userId: user.id,
+    auditAction: "health_history_deleted",
   });
+  if (!result.ok) return result;
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/gym");
-  return { ok: true, message: "Entry removed." };
+  return result;
 }
 
 export async function analyzeHealthHistoryWithAi() {

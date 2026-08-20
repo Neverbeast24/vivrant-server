@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { archiveRecord } from "@/lib/archive";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, readJson, parseIdParam } from "@/lib/mobile/http";
 
@@ -53,12 +54,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid pantry item id.", 400);
 
-  const { error } = await supabase
-    .from("pantry_items")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
+  const result = await archiveRecord(supabase, {
+    table: "pantry_items",
+    id,
+    userId: user.id,
+    auditAction: "pantry_item_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Activity, Sparkles, Trash2, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   addHealthHistoryEntry,
   analyzeHealthHistoryWithAi,
@@ -179,6 +180,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
                 disabled={busy}
                 onClick={() =>
                   start(async () => {
+                    if (!(await confirmDelete("this measurement"))) return;
                     const result = await deleteHealthHistoryEntry(entry.id);
                     if (result.ok) toast.success(result.message);
                     else toast.error(result.message);

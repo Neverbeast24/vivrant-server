@@ -13,7 +13,7 @@ export function ModuleSubNav({
   const pathname = usePathname();
 
   return (
-    <div className="mb-6 flex flex-wrap gap-2">
+    <div className="mb-8 flex flex-wrap gap-2">
       {items.map((item) => {
         const active = pathMatches(pathname, item.href);
         return (

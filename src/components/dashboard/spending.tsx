@@ -16,8 +16,10 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   addExpense,
+  addExpensesBulk,
   deleteExpense,
   saveMonthlyBudget,
   updateExpense,
@@ -25,6 +27,17 @@ import {
 import { coachSpendingWithAi } from "@/app/dashboard/spending/ai-actions";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
+import { QuickListPaste } from "@/components/dashboard/quick-list-paste";
+import {
+  ExcelSheetFrame,
+  excelAddRow,
+  excelBodyRow,
+  excelCancelBtn,
+  excelCellInput,
+  excelFootRow,
+  excelHeadRow,
+  excelHeaderBtn,
+} from "@/components/dashboard/excel-sheet";
 import {
   EmptyState,
   FormField,
@@ -599,6 +612,7 @@ export function SpendingSheet({
 
   function removeRow(id: number) {
     start(async () => {
+      if (!(await confirmDelete("this expense"))) return;
       const result = await deleteExpense(id);
       if (result.ok) toast.success(result.message);
       else toast.error(result.message);
@@ -606,11 +620,8 @@ export function SpendingSheet({
     });
   }
 
-  const cellInput =
-    "h-9 w-full border-0 bg-transparent px-2 text-sm outline-none focus:bg-[#fffdf5] focus:ring-2 focus:ring-inset focus:ring-accent/25";
-
-  const headerBtn =
-    "inline-flex items-center gap-1 font-black uppercase tracking-[0.08em] text-[10px] text-[#3d5248]";
+  const cellInput = excelCellInput;
+  const headerBtn = excelHeaderBtn;
 
   return (
     <>
@@ -684,11 +695,10 @@ export function SpendingSheet({
             </select>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-[#c5d0c4] bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,.8)]">
-            <table className="min-w-[720px] w-full border-collapse text-left">
+          <ExcelSheetFrame>
               <thead>
-                <tr className="bg-[#e4eee6]">
-                  <th className="w-10 border-b border-r border-[#c5d0c4] px-2 py-2 text-center text-[10px] font-black text-muted">
+                <tr className={excelHeadRow}>
+                  <th className="w-10 border-b border-r border-ink/12 px-2 py-2 text-center text-[10px] font-black text-muted">
                     #
                   </th>
                   {(
@@ -701,7 +711,7 @@ export function SpendingSheet({
                   ).map(([key, label, width]) => (
                     <th
                       key={key}
-                      className={`border-b border-r border-[#c5d0c4] px-2 py-2 ${width}`}
+                      className={`border-b border-r border-ink/12 px-2 py-2 ${width}`}
                     >
                       <button type="button" onClick={() => toggleSort(key)} className={headerBtn}>
                         {label}
@@ -712,7 +722,7 @@ export function SpendingSheet({
                       </button>
                     </th>
                   ))}
-                  <th className="w-[7rem] border-b border-[#c5d0c4] px-2 py-2 text-[10px] font-black uppercase tracking-[0.08em] text-[#3d5248]">
+                  <th className="w-[7rem] border-b border-ink/12 px-2 py-2 text-[10px] font-black uppercase tracking-[0.08em] text-muted">
                     Actions
                   </th>
                 </tr>
@@ -723,16 +733,14 @@ export function SpendingSheet({
                   return (
                     <tr
                       key={expense.id}
-                      className={`group border-b border-[#dce6dc] ${
-                        index % 2 === 0 ? "bg-panel" : "bg-[#f7fbf8]"
-                      } hover:bg-[#fff8e8]`}
+                      className={excelBodyRow(index)}
                     >
-                      <td className="border-r border-[#dce6dc] px-2 py-1.5 text-center text-[11px] font-bold text-[#9aaba1]">
+                      <td className="border-r border-ink/10 px-2 py-1.5 text-center text-[11px] font-bold text-muted">
                         {index + 1}
                       </td>
                       {isEditing ? (
                         <>
-                          <td className="border-r border-[#dce6dc] p-0">
+                          <td className="border-r border-ink/10 p-0">
                             <input
                               type="date"
                               value={draft.spent_at}
@@ -746,7 +754,7 @@ export function SpendingSheet({
                               className={cellInput}
                             />
                           </td>
-                          <td className="border-r border-[#dce6dc] p-0">
+                          <td className="border-r border-ink/10 p-0">
                             <input
                               value={draft.title}
                               onChange={(event) =>
@@ -760,7 +768,7 @@ export function SpendingSheet({
                               autoFocus
                             />
                           </td>
-                          <td className="border-r border-[#dce6dc] p-0">
+                          <td className="border-r border-ink/10 p-0">
                             <select
                               value={draft.category}
                               onChange={(event) =>
@@ -775,7 +783,7 @@ export function SpendingSheet({
                               ))}
                             </select>
                           </td>
-                          <td className="border-r border-[#dce6dc] p-0">
+                          <td className="border-r border-ink/10 p-0">
                             <input
                               type="number"
                               min={0}
@@ -805,7 +813,7 @@ export function SpendingSheet({
                               <button
                                 type="button"
                                 onClick={cancelEdit}
-                                className="grid size-7 place-items-center rounded-md bg-[#f0ebe4] text-[#7a6a60]"
+                                className={excelCancelBtn}
                                 aria-label="Cancel"
                               >
                                 <X size={13} />
@@ -815,16 +823,16 @@ export function SpendingSheet({
                         </>
                       ) : (
                         <>
-                          <td className="border-r border-[#dce6dc] px-2 py-2 text-sm tabular-nums text-[#4a5b52]">
+                          <td className="border-r border-ink/10 px-2 py-2 text-sm tabular-nums text-muted">
                             {expense.spent_at.slice(0, 10)}
                           </td>
-                          <td className="border-r border-[#dce6dc] px-2 py-2 text-sm font-semibold">
+                          <td className="border-r border-ink/10 px-2 py-2 text-sm font-semibold">
                             {expense.title}
                           </td>
-                          <td className="border-r border-[#dce6dc] px-2 py-2 text-sm capitalize text-muted">
+                          <td className="border-r border-ink/10 px-2 py-2 text-sm capitalize text-muted">
                             {categoryLabel(expense.category)}
                           </td>
-                          <td className="border-r border-[#dce6dc] px-2 py-2 text-right text-sm font-black tabular-nums">
+                          <td className="border-r border-ink/10 px-2 py-2 text-right text-sm font-black tabular-nums">
                             {Number(expense.amount).toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
@@ -866,11 +874,11 @@ export function SpendingSheet({
                   </tr>
                 )}
 
-                <tr className="bg-[#eef6f0]">
-                  <td className="border-r border-[#c5d0c4] px-2 py-2 text-center text-[10px] font-black text-accent">
+                <tr className={excelAddRow}>
+                  <td className="border-r border-ink/12 px-2 py-2 text-center text-[10px] font-black text-accent">
                     +
                   </td>
-                  <td className="border-r border-[#c5d0c4] p-0">
+                  <td className="border-r border-ink/12 p-0">
                     <input
                       type="date"
                       value={newRow.spent_at}
@@ -878,7 +886,7 @@ export function SpendingSheet({
                       className={cellInput}
                     />
                   </td>
-                  <td className="border-r border-[#c5d0c4] p-0">
+                  <td className="border-r border-ink/12 p-0">
                     <input
                       value={newRow.title}
                       onChange={(event) => setNewRow({ ...newRow, title: event.target.value })}
@@ -889,7 +897,7 @@ export function SpendingSheet({
                       className={cellInput}
                     />
                   </td>
-                  <td className="border-r border-[#c5d0c4] p-0">
+                  <td className="border-r border-ink/12 p-0">
                     <select
                       value={newRow.category}
                       onChange={(event) => setNewRow({ ...newRow, category: event.target.value })}
@@ -902,7 +910,7 @@ export function SpendingSheet({
                       ))}
                     </select>
                   </td>
-                  <td className="border-r border-[#c5d0c4] p-0">
+                  <td className="border-r border-ink/12 p-0">
                     <input
                       type="number"
                       min={0}
@@ -930,21 +938,38 @@ export function SpendingSheet({
                 </tr>
               </tbody>
               <tfoot>
-                <tr className="bg-[#dfeae1]">
-                  <td colSpan={4} className="border-t border-[#c5d0c4] px-3 py-2 text-right text-xs font-black uppercase tracking-wider text-muted">
+                <tr className={excelFootRow}>
+                  <td colSpan={4} className="border-t border-ink/12 px-3 py-2 text-right text-xs font-black uppercase tracking-wider text-muted">
                     Visible total
                   </td>
-                  <td className="border-t border-r border-[#c5d0c4] px-2 py-2 text-right text-sm font-black tabular-nums">
+                  <td className="border-t border-r border-ink/12 px-2 py-2 text-right text-sm font-black tabular-nums">
                     {visibleTotal.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
                   </td>
-                  <td className="border-t border-[#c5d0c4]" />
+                  <td className="border-t border-ink/12" />
                 </tr>
               </tfoot>
-            </table>
-          </div>
+          </ExcelSheetFrame>
+        </Panel>
+
+        <Panel title="Paste a list" className="mt-4">
+          <QuickListPaste
+            pending={pending}
+            placeholder={"Coffee, 120\nGym, 500, fitness"}
+            hint="One expense per line. Amount is required. Optional category after a comma."
+            onSubmit={(text) =>
+              new Promise<boolean>((resolve) => {
+                start(async () => {
+                  const result = await addExpensesBulk(text, today);
+                  if (result.ok) toast.success(result.message);
+                  else toast.error(result.message);
+                  resolve(result.ok);
+                });
+              })
+            }
+          />
         </Panel>
 
         {stats.byCategory.length > 0 && (

@@ -2,13 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { estimateGroceryPrice } from "@/lib/groceries/ph-price-catalog";
+import { archiveRecord } from "@/lib/archive";
+import { estimateGroceryPrice, suggestGroceryCategory } from "@/lib/groceries/ph-price-catalog";
+import { mapTypedLine, parseSpreadsheetPaste } from "@/lib/lists/parse-quick-list";
 import { createClient } from "@/lib/supabase/server";
-import { pantryToGroceryCategory } from "@/app/dashboard/pantry/shared";
+import {
+  groceryToPantryCategory,
+  isPantryCategory,
+  pantryToGroceryCategory,
+} from "@/app/dashboard/pantry/shared";
 
 const pantrySchema = z.object({
   name: z.string().min(1).max(120),
-  category: z.string().min(1).max(40),
+  category: z.string().min(1).max(40).refine(isPantryCategory, { message: "Pick a pantry shelf." }),
   stock_level: z.coerce.number().int().min(0).max(100),
 });
 
@@ -18,8 +24,10 @@ function revalidatePantry() {
   revalidatePath("/dashboard/pantry/categories");
   revalidatePath("/dashboard/pantry/low-stock");
   revalidatePath("/dashboard/pantry/add");
+  revalidatePath("/dashboard/pantry/sheet");
   revalidatePath("/dashboard/kitchen");
   revalidatePath("/dashboard/groceries");
+  revalidatePath("/dashboard/groceries/sheet");
   revalidatePath("/dashboard");
 }
 
@@ -45,6 +53,52 @@ export async function addPantryItem(formData: FormData) {
 
   revalidatePantry();
   return { ok: true, message: "Pantry item added." };
+}
+
+function resolvePantryFields(input: { name: string; category?: string; stock_level?: number }) {
+  const guessed = groceryToPantryCategory(suggestGroceryCategory(input.name));
+  const category =
+    input.category && isPantryCategory(input.category) ? input.category : guessed;
+  const stock =
+    input.stock_level != null && Number.isFinite(input.stock_level)
+      ? Math.min(100, Math.max(0, Math.round(input.stock_level)))
+      : 50;
+  return {
+    name: input.name.slice(0, 120),
+    category,
+    stock_level: stock,
+  };
+}
+
+export async function addPantryItemsBulk(text: string) {
+  const rows = parseSpreadsheetPaste(text, 40)
+    .map((cells) => mapTypedLine(cells, ["vegetables", "fruits", "protein", "dairy", "grains", "snacks", "drinks", "condiments", "frozen", "other"]))
+    .filter((row) => row.name);
+  if (!rows.length) return { ok: false, message: "Paste at least one item name." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const payload = rows.map((row) => ({
+    user_id: user.id,
+    ...resolvePantryFields({
+      name: row.name,
+      category: row.category,
+      stock_level: row.amount,
+    }),
+  }));
+
+  const { error } = await supabase.from("pantry_items").insert(payload);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePantry();
+  return {
+    ok: true,
+    message: `Added ${payload.length} pantry item${payload.length === 1 ? "" : "s"}.`,
+  };
 }
 
 export async function updatePantryItem(formData: FormData) {
@@ -98,14 +152,15 @@ export async function deletePantryItem(id: number) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase
-    .from("pantry_items")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "pantry_items",
+    id,
+    userId: user.id,
+    auditAction: "pantry_item_deleted",
+  });
+  if (!result.ok) return result;
   revalidatePantry();
-  return { ok: true, message: "Pantry item removed." };
+  return result;
 }
 
 /** Push low-stock pantry items onto the grocery list. */

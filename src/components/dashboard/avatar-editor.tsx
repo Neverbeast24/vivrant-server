@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Camera, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmAction } from "@/components/dashboard/confirm-dialog";
 import { removeAvatar, uploadAvatar } from "@/app/dashboard/settings/avatar-actions";
 import { PrimaryButton } from "@/components/dashboard/ui";
 
@@ -40,6 +41,14 @@ export function AvatarEditor({
 
   function onRemove() {
     start(async () => {
+      if (
+        !(await confirmAction({
+          title: "Remove avatar?",
+          body: "Your profile photo will be cleared.",
+          confirmLabel: "Remove",
+        }))
+      )
+        return;
       const result = await removeAvatar();
       if (result.ok) {
         setPreview(null);
@@ -61,7 +70,7 @@ export function AvatarEditor({
             className="size-24 rounded-full border-2 border-white object-cover shadow-md"
           />
         ) : (
-          <span className="grid size-24 place-items-center rounded-full bg-gradient-to-br from-accent to-cyan text-2xl font-black text-white shadow-md">
+          <span className="grid size-24 place-items-center rounded-full bg-gradient-to-br from-accent to-cyan text-2xl font-black text-accent-fg shadow-md">
             {initials}
           </span>
         )}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 
@@ -44,6 +45,29 @@ export function Stagger({ children }: { children: React.ReactNode }) {
   );
 }
 
+export function ModuleJumpLinks({
+  items,
+}: {
+  items: readonly { href: string; title: string; icon: LucideIcon }[];
+}) {
+  return (
+    <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {items.map((card) => (
+        <Link
+          key={card.href}
+          href={card.href}
+          className="inline-flex min-h-14 items-center gap-3 rounded-2xl border border-ink/8 bg-card px-4 py-3.5 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:border-accent/25 hover:shadow-md"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+            <card.icon size={16} />
+          </span>
+          <span className="truncate">{card.title}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export type StatTone = "brand" | "surface" | "soft" | "warn" | "ink";
 
 const STAT_TONES: Record<
@@ -51,10 +75,10 @@ const STAT_TONES: Record<
   { card: string; label: string; detail: string; icon: string }
 > = {
   brand: {
-    card: "border-transparent bg-gradient-to-br from-accent-deep to-accent text-white shadow-[0_16px_34px_rgba(14,124,102,.24)]",
-    label: "text-white/80",
-    detail: "text-white/75",
-    icon: "bg-white/18 text-white",
+    card: "border-transparent bg-gradient-to-br from-accent-deep to-accent text-accent-fg shadow-[0_16px_34px_rgba(14,124,102,.24)]",
+    label: "text-accent-fg/80",
+    detail: "text-accent-fg/75",
+    icon: "bg-accent-fg/18 text-accent-fg",
   },
   surface: {
     card: "border-ink/12 bg-card text-ink",

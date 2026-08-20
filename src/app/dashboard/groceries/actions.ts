@@ -2,14 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { archiveMatching, archiveRecord } from "@/lib/archive";
+import { GROCERY_CATEGORY_ORDER } from "@/lib/groceries/categories";
 import {
   estimateGroceryPrice,
   suggestGroceryCategory,
 } from "@/lib/groceries/ph-price-catalog";
+import { mapTypedLine, parseSpreadsheetPaste } from "@/lib/lists/parse-quick-list";
+import { groceryToPantryCategory } from "@/app/dashboard/pantry/shared";
 import { createClient } from "@/lib/supabase/server";
 
 function revalidateKitchen() {
   revalidatePath("/dashboard/groceries");
+  revalidatePath("/dashboard/groceries/add");
+  revalidatePath("/dashboard/groceries/sheet");
+  revalidatePath("/dashboard/groceries/plan");
+  revalidatePath("/dashboard/groceries/insights");
   revalidatePath("/dashboard/pantry");
   revalidatePath("/dashboard/pantry/items");
   revalidatePath("/dashboard/pantry/low-stock");
@@ -26,6 +34,32 @@ const itemSchema = z.object({
   estimated_price: z.coerce.number().min(0).max(50000).optional(),
 });
 
+function resolveGroceryFields(input: {
+  name: string;
+  quantity?: string;
+  category?: string;
+  estimated_price?: number;
+}) {
+  const guessed = suggestGroceryCategory(input.name);
+  const rawCategory = input.category || "other";
+  const category =
+    !GROCERY_CATEGORY_ORDER.includes(rawCategory) ||
+    rawCategory === "other" ||
+    (rawCategory === "produce" && guessed !== "produce" && guessed !== "other")
+      ? guessed
+      : rawCategory;
+  const estimatedPrice =
+    input.estimated_price != null && !Number.isNaN(input.estimated_price)
+      ? Math.round(input.estimated_price)
+      : estimateGroceryPrice(input.name, input.quantity, category);
+  return {
+    name: input.name.slice(0, 120),
+    quantity: input.quantity?.slice(0, 40) || null,
+    category,
+    estimated_price: estimatedPrice,
+  };
+}
+
 export async function addGroceryItem(formData: FormData) {
   const parsed = itemSchema.safeParse({
     name: formData.get("name"),
@@ -41,30 +75,47 @@ export async function addGroceryItem(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  // Prefer name-based category when the form still says produce/other (common mis-picks).
-  const guessed = suggestGroceryCategory(parsed.data.name);
-  const category =
-    parsed.data.category === "other" ||
-    (parsed.data.category === "produce" && guessed !== "produce" && guessed !== "other")
-      ? guessed
-      : parsed.data.category;
-
-  const estimatedPrice =
-    parsed.data.estimated_price != null && !Number.isNaN(parsed.data.estimated_price)
-      ? Math.round(parsed.data.estimated_price)
-      : estimateGroceryPrice(parsed.data.name, parsed.data.quantity, category);
-
+  const row = resolveGroceryFields(parsed.data);
   const { error } = await supabase.from("grocery_items").insert({
     user_id: user.id,
-    name: parsed.data.name,
-    quantity: parsed.data.quantity ?? null,
-    category,
-    estimated_price: estimatedPrice,
+    ...row,
   });
   if (error) return { ok: false, message: error.message };
 
   revalidateKitchen();
-  return { ok: true, message: `Item added · ${category} · ₱${estimatedPrice}.` };
+  return { ok: true, message: `Item added · ${row.category} · ₱${row.estimated_price}.` };
+}
+
+export async function addGroceryItemsBulk(text: string) {
+  const rows = parseSpreadsheetPaste(text, 40)
+    .map((cells) => mapTypedLine(cells, GROCERY_CATEGORY_ORDER))
+    .filter((row) => row.name);
+  if (!rows.length) return { ok: false, message: "Paste at least one item name." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const payload = rows.map((row) => ({
+    user_id: user.id,
+    ...resolveGroceryFields({
+      name: row.name,
+      quantity: row.quantity,
+      category: row.category,
+      estimated_price: row.amount,
+    }),
+  }));
+
+  const { error } = await supabase.from("grocery_items").insert(payload);
+  if (error) return { ok: false, message: error.message };
+
+  revalidateKitchen();
+  return {
+    ok: true,
+    message: `Added ${payload.length} item${payload.length === 1 ? "" : "s"} to your list.`,
+  };
 }
 
 export async function updateGroceryItem(formData: FormData) {
@@ -124,7 +175,7 @@ async function restockPantryFromGrocery(
     await supabase.from("pantry_items").insert({
       user_id: userId,
       name,
-      category: item.category || "other",
+      category: groceryToPantryCategory(item.category || "other"),
       stock_level: 80,
     });
   }
@@ -196,14 +247,15 @@ export async function deleteGroceryItem(id: number) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase
-    .from("grocery_items")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "grocery_items",
+    id,
+    userId: user.id,
+    auditAction: "grocery_item_deleted",
+  });
+  if (!result.ok) return result;
   revalidateKitchen();
-  return { ok: true, message: "Item removed." };
+  return result;
 }
 
 export async function clearCompletedGroceries() {
@@ -212,12 +264,15 @@ export async function clearCompletedGroceries() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase
-    .from("grocery_items")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("is_checked", true);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveMatching(supabase, {
+    table: "grocery_items",
+    userId: user.id,
+    match: { is_checked: true },
+    auditAction: "grocery_item_deleted",
+  });
+  if (!result.ok) return result;
   revalidateKitchen();
-  return { ok: true, message: "Completed items cleared." };
+  return result.ok && result.message === "Nothing to archive."
+    ? { ok: true, message: "Completed items cleared." }
+    : { ok: true, message: "Completed items moved to Archived." };
 }

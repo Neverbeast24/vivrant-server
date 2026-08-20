@@ -10,8 +10,12 @@
   --muted: #4a5c54;
   --violet: #0e7c66;
   --accent: #0e7c66;
+  --accent-fg: #ffffff;
   --accent-soft: #d7efe6;
   --accent-deep: #0a5c4c;
+  --danger: #b42318;
+  --warn: #b45309;
+  --info: #3b6fd8;
   /* Kept as an alias of accent — no orange in the botanical palette. */
   --ember: #0e7c66;
   --cyan: #2a9d8f;
@@ -37,6 +41,7 @@
   --glass-shadow: rgba(20, 34, 27, 0.1);
   --glass-inset: rgba(255, 255, 255, 0.75);
   --shadow-color: 20, 34, 27;
+  accent-color: var(--accent);
 }
 
 .dark {
@@ -46,8 +51,12 @@
   --muted: #b7c9be;
   --violet: #3db896;
   --accent: #3db896;
+  --accent-fg: #0a100d;
   --accent-soft: #214840;
   --accent-deep: #4ec4b6;
+  --danger: #f97066;
+  --warn: #fdb022;
+  --info: #8eb0ff;
   /* Alias of accent — keep dark mode on teal, not orange. */
   --ember: #3db896;
   --cyan: #4ec4b6;
@@ -72,14 +81,19 @@
   --glass-shadow: rgba(0, 0, 0, 0.45);
   --glass-inset: rgba(255, 255, 255, 0.04);
   --shadow-color: 0, 0, 0;
+  accent-color: var(--accent);
 }
 
 @theme inline {
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
   --color-accent-deep: var(--accent-deep);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
   --color-ember: var(--ember);
   --color-cyan: var(--cyan);
   --color-paper: var(--paper);
@@ -121,8 +135,11 @@
 
   button,
   a,
-  input {
+  input,
+  textarea,
+  select {
     font: inherit;
+    color-scheme: inherit;
   }
 
   a {

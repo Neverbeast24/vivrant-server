@@ -29,7 +29,7 @@ export type SupportTicket = {
 
 const STATUS_STYLE: Record<string, string> = {
   open: "bg-ember/10 text-ember",
-  in_progress: "bg-[#e8f0ff] text-[#3b6fd8]",
+  in_progress: "bg-cyan/15 text-cyan",
   resolved: "bg-accent-soft text-accent",
   closed: "bg-surface text-muted",
 };

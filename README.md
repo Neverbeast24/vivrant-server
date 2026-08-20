@@ -6,7 +6,16 @@
 
 **VIVRΛNT** (stylized from *vibrant*) conveys energy, health, and vitality. It also carries **Viv**, from the Latin *vivere* (“to live”), which aligns with the product purpose. The lambda (**Λ**) is a brand stylization of the letter A. Former working name: VIVA (Virtual Intelligent Vitality Assistant).
 
-VIVRΛNT Web is the Next.js platform for the VIVRΛNT ecosystem: member dashboard, admin console, AI coaching, and secure data services. It helps people make healthier daily choices through personalized recommendations—not tracking alone.
+VIVRΛNT Web is the Next.js platform for the VIVRΛNT ecosystem: member dashboard, admin console, AI coaching, mobile REST API, and secure data services. It helps people make healthier daily choices through personalized recommendations—not tracking alone.
+
+---
+
+## Repositories
+
+| Repo | Role |
+|------|------|
+| [vivrant-server](https://github.com/Neverbeast24/vivrant-server) (this) | Next.js web app, admin console, Supabase + Gemini, mobile REST API |
+| [vivrant-mobile](https://github.com/Neverbeast24/vivrant-mobile) | Flutter iOS / Android companion |
 
 ---
 
@@ -14,14 +23,15 @@ VIVRΛNT Web is the Next.js platform for the VIVRΛNT ecosystem: member dashboar
 
 VIVRΛNT Web includes:
 
-- **Member workspace** — daily check-ins, nutrition, movement, gym, groceries, pantry, spending, reports, and AI coaching
-- **Administrative console** — users, roles, audit logs, system settings, and (super-admin) member activity
+- **Member workspace** — daily check-ins, nutrition, training, wellness, journal, habits, kitchen (groceries & pantry), spending, reports, archive, support, and AI coaching
+- **Administrative console** — users, roles, audit logs, system settings, tickets, and (super-admin) member activity
 - **Auth & data layer** — Supabase Auth + Postgres with Row Level Security
 - **AI services** — Google Gemini coaching across modules
 - **Push & storage** — Firebase Cloud Messaging and Firebase Storage
 - **Support tickets** — member bug reports with staff inbox + push alerts
+- **Mobile REST API** — `/api/mobile/**` for the Flutter apps (see [vivrant-mobile](https://github.com/Neverbeast24/vivrant-mobile), [`docs/VIVRANT_Complete_Documentation.md`](./docs/VIVRANT_Complete_Documentation.md), and [`docs/MOBILE_API_SPEC.md`](https://github.com/Neverbeast24/vivrant-mobile/blob/main/docs/MOBILE_API_SPEC.md))
 
-Domain logic runs mainly through **Next.js Server Actions** and App Router pages. A thin HTTP surface covers auth, search, device-token registration, and the FCM service worker. Native Android/iOS apps register FCM tokens via `POST /api/device-tokens` (see [`NOTIFICATIONS.md`](./NOTIFICATIONS.md)).
+Web domain logic runs mainly through **Next.js Server Actions** and App Router pages. Native Android/iOS apps use JSON routes under `/api/mobile/**`, plus auth, search, and device-token registration. Native apps register FCM tokens via `POST /api/device-tokens` (see [`NOTIFICATIONS.md`](./NOTIFICATIONS.md)).
 
 ---
 
@@ -34,14 +44,13 @@ Browser (Landing / Login / Dashboard / Admin)
               │
  ├── Supabase Auth (email, Google, GitHub)
  ├── Supabase Postgres + RLS
- ├── Server Actions (domain + AI)
- ├── Route Handlers (auth, search, FCM SW)
+ ├── Server Actions (web domain + AI)
+ ├── Route Handlers (auth, search, FCM SW, /api/mobile/**)
  ├── Google Gemini
  ├── Firebase Storage
  └── Firebase Cloud Messaging
 
-Planned:
-Flutter Mobile ── REST API ── VIVRΛNT Web
+Flutter iOS / Android ── REST (/api/auth, /api/mobile, /api/device-tokens) ── VIVRΛNT Web
 ```
 
 ---
@@ -71,6 +80,7 @@ Flutter Mobile ── REST API ── VIVRΛNT Web
 - Health goals
 - Health history
 - Preferences and account settings
+- Archive — restore or permanently delete soft-deleted records
 
 ## Today
 
@@ -81,29 +91,43 @@ Flutter Mobile ── REST API ── VIVRΛNT Web
 ## Nutrition
 
 - Meal overview and logging
+- Excel-style sheet view
 - AI meal estimate (macros)
 
-## Movement
+## Training (Movement & Gym)
 
 - Activity overview and workout logging
-- AI workout suggestions
-
-## Gym
-
 - Exercise demos (free weights & bodyweight)
 - Machine demos and AI equipment picks
-- Session logging and history
+- Session logging, saved programs, and live rest timers
 - AI training plans
 
-## Groceries & Pantry
+## Wellness
 
-- Smart grocery lists
-- Pantry inventory
+- Sleep logging and coach
+- Hydration goals and reminders
+- Mindfulness / mood check-ins
+
+## Journal
+
+- Daily notes and AI reflection
+
+## Habits
+
+- Daily habits and streaks
+- Weekly challenges
+
+## Kitchen (Groceries & Pantry)
+
+- Kitchen hub (shopping list + pantry pulse)
+- Smart grocery lists, including Excel-style sheet view
+- Pantry inventory, categories, low-stock restock
 - AI grocery planning helpers
 
 ## Spending
 
 - Wellness budget tracking
+- Expense log and sheet view
 - Spending coach insights
 
 ## AI Engine
@@ -119,12 +143,17 @@ Flutter Mobile ── REST API ── VIVRΛNT Web
 - Push notification path (FCM)
 - Goal and reminder drafting
 
+## Help
+
+- Member support tickets
+
 ## Admin Console
 
 - Overview counts
 - User management
 - Roles & permissions
 - Audit logs
+- Tickets and inquiries
 - System settings / service health
 - Member activity (super-admin)
 
@@ -215,23 +244,35 @@ src/
 │   ├── auth/confirm/            # Email / OAuth confirm
 │   ├── dashboard/               # Member workspace
 │   │   ├── nutrition/
+│   │   ├── training/            # Activity + gym hub
 │   │   ├── movement/
 │   │   ├── gym/
+│   │   ├── wellness/            # Sleep, hydration, mindfulness
+│   │   ├── journal/
+│   │   ├── habits/
+│   │   ├── kitchen/
 │   │   ├── groceries/
 │   │   ├── pantry/
 │   │   ├── spending/
 │   │   ├── reports/
 │   │   ├── ai/
+│   │   ├── archive/             # restore soft-deleted items + backup export
+│   │   ├── support/
 │   │   └── settings/
 │   ├── admin/                   # Staff console
 │   │   ├── users/
+│   │   ├── tickets/
 │   │   ├── roles/
 │   │   ├── audit/
-│   │   ├── activity/
-│   │   └── settings/
+│   │   ├── settings/
+│   │   ├── activity/            # super_admin
+│   │   └── inquiries/           # super_admin
 │   └── api/
-│       ├── auth/                # login, signup, forgot/reset password
+│       ├── auth/                # login, signup, forgot/reset/change password
 │       ├── search/
+│       ├── device-tokens/
+│       ├── cron/                # reminders + scheduled backups
+│       ├── mobile/              # Flutter REST catalog
 │       └── firebase-messaging-sw/
 ├── components/
 │   ├── brand.tsx
@@ -241,6 +282,7 @@ src/
 ├── hooks/
 ├── lib/
 │   ├── ai/                      # Gemini + context
+│   ├── archive.ts / backup.ts   # soft-delete + member exports
 │   ├── auth/
 │   ├── firebase/
 │   ├── supabase/
@@ -250,8 +292,9 @@ src/
 └── proxy.ts                     # Session refresh
 supabase/
 ├── schema.sql
-└── migrations/
+└── *.sql                        # dated migrations
 docs/
+├── VIVRANT_Complete_Documentation.md
 └── VIVRANT_Complete_Project_Documentation_SDLC.docx
 ```
 
@@ -261,17 +304,18 @@ docs/
 
 | Area | Routes |
 | --- | --- |
-| Auth | `POST /api/auth/login`, `/signup`, `/forgot-password`, `/reset-password` |
+| Auth | `POST /api/auth/login`, `/signup`, `/forgot-password`, `/reset-password`, `/change-password` |
 | Search | `/api/search` |
-| FCM | `/api/firebase-messaging-sw` |
+| FCM | `/api/firebase-messaging-sw`, `POST`/`DELETE /api/device-tokens` |
+| Cron | `/api/cron/reminders`, `/api/cron/backup` (Bearer `CRON_SECRET`) |
+| Mobile | `/api/mobile/**` (member + admin JSON API for Flutter) |
 
-Member and admin domain operations use **Server Actions** inside the App Router (not a full public REST catalog yet).
+Web member and admin pages still use **Server Actions**. Flutter uses the `/api/mobile/**` catalog documented in the [mobile API spec](https://github.com/Neverbeast24/vivrant-mobile/blob/main/docs/MOBILE_API_SPEC.md).
 
 ---
 
 # Future Features
 
-- Full mobile REST API surface for Flutter
 - Formal Decision Engine score APIs
 - OCR processing / receipt scanning
 - Meal recognition
@@ -286,9 +330,14 @@ Member and admin domain operations use **Server Actions** inside the App Router 
 
 | Doc | Purpose |
 | --- | --- |
+| [docs/VIVRANT_Complete_Documentation.md](./docs/VIVRANT_Complete_Documentation.md) | **Canonical** product docs (web + mobile, modules, schema, APIs, AI, archive) |
 | [SETUP.md](./SETUP.md) | Local setup, env, Supabase, Firebase, Vercel |
-| [docs/VIVA_Web_Master_Documentation.md](./docs/VIVA_Web_Master_Documentation.md) | Master notes |
+| [NOTIFICATIONS.md](./NOTIFICATIONS.md) | FCM / device tokens |
+| [docs/VIVA_Web_Master_Documentation.md](./docs/VIVA_Web_Master_Documentation.md) | Short master index |
+| [docs/QA_EVIDENCE.md](./docs/QA_EVIDENCE.md) | QA log |
 | [docs/VIVRANT_Complete_Project_Documentation_SDLC.docx](./docs/VIVRANT_Complete_Project_Documentation_SDLC.docx) | SDLC pack (Appendix E = current VIVRΛNT baseline) |
+| [Mobile complete docs](https://github.com/Neverbeast24/vivrant-mobile/blob/main/docs/VIVRANT_Mobile_Documentation.md) | Flutter deep dive |
+| [Mobile API spec](https://github.com/Neverbeast24/vivrant-mobile/blob/main/docs/MOBILE_API_SPEC.md) | REST contract consumed by Flutter |
 
 ---
 

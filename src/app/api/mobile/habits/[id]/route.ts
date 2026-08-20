@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, parseIdParam, readJson } from "@/lib/mobile/http";
+import { archiveRecord } from "@/lib/archive";
 import { writeAuditLog } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -54,13 +55,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id === null) return jsonError("Invalid habit id.");
 
-  const { error } = await supabase.from("habits").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
-  await writeAuditLog(
-    { action: "habit_deleted", entity: "habits", entityId: String(id) },
-    supabase,
-  );
-
+  const result = await archiveRecord(supabase, {
+    table: "habits",
+    id,
+    userId: user.id,
+    auditAction: "habit_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

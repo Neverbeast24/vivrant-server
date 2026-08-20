@@ -7,7 +7,6 @@ import {
   Camera,
   Droplets,
   Flame,
-  Hand,
   ImagePlus,
   Sparkles,
   Pencil,
@@ -15,7 +14,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { addWaterIntake, deleteMeal, logMeal, updateMeal } from "@/app/dashboard/nutrition/actions";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
+import { deleteMeal, logMeal, updateMeal } from "@/app/dashboard/nutrition/actions";
 import {
   estimateMealWithAi,
   suggestMealWithAi,
@@ -24,6 +24,7 @@ import {
   EmptyState,
   FormField,
   ListRow,
+  ModuleJumpLinks,
   PageHeader,
   Panel,
   PrimaryButton,
@@ -62,6 +63,7 @@ type QuickMeal = {
 const nutritionSubNav = [
   { href: "/dashboard/nutrition", label: "Overview" },
   { href: "/dashboard/nutrition/log", label: "Log meal" },
+  { href: "/dashboard/nutrition/sheet", label: "Sheet" },
 ] as const;
 
 const PORTION_SCALE: Record<PortionSize, number> = {
@@ -128,12 +130,6 @@ const QUICK_MEALS: QuickMeal[] = [
   },
 ];
 
-const WATER_PRESETS = [
-  { label: "+1 glass", amount_ml: 250, detail: "250 ml" },
-  { label: "+1 bottle", amount_ml: 500, detail: "500 ml" },
-  { label: "+1 big bottle", amount_ml: 750, detail: "750 ml" },
-] as const;
-
 function scaleMacros(meal: QuickMeal, portion: PortionSize) {
   const scale = PORTION_SCALE[portion];
   return {
@@ -174,7 +170,6 @@ export function NutritionView({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [estimating, startEstimate] = useTransition();
   const [suggesting, startSuggest] = useTransition();
-  const [addingWater, startWater] = useTransition();
   const [mealName, setMealName] = useState("");
   const [mealType, setMealType] = useState("lunch");
   const [description, setDescription] = useState("");
@@ -318,16 +313,6 @@ export function NutritionView({
     });
   }
 
-  function logWater(amount_ml: number) {
-    startWater(async () => {
-      const formData = new FormData();
-      formData.set("amount_ml", String(amount_ml));
-      const result = await addWaterIntake(formData);
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
-    });
-  }
-
   return (
     <>
       <PageHeader
@@ -337,6 +322,12 @@ export function NutritionView({
         action={
           <div className="flex flex-wrap items-center gap-2">
             {meals.length > 0 && <ShareExportMenu compact doc={mealsDoc(meals)} />}
+            <Link
+              href="/dashboard/nutrition/sheet"
+              className="inline-flex items-center rounded-full border border-ink/12 bg-panel/70 px-4 py-2.5 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
+            >
+              Sheet view
+            </Link>
             {mode === "log" ? (
               <PrimaryButton
                 type="button"
@@ -360,59 +351,21 @@ export function NutritionView({
         }
       />
       <ModuleSubNav items={nutritionSubNav} />
+      {mode === "overview" && (
+        <ModuleJumpLinks
+          items={[
+            { href: "/dashboard/nutrition/log", title: "Log a meal", icon: Apple },
+            { href: "/dashboard/nutrition/sheet", title: "Sheet view", icon: Flame },
+            { href: "/dashboard/hydration", title: "Log water", icon: Droplets },
+          ]}
+        />
+      )}
 
       {mode === "log" && (
-        <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <StatCard
-              label="Calories left"
-              value={String(Math.max(0, calorieGoal - totalCalories))}
-              detail={`${totalCalories} / ${calorieGoal} kcal today`}
-              icon={Flame}
-            />
-            <StatCard
-              label="Protein left"
-              value={`${Math.max(0, Math.round(proteinGoal - totalProtein))}g`}
-              detail={`${Math.round(totalProtein)} / ${proteinGoal}g`}
-              icon={Apple}
-            />
-            <StatCard
-              label="Meals today"
-              value={String(meals.length)}
-              detail={meals[0]?.meal_name ?? "Nothing logged yet"}
-              icon={Droplets}
-            />
-          </div>
-
-          {pantryItems.length > 0 && (
-            <Panel title="Cook from pantry" className="mb-4">
-              <p className="mb-3 text-xs text-muted">
-                Tap an item you used — it fills the meal name so you can estimate macros next.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {pantryItems
-                  .filter((item) => item.stock_level > 0)
-                  .slice(0, 14)
-                  .map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setMealName(item.name);
-                        setDescription((prev) =>
-                          prev.includes(item.name) ? prev : [prev, item.name].filter(Boolean).join(", "),
-                        );
-                        toast.success(`Using ${item.name} from pantry`);
-                      }}
-                      className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/30 hover:text-accent"
-                    >
-                      {item.name}
-                    </button>
-                  ))}
-              </div>
-            </Panel>
-          )}
-        </>
+        <p className="-mt-2 mb-8 max-w-xl text-sm leading-6 text-muted">
+          No scale needed. Pick a quick meal, describe what you ate, or add a photo — approximate
+          macros are enough.
+        </p>
       )}
 
       {mode === "log" && (
@@ -434,24 +387,38 @@ export function NutritionView({
             </div>
           )}
 
-          <Panel title="No scale needed" className="mb-4" right={<Hand size={16} className="text-accent" />}>
-            <p className="text-sm leading-6 text-muted">
-              Use <span className="font-black text-accent">Suggest meal</span> for an idea from your
-              pantry and today&apos;s logs — or pick a quick meal, describe what you ate, or add a
-              photo. Approximate macros are enough; trends matter more than perfect grams.
-            </p>
-            <ul className="mt-3 grid gap-2 text-xs leading-5 text-muted sm:grid-cols-3">
-              <li className="rounded-xl bg-surface/70 px-3 py-2">
-                <span className="font-black text-accent">Palm</span> ≈ protein serving
-              </li>
-              <li className="rounded-xl bg-surface/70 px-3 py-2">
-                <span className="font-black text-accent">Fist</span> ≈ carbs / rice / pasta
-              </li>
-              <li className="rounded-xl bg-surface/70 px-3 py-2">
-                <span className="font-black text-accent">Thumb</span> ≈ fats / oils / nuts
-              </li>
-            </ul>
-          </Panel>
+          {pantryItems.length > 0 && (
+            <div className="mb-8">
+              <p className="mb-3 text-xs font-bold text-muted">Used something from the pantry?</p>
+              <div className="flex flex-wrap gap-2">
+                {pantryItems
+                  .filter((item) => item.stock_level > 0)
+                  .slice(0, 10)
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setMealName(item.name);
+                        setDescription((prev) =>
+                          prev.includes(item.name) ? prev : [prev, item.name].filter(Boolean).join(", "),
+                        );
+                        toast.success(`Using ${item.name} from pantry`);
+                      }}
+                      className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/30 hover:text-accent"
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          <p className="mb-8 text-xs leading-5 text-muted">
+            <span className="font-black text-accent">Palm</span> ≈ protein ·{" "}
+            <span className="font-black text-accent">Fist</span> ≈ carbs ·{" "}
+            <span className="font-black text-accent">Thumb</span> ≈ fats
+          </p>
 
           <Panel title="1. Portion size" className="mb-4">
             <p className="mb-3 text-xs text-muted">
@@ -471,7 +438,7 @@ export function NutritionView({
                   onClick={() => choosePortion(value)}
                   className={`focus-ring rounded-xl border px-3.5 py-2.5 text-xs font-black transition ${
                     portion === value
-                      ? "border-accent/35 bg-accent text-white"
+                      ? "border-accent/35 bg-accent text-accent-fg"
                       : "border-ink/10 bg-surface/70 text-accent hover:bg-panel"
                   }`}
                 >
@@ -707,54 +674,8 @@ export function NutritionView({
           </div>
 
           <Panel
-            title="Log water"
-            className="mt-4"
-            right={<Droplets size={16} className="text-accent" />}
-          >
-            <p className="mb-3 text-xs leading-5 text-muted">
-              Tap a glass or bottle — no need to measure milliliters yourself.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {WATER_PRESETS.map((preset) => (
-                <button
-                  key={preset.amount_ml}
-                  type="button"
-                  disabled={addingWater}
-                  onClick={() => logWater(preset.amount_ml)}
-                  className="focus-ring rounded-xl border border-ink/10 bg-surface px-3.5 py-2.5 text-xs font-black text-ink transition hover:border-accent/30 hover:bg-panel disabled:opacity-60"
-                >
-                  {preset.label}
-                  <span className="ml-1.5 font-semibold text-muted">{preset.detail}</span>
-                </button>
-              ))}
-            </div>
-          </Panel>
-
-          {pantryItems.length > 0 && (
-            <Panel title="Cook from pantry" className="mt-4">
-              <p className="mb-3 text-xs text-muted">
-                Open log meal and tap a shelf item — or start from here.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {pantryItems
-                  .filter((item) => item.stock_level > 0)
-                  .slice(0, 12)
-                  .map((item) => (
-                    <Link
-                      key={item.id}
-                      href="/dashboard/nutrition/log"
-                      className="rounded-full border border-ink/10 bg-surface px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent/30 hover:text-accent"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-              </div>
-            </Panel>
-          )}
-
-          <Panel
             title="Logged meals"
-            className="mt-4"
+            className="mt-8"
             right={meals.length > 0 ? <ShareExportMenu compact doc={mealsDoc(meals)} /> : undefined}
           >
             <div className="space-y-2">
@@ -812,6 +733,7 @@ export function NutritionView({
                         disabled={deleting}
                         onClick={() =>
                           startDelete(async () => {
+                            if (!(await confirmDelete("this meal"))) return;
                             const result = await deleteMeal(meal.id);
                             if (result.ok) toast.success(result.message);
                             else toast.error(result.message);

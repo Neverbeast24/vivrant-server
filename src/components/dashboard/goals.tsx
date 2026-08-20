@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2, Pause, Pencil, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   addHealthGoal,
   deleteHealthGoal,
@@ -350,7 +351,10 @@ export function GoalsPanel({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => run(() => deleteHealthGoal(goal.id))}
+                    onClick={async () => {
+                      if (!(await confirmDelete(goal.title))) return;
+                      run(() => deleteHealthGoal(goal.id));
+                    }}
                     className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
                     title="Delete goal"
                   >

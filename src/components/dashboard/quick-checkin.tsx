@@ -57,7 +57,7 @@ export function QuickCheckin() {
             className="fixed inset-0 z-[950] flex items-center justify-center p-4"
           >
             <div
-              className="absolute inset-0 bg-[#191622]/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-solid/50 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -78,7 +78,7 @@ export function QuickCheckin() {
                   type="button"
                   aria-label="Close"
                   onClick={() => setOpen(false)}
-                  className="focus-ring grid size-9 place-items-center rounded-full bg-card/85 text-[#726d79] transition hover:bg-card"
+                  className="focus-ring grid size-9 place-items-center rounded-full bg-card/85 text-muted transition hover:bg-card"
                 >
                   <X size={17} />
                 </button>
@@ -86,7 +86,7 @@ export function QuickCheckin() {
 
               <form action={formAction} className="space-y-4">
                 <div>
-                  <span className="mb-2 block text-xs font-bold text-[#615d69]">Mood</span>
+                  <span className="mb-2 block text-xs font-bold text-muted">Mood</span>
                   <input type="hidden" name="mood" value={mood} />
                   <div className="flex justify-between gap-2">
                     {moods.map(([val, emoji]) => (
@@ -114,7 +114,7 @@ export function QuickCheckin() {
                 </div>
 
                 <label className="block">
-                  <span className="mb-2 block text-xs font-bold text-[#615d69]">Note</span>
+                  <span className="mb-2 block text-xs font-bold text-muted">Note</span>
                   <textarea
                     name="note"
                     rows={2}
@@ -166,7 +166,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold text-[#615d69]">{label}</span>
+      <span className="mb-2 block text-xs font-bold text-muted">{label}</span>
       <input
         name={name}
         type="number"

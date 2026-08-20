@@ -25,7 +25,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import type { ActivityItem } from "@/lib/activity-format";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   createAiGymPlan,
   deleteGymPlan,
@@ -415,7 +417,7 @@ function FilterChip({
   tone?: "neutral" | "accent";
 }) {
   const activeClass =
-    tone === "accent" ? "bg-accent text-white" : "bg-inverse text-inverse-fg";
+    tone === "accent" ? "bg-accent text-accent-fg" : "bg-inverse text-inverse-fg";
   const idleClass =
     tone === "accent"
       ? "bg-accent-soft text-accent hover:bg-panel"
@@ -749,11 +751,13 @@ export function GymPlansView({
   exercises,
   scaling = null,
   draft: initialDraft = null,
+  programHistory = [],
 }: {
   plans: GymPlan[];
   exercises: GymExercise[];
   scaling?: RoutineScaling | null;
   draft?: GymProgramDraft | null;
+  programHistory?: ActivityItem[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -1128,7 +1132,7 @@ export function GymPlansView({
 
       <Panel title="How often do you train?" className="mb-4">
         <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Training days</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-muted">Training days</p>
           <p className="mt-1 text-xs leading-5 text-muted">
             Pick 2–6 weekdays. {trainingDays.length} days/week
             {formatRestDaysLabel(trainingDays) ? ` · ${formatRestDaysLabel(trainingDays)}` : ""}.
@@ -1158,7 +1162,7 @@ export function GymPlansView({
           )}
         </div>
         <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">
+          <p className="text-[10px] font-black uppercase tracking-wider text-muted">
             Minutes per workout
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -1193,7 +1197,7 @@ export function GymPlansView({
           )}
         </div>
         <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Experience</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-muted">Experience</p>
           <p className="mt-1 text-xs leading-5 text-muted">
             Working loads use your body weight and this level.
           </p>
@@ -1268,13 +1272,13 @@ export function GymPlansView({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">Focus</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-muted">Focus</p>
                 <p className="mt-1 text-sm font-bold capitalize text-ink">
                   {humanizeGymLabel(scaling.focus)}
                 </p>
               </div>
               <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-[#948e99]">
+                <p className="text-[10px] font-black uppercase tracking-wider text-muted">
                   Intensity
                 </p>
                 <p className="mt-1 text-sm font-bold text-ink">{scaling.intensity}</p>
@@ -1317,7 +1321,7 @@ export function GymPlansView({
             </ul>
 
             {!scaling.bmi && (
-              <p className="text-xs font-semibold text-[#8a6a4a]">
+              <p className="text-xs font-semibold text-muted">
                 Add height, weight, and a goal date in Profile → Goals so programs can match your level.
               </p>
             )}
@@ -1476,7 +1480,7 @@ export function GymPlansView({
                   onClick={() => toggleKnownMachine(machine.slug)}
                   className={`grid size-6 shrink-0 place-items-center rounded-md border transition ${
                     checked
-                      ? "border-accent bg-accent text-inverse-fg"
+                      ? "border-accent bg-accent text-accent-fg"
                       : "border-ink/15 bg-panel text-transparent"
                   }`}
                   aria-pressed={checked}
@@ -1538,7 +1542,7 @@ export function GymPlansView({
                   onClick={() => toggleKnownMachine(move.slug)}
                   className={`grid size-6 shrink-0 place-items-center rounded-md border transition ${
                     checked
-                      ? "border-accent bg-accent text-inverse-fg"
+                      ? "border-accent bg-accent text-accent-fg"
                       : "border-ink/15 bg-panel text-transparent"
                   }`}
                   aria-pressed={checked}
@@ -1688,7 +1692,10 @@ export function GymPlansView({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => run(() => deleteGymPlan(plan.id))}
+                    onClick={async () => {
+                      if (!(await confirmDelete(plan.title))) return;
+                      run(() => deleteGymPlan(plan.id));
+                    }}
                     aria-label={`Delete ${plan.title}`}
                     className="grid size-10 place-items-center rounded-full text-muted transition hover:bg-ember/15 hover:text-ember"
                   >
@@ -1877,6 +1884,32 @@ export function GymPlansView({
           )}
         </div>
       </Panel>
+      {programHistory.length > 0 && (
+        <Panel
+          title="Program history"
+          className="mt-4"
+          right={
+            <Link href="/dashboard/activity" className="text-[11px] font-black text-accent">
+              All activity
+            </Link>
+          }
+        >
+          <div className="grid gap-2">
+            {programHistory.slice(0, 12).map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl border border-ink/6 bg-surface/45 px-4 py-3"
+              >
+                <p className="truncate text-sm font-bold">{item.title}</p>
+                <p className="mt-0.5 text-xs text-muted">{item.detail}</p>
+                <p className="mt-1 text-[11px] text-muted">
+                  {new Date(item.created_at).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
       <AnimatePresence>
         {activeDemo && <DemoModal exercise={activeDemo} onClose={() => setActiveDemo(null)} />}
       </AnimatePresence>

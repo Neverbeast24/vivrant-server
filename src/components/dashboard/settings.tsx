@@ -50,10 +50,10 @@ const BMI_SCALE_MIN = 15;
 const BMI_SCALE_MAX = 40;
 
 const BMI_BANDS = [
-  { key: "underweight", label: "Underweight", max: 18.5, color: "#5b8def" },
-  { key: "normal", label: "Normal", max: 25, color: "#0e7c66" },
-  { key: "overweight", label: "Overweight", max: 30, color: "#0a5c4c" },
-  { key: "obese", label: "Obese", max: BMI_SCALE_MAX, color: "#b42318" },
+  { key: "underweight", label: "Underweight", max: 18.5, color: "var(--info)" },
+  { key: "normal", label: "Normal", max: 25, color: "var(--accent)" },
+  { key: "overweight", label: "Overweight", max: 30, color: "var(--warn)" },
+  { key: "obese", label: "Obese", max: BMI_SCALE_MAX, color: "var(--danger)" },
 ] as const;
 
 const SEX_LABELS: Record<string, string> = {
@@ -395,7 +395,7 @@ export function SettingsView({
                 return (
                   <div key={String(label)} className="rounded-2xl bg-surface/60 p-4">
                     <SnapshotIcon size={16} className="text-accent" />
-                    <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-[#948e99]">
+                    <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-muted">
                       {String(label)}
                     </p>
                     <p className="mt-1 text-sm font-black capitalize">{String(value)}</p>

@@ -516,7 +516,7 @@ export function ProgramSessionPanel({
               <p className="font-display text-3xl leading-none">{formatRestClock(restRemaining)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-2 w-16 overflow-hidden rounded-full bg-white/20 sm:w-24">
+              <div className="h-2 w-16 overflow-hidden rounded-full bg-inverse-fg/20 sm:w-24">
                 <div
                   className="h-full rounded-full bg-accent"
                   style={{ width: `${Math.max(4, (restRemaining / Math.max(rest.total, 1)) * 100)}%` }}
@@ -525,7 +525,7 @@ export function ProgramSessionPanel({
               <button
                 type="button"
                 onClick={() => setRest(null)}
-                className="inline-flex items-center gap-1 rounded-full bg-white/12 px-3 py-1.5 text-[11px] font-black"
+                className="inline-flex items-center gap-1 rounded-full bg-inverse-fg/12 px-3 py-1.5 text-[11px] font-black"
               >
                 <X size={12} /> Skip
               </button>
@@ -553,7 +553,7 @@ export function ProgramSessionPanel({
                     onClick={() => toggleExercise(item)}
                     className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition ${
                       complete
-                        ? "border-accent bg-accent text-inverse-fg"
+                        ? "border-accent bg-accent text-accent-fg"
                         : "border-ink/20 bg-card text-transparent hover:border-accent/50"
                     }`}
                     aria-label={`Mark ${displayName} complete`}
@@ -583,7 +583,7 @@ export function ProgramSessionPanel({
                           onClick={() => toggleSet(item, index)}
                           className={`rounded-full border px-2.5 py-1 text-[11px] font-black transition ${
                             on
-                              ? "border-accent/40 bg-accent text-inverse-fg"
+                              ? "border-accent/40 bg-accent text-accent-fg"
                               : "border-ink/10 bg-card text-muted hover:border-accent/30 hover:text-ink"
                           }`}
                         >

@@ -35,9 +35,9 @@ type FilterTab = "active" | "quoted" | "closed" | "all";
 
 const STATUS_STYLE: Record<string, string> = {
   open: "bg-ember/15 text-ember",
-  in_progress: "bg-[#3b6fd8]/15 text-[#8eb0ff]",
+  in_progress: "bg-info/15 text-info",
   resolved: "bg-accent/15 text-accent",
-  closed: "bg-white/8 text-muted",
+  closed: "bg-ink/8 text-muted",
 };
 
 function defaultPrice(plan: string, existing: number | null) {

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { archiveRecord } from "@/lib/archive";
+import { groceryToPantryCategory } from "@/app/dashboard/pantry/shared";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, readJson, parseIdParam } from "@/lib/mobile/http";
 
@@ -50,7 +52,7 @@ async function restockPantryFromGrocery(
     await supabase.from("pantry_items").insert({
       user_id: userId,
       name,
-      category: item.category || "other",
+      category: groceryToPantryCategory(item.category || "other"),
       stock_level: 80,
     });
   }
@@ -116,12 +118,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid item id.", 400);
 
-  const { error } = await supabase
-    .from("grocery_items")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
+  const result = await archiveRecord(supabase, {
+    table: "grocery_items",
+    id,
+    userId: user.id,
+    auditAction: "grocery_item_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

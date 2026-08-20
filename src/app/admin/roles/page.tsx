@@ -91,7 +91,7 @@ export default async function AdminRolesPage() {
           {MODULES.map((module) => (
             <span
               key={module}
-              className="rounded-full border border-ink/10 bg-surface/70 px-3 py-1.5 text-xs font-bold text-[#5f5a67]"
+              className="rounded-full border border-ink/10 bg-surface/70 px-3 py-1.5 text-xs font-bold text-muted"
             >
               {module}
             </span>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Flame, Pencil, Sparkles, Target, Trash2, Trophy } from "lucide-react";
+import { Check, Flame, Pencil, Plus, Sparkles, Target, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   addHabit,
   createChallenge,
@@ -17,6 +18,7 @@ import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import {
   EmptyState,
   FormField,
+  ModuleJumpLinks,
   PageHeader,
   Panel,
   PrimaryButton,
@@ -31,6 +33,7 @@ import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 
 const habitsSubNav = [
   { href: "/dashboard/habits", label: "Overview" },
+  { href: "/dashboard/habits/add", label: "Add" },
   { href: "/dashboard/habits/challenges", label: "Challenges" },
 ] as const;
 
@@ -64,7 +67,7 @@ export function HabitsView({
 }: {
   habits: Habit[];
   bestStreak: number;
-  section?: "overview" | "challenges";
+  section?: "overview" | "challenges" | "add";
   challenges?: ChallengeRow[];
   listOrder?: number[];
 }) {
@@ -81,8 +84,12 @@ export function HabitsView({
     <>
       <PageHeader
         eyebrow="HABITS"
-        title={section === "challenges" ? "Weekly" : "Streaks that"}
-        highlight={section === "challenges" ? "challenges." : "stick."}
+        title={
+          section === "challenges" ? "Weekly" : section === "add" ? "Add a" : "Streaks that"
+        }
+        highlight={
+          section === "challenges" ? "challenges." : section === "add" ? "habit." : "stick."
+        }
         action={
           section === "challenges" ? (
             <PrimaryButton
@@ -95,7 +102,7 @@ export function HabitsView({
             >
               Sync progress
             </PrimaryButton>
-          ) : (
+          ) : section === "add" ? (
             <PrimaryButton
               disabled={suggestPending}
               className="rounded-full"
@@ -114,10 +121,28 @@ export function HabitsView({
               <Sparkles size={14} className="mr-1.5 inline" />
               {suggestPending ? "Thinking…" : "AI habit ideas"}
             </PrimaryButton>
-          )
+          ) : undefined
         }
       />
       <ModuleSubNav items={habitsSubNav} />
+      <ModuleJumpLinks
+        items={
+          section === "overview"
+            ? [
+                { href: "/dashboard/habits/add", title: "Add a habit", icon: Plus },
+                { href: "/dashboard/habits/challenges", title: "Weekly challenges", icon: Trophy },
+              ]
+            : section === "add"
+              ? [
+                  { href: "/dashboard/habits", title: "Today’s habits", icon: Check },
+                  { href: "/dashboard/habits/challenges", title: "Weekly challenges", icon: Trophy },
+                ]
+              : [
+                  { href: "/dashboard/habits", title: "Today’s habits", icon: Check },
+                  { href: "/dashboard/habits/add", title: "Add a habit", icon: Plus },
+                ]
+        }
+      />
 
       {section === "overview" && (
         <>
@@ -146,8 +171,7 @@ export function HabitsView({
             </div>
           </Stagger>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Today">
+          <Panel title="Today" className="mb-8">
               <p className="mb-2 text-[11px] font-bold leading-4 text-muted">
                 Drag the grips to reorder habits.
               </p>
@@ -169,7 +193,7 @@ export function HabitsView({
                       }}
                       className={`grid size-9 place-items-center rounded-xl border ${
                         habit.doneToday
-                          ? "border-accent bg-accent text-white"
+                          ? "border-accent bg-accent text-accent-fg"
                           : "border-ink/15 text-muted"
                       }`}
                     >
@@ -226,6 +250,7 @@ export function HabitsView({
                       type="button"
                       className="rounded-lg p-2 text-muted hover:bg-ink/5"
                       onClick={async () => {
+                        if (!(await confirmDelete(habit.title))) return;
                         const result = await deleteHabit(habit.id);
                         if (result.ok) toast.success(result.message);
                         else toast.error(result.message);
@@ -237,115 +262,51 @@ export function HabitsView({
                 ))}
                 {!orderedHabits.length && (
                   <EmptyState>
-                    Add your first habit — try “Drink water” or “Stretch 5 minutes”, or tap{" "}
-                    <span className="font-black">AI habit ideas</span> above.
+                    Add your first habit on the{" "}
+                    <span className="font-black">Add</span> page — try “Drink water” or “Stretch 5 minutes”.
                   </EmptyState>
                 )}
               </div>
             </Panel>
-
-            <Panel title="Add habit">
-              <form action={submit} className="grid gap-3">
-                <FormField label="Title">
-                  <input name="title" required placeholder="Stretch 5 minutes" className={fieldClass} />
-                </FormField>
-                <FormField label="Category">
-                  <select name="category" className={fieldClass} defaultValue="other">
-                    {["nutrition", "movement", "sleep", "mindfulness", "hydration", "other"].map(
-                      (c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </FormField>
-                <PrimaryButton disabled={pending}>{pending ? "Adding…" : "Add habit"}</PrimaryButton>
-              </form>
-              {ideas.length > 0 && (
-                <ul className="mt-4 space-y-2">
-                  {ideas.map((idea) => (
-                    <li key={idea.title} className="rounded-xl border border-ink/8 p-3 text-sm">
-                      <p className="font-bold">{idea.title}</p>
-                      <p className="text-xs text-muted">
-                        {idea.category} · {idea.reason}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
-          </div>
-
-          {challenges.length > 0 && (
-            <Panel title="This week’s challenges" className="mt-6">
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {challenges.slice(0, 4).map((c) => {
-                  const pct = Math.min(
-                    100,
-                    Math.round((Number(c.current_value) / Math.max(Number(c.target_value), 1)) * 100),
-                  );
-                  return (
-                    <li key={c.id} className="rounded-2xl border border-ink/8 p-4">
-                      <p className="flex items-center gap-2 text-sm font-black">
-                        <Trophy size={14} className="text-accent" />
-                        {c.title}
-                        {c.completed ? " · Done" : ""}
-                      </p>
-                      <p className="mt-1 text-xs text-muted">
-                        {c.metric} · {Number(c.current_value).toFixed(0)} / {Number(c.target_value)}
-                      </p>
-                      <div className="mt-3">
-                        <Progress value={pct} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Panel>
-          )}
         </>
       )}
 
-      {section === "challenges" && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Today’s habits">
-            <p className="mb-3 text-xs text-muted">
-              Checking habits here counts toward challenges that use the habits metric.
-            </p>
-            <ul className="space-y-2">
-              {habits.map((habit) => (
-                <li
-                  key={habit.id}
-                  className="flex items-center gap-3 rounded-2xl border border-ink/8 px-3 py-3"
-                >
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const result = await toggleHabitToday(habit.id, !habit.doneToday);
-                      if (result.ok) toast.success(result.message);
-                      else toast.error(result.message);
-                    }}
-                    className={`grid size-9 place-items-center rounded-xl border ${
-                      habit.doneToday
-                        ? "border-accent bg-accent text-white"
-                        : "border-ink/15 text-muted"
-                    }`}
-                  >
-                    <Check size={16} />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{habit.title}</p>
-                    <p className="text-xs text-muted">{habit.category}</p>
-                  </div>
+      {section === "add" && (
+        <Panel title="New habit">
+          <form action={submit} className="grid max-w-xl gap-4">
+            <FormField label="Title">
+              <input name="title" required placeholder="Stretch 5 minutes" className={fieldClass} />
+            </FormField>
+            <FormField label="Category">
+              <select name="category" className={fieldClass} defaultValue="other">
+                {["nutrition", "movement", "sleep", "mindfulness", "hydration", "other"].map(
+                  (c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ),
+                )}
+              </select>
+            </FormField>
+            <PrimaryButton disabled={pending}>{pending ? "Adding…" : "Add habit"}</PrimaryButton>
+          </form>
+          {ideas.length > 0 && (
+            <ul className="mt-6 space-y-3">
+              {ideas.map((idea) => (
+                <li key={idea.title} className="rounded-2xl border border-ink/8 p-4 text-sm">
+                  <p className="font-bold">{idea.title}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {idea.category} · {idea.reason}
+                  </p>
                 </li>
               ))}
-              {!habits.length && (
-                <EmptyState>Add habits on Overview — they’ll show up here to check off.</EmptyState>
-              )}
             </ul>
-          </Panel>
+          )}
+        </Panel>
+      )}
 
+      {section === "challenges" && (
+        <div className="grid gap-8 lg:grid-cols-2">
           <Panel title="Create weekly challenge">
             <form action={challengeAction.submit} className="grid gap-3">
               <FormField label="Title">
@@ -396,6 +357,7 @@ export function HabitsView({
                         type="button"
                         className="rounded-lg p-2 text-muted hover:bg-ink/5"
                         onClick={async () => {
+                          if (!(await confirmDelete(c.title))) return;
                           const result = await deleteChallenge(c.id);
                           if (result.ok) toast.success(result.message);
                           else toast.error(result.message);

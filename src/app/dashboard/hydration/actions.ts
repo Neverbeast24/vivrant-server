@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { quietSoftDelete } from "@/lib/archive";
 import { syncGoalProgress } from "@/lib/goals/progress";
 import { syncChallengeProgress } from "@/lib/challenges/progress";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
@@ -67,12 +68,12 @@ export async function scheduleHydrationReminders() {
     .maybeSingle();
   const timezone = settings?.timezone || "Asia/Manila";
 
-  await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("kind", "hydration")
-    .eq("source_id", "hydration-preset");
+  const cleared = await quietSoftDelete(supabase, {
+    table: "user_reminders",
+    userId: user.id,
+    match: { kind: "hydration", source_id: "hydration-preset" },
+  });
+  if (!cleared.ok) return { ok: false, message: cleared.message };
 
   const slots = [
     { time: "10:00", body: "Mid-morning sip — refill your bottle." },

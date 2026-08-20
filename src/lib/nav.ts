@@ -1,8 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  AlertTriangle,
   Apple,
+  Archive,
   BookOpen,
+  ClipboardList,
   BrainCircuit,
   Cog,
   Droplets,
@@ -20,7 +21,6 @@ import {
   Settings2,
   ShoppingBasket,
   Sparkles,
-  Tags,
   Target,
   UserRound,
   WalletCards,
@@ -56,6 +56,7 @@ export const dashboardNav: NavItem[] = [
     children: [
       { label: "Overview", href: "/dashboard/nutrition", caption: "Today’s meals" },
       { label: "Log meal", href: "/dashboard/nutrition/log", caption: "Add or suggest" },
+      { label: "Sheet view", href: "/dashboard/nutrition/sheet", caption: "Excel-style log" },
     ],
   },
   {
@@ -96,7 +97,8 @@ export const dashboardNav: NavItem[] = [
     caption: "Streaks and challenges",
     href: "/dashboard/habits",
     children: [
-      { label: "Overview", href: "/dashboard/habits", caption: "Daily habits" },
+      { label: "Overview", href: "/dashboard/habits", caption: "Daily checkboxes" },
+      { label: "Add habit", href: "/dashboard/habits/add", caption: "Start a new streak" },
       { label: "Challenges", href: "/dashboard/habits/challenges", caption: "Weekly targets" },
     ],
   },
@@ -107,9 +109,14 @@ export const dashboardNav: NavItem[] = [
     href: "/dashboard/kitchen",
     children: [
       { label: "Overview", href: "/dashboard/kitchen", caption: "List + pantry pulse" },
-      { label: "Shopping", href: "/dashboard/groceries", caption: "Smart grocery list" },
+      { label: "Shopping", href: "/dashboard/groceries", caption: "Your grocery list" },
+      { label: "Add groceries", href: "/dashboard/groceries/add", caption: "Form or paste a list" },
+      { label: "Sheet view", href: "/dashboard/groceries/sheet", caption: "Excel-style list" },
+      { label: "Meal plan", href: "/dashboard/groceries/plan", caption: "AI list from meals" },
+      { label: "Prices", href: "/dashboard/groceries/insights", caption: "Budget and PH trends" },
       { label: "Pantry", href: "/dashboard/pantry", caption: "Stock at a glance" },
       { label: "All items", href: "/dashboard/pantry/items", caption: "Full inventory" },
+      { label: "Pantry sheet", href: "/dashboard/pantry/sheet", caption: "Excel-style stock" },
       { label: "Categories", href: "/dashboard/pantry/categories", caption: "Browse by type" },
       { label: "Low stock", href: "/dashboard/pantry/low-stock", caption: "Needs restock" },
       { label: "Add item", href: "/dashboard/pantry/add", caption: "Log new stock" },
@@ -153,6 +160,8 @@ export const dashboardNav: NavItem[] = [
       { label: "Health profile", href: "/dashboard/settings", caption: "Avatar & body stats" },
       { label: "Goals", href: "/dashboard/settings/goals", caption: "Targets" },
       { label: "Health history", href: "/dashboard/settings/history", caption: "Measurements" },
+      { label: "Activity", href: "/dashboard/activity", caption: "Change history" },
+      { label: "Archived", href: "/dashboard/archive", caption: "Restore deleted items" },
       { label: "Preferences", href: "/dashboard/settings/preferences", caption: "App settings" },
     ],
   },
@@ -186,10 +195,8 @@ export const wellnessSubNav = [
 export const kitchenSubNav = [
   { href: "/dashboard/kitchen", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/groceries", label: "Shopping", icon: ShoppingBasket },
+  { href: "/dashboard/groceries/sheet", label: "Sheet", icon: FileBarChart },
   { href: "/dashboard/pantry", label: "Pantry", icon: Refrigerator },
-  { href: "/dashboard/pantry/items", label: "Items", icon: Refrigerator },
-  { href: "/dashboard/pantry/categories", label: "Categories", icon: Tags },
-  { href: "/dashboard/pantry/low-stock", label: "Low stock", icon: AlertTriangle },
   { href: "/dashboard/pantry/add", label: "Add", icon: PackagePlus },
 ] as const;
 
@@ -200,6 +207,8 @@ export const settingsSubNav = [
   { href: "/dashboard/settings", label: "Profile", icon: UserRound },
   { href: "/dashboard/settings/goals", label: "Goals", icon: Target },
   { href: "/dashboard/settings/history", label: "History", icon: History },
+  { href: "/dashboard/activity", label: "Activity", icon: ClipboardList },
+  { href: "/dashboard/archive", label: "Archived", icon: Archive },
   { href: "/dashboard/settings/preferences", label: "Preferences", icon: HeartPulse },
 ] as const;
 
@@ -228,11 +237,21 @@ export function pathMatches(pathname: string, href: string) {
   if (href === "/dashboard/wellness") return pathname === "/dashboard/wellness";
   if (href === "/dashboard/kitchen") return pathname === "/dashboard/kitchen";
   if (href === "/dashboard/gym") return pathname === "/dashboard/gym";
+  if (href === "/dashboard/groceries") {
+    return (
+      pathname === "/dashboard/groceries" ||
+      pathname.startsWith("/dashboard/groceries/add") ||
+      pathname.startsWith("/dashboard/groceries/plan") ||
+      pathname.startsWith("/dashboard/groceries/insights")
+    );
+  }
   if (href === "/dashboard/pantry") return pathname === "/dashboard/pantry";
   if (href === "/dashboard/spending") return pathname === "/dashboard/spending";
   if (href === "/dashboard/ai") return pathname === "/dashboard/ai";
   if (href === "/dashboard/settings") return pathname === "/dashboard/settings";
-  if (href === "/dashboard/habits") return pathname === "/dashboard/habits";
+  if (href === "/dashboard/habits") {
+    return pathname === "/dashboard/habits" || pathname.startsWith("/dashboard/habits/add");
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

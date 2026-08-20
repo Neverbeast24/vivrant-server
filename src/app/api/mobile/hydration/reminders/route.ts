@@ -1,3 +1,4 @@
+import { quietSoftDelete } from "@/lib/archive";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk } from "@/lib/mobile/http";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
@@ -22,12 +23,12 @@ export async function POST(request: Request) {
     .maybeSingle();
   const timezone = settings?.timezone || "Asia/Manila";
 
-  await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("kind", "hydration")
-    .eq("source_id", "hydration-preset");
+  const cleared = await quietSoftDelete(supabase, {
+    table: "user_reminders",
+    userId: user.id,
+    match: { kind: "hydration", source_id: "hydration-preset" },
+  });
+  if (!cleared.ok) return jsonError(cleared.message, 500);
 
   const rows = HYDRATION_SLOTS.map((slot) => ({
     user_id: user.id,

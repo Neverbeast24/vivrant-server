@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Flame, Footprints, Heart, Pencil, Sparkles, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import { deleteWorkout, logWorkout, updateWorkout } from "@/app/dashboard/movement/actions";
 import { suggestWorkoutWithAi } from "@/app/dashboard/movement/ai-actions";
 import {
@@ -107,7 +108,7 @@ export function MovementView({
       />
       <ModuleSubNav items={trainingSubNav} />
 
-      {(mode === "log" || plans.length > 0) && (
+      {(mode === "log") && (
         <ProgramSessionPanel
           plans={plans}
           compact
@@ -275,6 +276,7 @@ export function MovementView({
                       disabled={deleting}
                       onClick={() =>
                         startDelete(async () => {
+                          if (!(await confirmDelete(workout.title))) return;
                           const result = await deleteWorkout(workout.id);
                           if (result.ok) toast.success(result.message);
                           else toast.error(result.message);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { archiveRecord } from "@/lib/archive";
 import { createClient } from "@/lib/supabase/server";
 
 const workoutSchema = z.object({
@@ -84,12 +85,13 @@ export async function deleteWorkout(id: number) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase
-    .from("workout_logs")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "workout_logs",
+    id,
+    userId: user.id,
+    auditAction: "workout_deleted",
+  });
+  if (!result.ok) return result;
   revalidatePath("/dashboard/movement");
-  return { ok: true, message: "Workout removed." };
+  return result;
 }

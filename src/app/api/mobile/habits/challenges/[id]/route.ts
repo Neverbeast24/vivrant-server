@@ -1,3 +1,4 @@
+import { archiveRecord } from "@/lib/archive";
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk, parseIdParam } from "@/lib/mobile/http";
 
@@ -15,12 +16,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id === null) return jsonError("Invalid challenge id.");
 
-  const { error } = await supabase
-    .from("challenges")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-
-  if (error) return jsonError(error.message, 500);
+  const result = await archiveRecord(supabase, {
+    table: "challenges",
+    id,
+    userId: user.id,
+    auditAction: "challenge_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

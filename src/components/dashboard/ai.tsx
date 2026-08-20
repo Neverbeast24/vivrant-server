@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Bell, BrainCircuit, Dumbbell, MessageCircle, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   askVivaQuestion,
   generateInsight,
@@ -386,6 +387,7 @@ export function AiView({
                         type="button"
                         className="rounded-lg p-2 text-muted hover:bg-ink/5"
                         onClick={async () => {
+                          if (!(await confirmDelete(r.title))) return;
                           const result = await deleteReminder(r.id);
                           if (result.ok) toast.success(result.message);
                           else toast.error(result.message);

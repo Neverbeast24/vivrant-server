@@ -12,6 +12,7 @@ export default async function GymPlansPage() {
       exercises={data.exercises}
       scaling={data.scaling}
       draft={data.draft}
+      programHistory={data.programHistory}
     />
   );
 }

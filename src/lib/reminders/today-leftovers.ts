@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { writeAuditLog } from "@/lib/audit";
+import { quietSoftDelete } from "@/lib/archive";
 import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan } from "@/lib/gym";
 import { leftoverReminderCopy } from "@/lib/reminders/today-leftovers-copy";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
@@ -109,11 +110,12 @@ export async function syncTodayLeftoverReminders(
   const copy = leftoverReminderCopy(parts);
   const timezone = settingsRes.data?.timezone || "Asia/Manila";
 
-  await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("user_id", userId)
-    .eq("source_id", TODAY_LEFTOVER_SOURCE);
+  const cleared = await quietSoftDelete(supabase, {
+    table: "user_reminders",
+    userId,
+    match: { source_id: TODAY_LEFTOVER_SOURCE },
+  });
+  if (!cleared.ok) return { ok: false, message: cleared.message };
 
   if (!copy) {
     return { ok: true, message: "You’re caught up — nothing left to nudge." };

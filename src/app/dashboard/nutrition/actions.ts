@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { archiveRecord } from "@/lib/archive";
 import { createClient } from "@/lib/supabase/server";
 
 const mealSchema = z.object({
@@ -47,8 +48,48 @@ export async function logMeal(formData: FormData) {
   await syncGoalProgress(supabase, user.id);
 
   revalidatePath("/dashboard/nutrition");
+  revalidatePath("/dashboard/nutrition/log");
+  revalidatePath("/dashboard/nutrition/sheet");
   revalidatePath("/dashboard/settings/goals");
   return { ok: true, message: "Meal logged." };
+}
+
+export async function logMealsBulk(text: string) {
+  const { mapTypedLine, parseSpreadsheetPaste } = await import("@/lib/lists/parse-quick-list");
+  const mealTypes = ["breakfast", "lunch", "dinner", "snack"] as const;
+  const rows = parseSpreadsheetPaste(text, 20)
+    .map((cells) => mapTypedLine(cells, mealTypes))
+    .filter((row) => row.name);
+  if (!rows.length) return { ok: false, message: "Paste at least one meal name." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const payload = rows.map((row) => {
+    const type = mealTypes.includes(row.category as (typeof mealTypes)[number])
+      ? (row.category as (typeof mealTypes)[number])
+      : "snack";
+    return {
+      user_id: user.id,
+      meal_name: row.name.slice(0, 120),
+      meal_type: type,
+      calories: row.amount != null ? Math.round(row.amount) : null,
+    };
+  });
+
+  const { error } = await supabase.from("nutrition_logs").insert(payload);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/dashboard/nutrition");
+  revalidatePath("/dashboard/nutrition/log");
+  revalidatePath("/dashboard/nutrition/sheet");
+  return {
+    ok: true,
+    message: `Logged ${payload.length} meal${payload.length === 1 ? "" : "s"}.`,
+  };
 }
 
 export async function updateMeal(formData: FormData) {
@@ -79,6 +120,7 @@ export async function updateMeal(formData: FormData) {
 
   revalidatePath("/dashboard/nutrition");
   revalidatePath("/dashboard/nutrition/log");
+  revalidatePath("/dashboard/nutrition/sheet");
   return { ok: true, message: "Meal updated." };
 }
 
@@ -89,14 +131,17 @@ export async function deleteMeal(id: number) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
 
-  const { error } = await supabase
-    .from("nutrition_logs")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "nutrition_logs",
+    id,
+    userId: user.id,
+    auditAction: "meal_deleted",
+  });
+  if (!result.ok) return result;
   revalidatePath("/dashboard/nutrition");
-  return { ok: true, message: "Meal removed." };
+  revalidatePath("/dashboard/nutrition/log");
+  revalidatePath("/dashboard/nutrition/sheet");
+  return result;
 }
 
 const waterSchema = z.object({

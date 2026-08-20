@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk } from "@/lib/mobile/http";
+import { quietSoftDelete } from "@/lib/archive";
 import { writeAuditLog } from "@/lib/audit";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
 import { hydrateGymPlan } from "@/lib/gym";
@@ -32,12 +33,12 @@ export async function POST(request: Request) {
 
   const defaultDays = reminderDaysFromGymPlan(hydrateGymPlan(plan));
 
-  await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("kind", "plan")
-    .eq("source_id", String(plan.id));
+  const cleared = await quietSoftDelete(supabase, {
+    table: "user_reminders",
+    userId: user.id,
+    match: { kind: "plan", source_id: String(plan.id) },
+  });
+  if (!cleared.ok) return jsonError(cleared.message, 500);
 
   const schedule_time = "07:30";
   const next = computeNextFireAt({

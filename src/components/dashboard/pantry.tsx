@@ -16,8 +16,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   addPantryItem,
+  addPantryItemsBulk,
   addLowStockToGroceryList,
   addPantryItemToGroceryList,
   deletePantryItem,
@@ -33,6 +35,9 @@ import {
 } from "@/app/dashboard/pantry/shared";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
+import { EntryModeToggle, useEntryMode } from "@/components/dashboard/entry-mode-toggle";
+import { PantrySheet } from "@/components/dashboard/pantry-sheet";
+import { QuickListPaste } from "@/components/dashboard/quick-list-paste";
 import { DragGrip, ItemDragRow } from "@/components/dashboard/drag-list";
 import { useSavedListOrder } from "@/components/dashboard/use-saved-list-order";
 import {
@@ -107,10 +112,13 @@ function usePantryActions() {
   const [updating, startUpdate] = useTransition();
 
   function runAction(action: () => Promise<{ ok: boolean; message: string }>) {
-    startUpdate(async () => {
-      const result = await action();
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
+    return new Promise<boolean>((resolve) => {
+      startUpdate(async () => {
+        const result = await action();
+        if (result.ok) toast.success(result.message);
+        else toast.error(result.message);
+        resolve(result.ok);
+      });
     });
   }
 
@@ -247,7 +255,10 @@ function StockRow({
         <button
           type="button"
           disabled={updating}
-          onClick={() => runAction(() => deletePantryItem(item.id))}
+          onClick={async () => {
+            if (!(await confirmDelete(item.name))) return;
+            runAction(() => deletePantryItem(item.id));
+          }}
           className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
           aria-label={`Delete ${item.name}`}
         >
@@ -271,11 +282,9 @@ function StockRow({
 
 function PantryOverview({
   items,
-  groceries = [],
   listOrder = [],
 }: {
   items: PantryItem[];
-  groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
   listOrder?: number[];
 }) {
   const { updating, runAction } = usePantryActions();
@@ -283,7 +292,6 @@ function PantryOverview({
   const lowStock = orderedItems.filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD);
   const categories = new Set(orderedItems.map((item) => item.category)).size;
   const wellStocked = items.filter((item) => item.stock_level > LOW_STOCK_THRESHOLD).length;
-  const groceryOpen = groceries.filter((g) => !g.is_checked);
 
   return (
     <>
@@ -327,7 +335,7 @@ function PantryOverview({
           />
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {[
             {
               href: "/dashboard/pantry/items",
@@ -353,12 +361,18 @@ function PantryOverview({
               detail: "Log something new on the shelf",
               icon: PackagePlus,
             },
+            {
+              href: "/dashboard/pantry/sheet",
+              title: "Sheet view",
+              detail: "Excel-style stock table",
+              icon: LayoutDashboard,
+            },
           ].map((card) => (
             <Link
               key={card.href}
               href={card.href}
               title={card.detail}
-              className="inline-flex items-center gap-2.5 rounded-full border border-ink/8 bg-card px-4 py-2.5 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:border-accent/25 hover:shadow-md"
+              className="inline-flex items-center gap-2.5 rounded-2xl border border-ink/8 bg-card px-4 py-3.5 text-sm font-black shadow-sm transition hover:-translate-y-0.5 hover:border-accent/25 hover:shadow-md"
             >
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
                 <card.icon size={15} />
@@ -369,53 +383,8 @@ function PantryOverview({
         </div>
 
         <Panel
-          title="Shopping list"
-          className="mt-4"
-          right={
-            <Link href="/dashboard/groceries" className="text-[11px] font-black text-accent hover:underline">
-              Open list
-            </Link>
-          }
-        >
-          {groceryOpen.length ? (
-            <div className="space-y-2">
-              {groceryOpen.slice(0, 8).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-2xl border border-ink/6 bg-panel/60 px-4 py-3"
-                >
-                  <button
-                    type="button"
-                    disabled={updating}
-                    onClick={() => runAction(() => toggleGroceryItem(item.id, true))}
-                    className="grid size-8 place-items-center rounded-lg border border-ink/15 text-muted"
-                    aria-label={`Check off ${item.name}`}
-                  >
-                    <Check size={14} />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{item.name}</p>
-                    {item.quantity ? (
-                      <p className="text-xs text-muted">{item.quantity}</p>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState>
-              Nothing open on the shopping list. Add low-stock items below, or{" "}
-              <Link href="/dashboard/groceries" className="font-bold text-accent hover:underline">
-                shop
-              </Link>
-              .
-            </EmptyState>
-          )}
-        </Panel>
-
-        <Panel
           title="Needs restock soon"
-          className="mt-4"
+          className="mt-8"
           right={
             <Link
               href="/dashboard/pantry/low-stock"
@@ -467,6 +436,12 @@ function PantryOverview({
               <PrimaryButton className="rounded-full px-5">Add an item</PrimaryButton>
             </Link>
             <Link
+              href="/dashboard/pantry/sheet"
+              className="inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
+            >
+              Open sheet
+            </Link>
+            <Link
               href="/dashboard/groceries"
               className="inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-panel/70 px-5 py-3 text-xs font-black text-muted transition hover:border-accent/30 hover:text-accent"
             >
@@ -491,6 +466,7 @@ function PantryItems({
 }) {
   const { updating, runAction } = usePantryActions();
   const { items: orderedItems, move } = useSavedListOrder("pantry", items, listOrder);
+  const [entryMode, setEntryMode] = useEntryMode("pantry-items", "form");
 
   return (
     <>
@@ -501,6 +477,9 @@ function PantryItems({
         action={
           <div className="flex flex-wrap items-center gap-2">
             {items.length > 0 && <ShareExportMenu compact doc={pantryDoc(items)} />}
+            <Link href="/dashboard/pantry/sheet" className="text-xs font-black text-accent">
+              Sheet →
+            </Link>
             <Link href="/dashboard/pantry/add" className="inline-flex">
               <PrimaryButton className="rounded-full px-5">Add item</PrimaryButton>
             </Link>
@@ -509,7 +488,22 @@ function PantryItems({
       />
       <ModuleSubNav items={kitchenSubNav} />
       <OpenShoppingStrip groceries={groceries} updating={updating} runAction={runAction} className="mb-4" />
+      <EntryModeToggle value={entryMode} onChange={setEntryMode} />
 
+      {entryMode === "sheet" ? (
+        <PantrySheet items={orderedItems} embedded />
+      ) : entryMode === "paste" ? (
+        <Panel title="Paste pantry items" className="mb-4">
+          <QuickListPaste
+            pending={updating}
+            placeholder={"brown rice\neggs\nmilk"}
+            hint="One name per line. Category and stock fill in if you skip them."
+            onSubmit={(text) => runAction(() => addPantryItemsBulk(text))}
+          />
+        </Panel>
+      ) : null}
+
+      {entryMode !== "sheet" && (
       <Panel
         title="Stock levels"
         right={items.length > 0 ? <ShareExportMenu compact doc={pantryDoc(items)} /> : undefined}
@@ -536,6 +530,7 @@ function PantryItems({
           )}
         </div>
       </Panel>
+      )}
     </>
   );
 }
@@ -687,16 +682,40 @@ function PantryAdd({
   groceries?: { id: number; name: string; quantity: string | null; is_checked: boolean }[];
 }) {
   const { pending, submit, updating, runAction } = usePantryActions();
+  const [entryMode, setEntryMode] = useEntryMode("pantry-add");
   const lowStock = items.filter((item) => item.stock_level <= LOW_STOCK_THRESHOLD);
 
   return (
     <>
-      <PageHeader eyebrow="PANTRY" title="Add to the" highlight="shelf." />
+      <PageHeader
+        eyebrow="PANTRY"
+        title="Add to the"
+        highlight="shelf."
+        action={
+          <Link href="/dashboard/pantry/sheet" className="text-xs font-black text-accent">
+            Open sheet →
+          </Link>
+        }
+      />
       <ModuleSubNav items={kitchenSubNav} />
+      <EntryModeToggle value={entryMode} onChange={setEntryMode} />
 
-      <Panel title="New pantry item">
-        <PantryAddForm pending={pending} submit={submit} defaultCategory={defaultCategory} />
-      </Panel>
+      {entryMode === "form" && (
+        <Panel title="New pantry item">
+          <PantryAddForm pending={pending} submit={submit} defaultCategory={defaultCategory} />
+        </Panel>
+      )}
+      {entryMode === "paste" && (
+        <Panel title="Paste pantry items">
+          <QuickListPaste
+            pending={updating}
+            placeholder={"brown rice\neggs\nmilk"}
+            hint="One name per line. Optional category or stock % after a comma."
+            onSubmit={(text) => runAction(() => addPantryItemsBulk(text))}
+          />
+        </Panel>
+      )}
+      {entryMode === "sheet" && <PantrySheet items={items} embedded />}
 
       {lowStock.length > 0 && (
         <Panel title="Already running low" className="mt-4">
@@ -738,5 +757,5 @@ export function PantryView({
   if (mode === "categories") return <PantryCategories items={items} groceries={groceries} />;
   if (mode === "low-stock") return <PantryLowStock items={items} groceries={groceries} listOrder={listOrder} />;
   if (mode === "add") return <PantryAdd defaultCategory={defaultCategory} items={items} groceries={groceries} />;
-  return <PantryOverview items={items} groceries={groceries} listOrder={listOrder} />;
+  return <PantryOverview items={items} listOrder={listOrder} />;
 }

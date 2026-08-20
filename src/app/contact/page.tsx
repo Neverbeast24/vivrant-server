@@ -67,7 +67,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
             </Link>
             <Link
               href="/login"
-              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-accent-deep"
+              className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-accent-fg transition hover:bg-accent-deep"
             >
               Get started
               <ArrowUpRight size={14} />
@@ -89,7 +89,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
 
         <div className="space-y-3">
           <div className="rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)]">
-            <span className="grid size-11 place-items-center rounded-xl bg-accent text-white">
+            <span className="grid size-11 place-items-center rounded-xl bg-accent text-accent-fg">
               <MessageSquareText size={18} />
             </span>
             <p className="mt-4 text-sm font-black text-ink">How it works</p>
@@ -119,7 +119,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
             </ul>
             <Link
               href="/login"
-              className="focus-ring mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-black text-white transition hover:bg-accent-deep"
+              className="focus-ring mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-black text-accent-fg transition hover:bg-accent-deep"
             >
               Create free account
               <ArrowUpRight size={15} />

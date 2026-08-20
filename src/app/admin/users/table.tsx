@@ -119,7 +119,7 @@ function UserActions({
         className={`focus-ring inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition disabled:opacity-60 ${
           nextStatus === "suspended"
             ? "border-accent/20 bg-accent-soft text-accent hover:bg-accent/15"
-            : "border-[#26bea9]/25 bg-accent-soft text-accent hover:bg-[#d7f5ef]"
+            : "border-accent/25 bg-accent-soft text-accent hover:bg-accent/15"
         }`}
       >
         {nextStatus === "suspended" ? <ShieldBan size={12} /> : <ShieldCheck size={12} />}

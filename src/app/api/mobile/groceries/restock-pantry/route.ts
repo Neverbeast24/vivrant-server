@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { groceryToPantryCategory } from "@/app/dashboard/pantry/shared";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError } from "@/lib/mobile/http";
 
@@ -29,7 +30,7 @@ async function restockPantryFromGrocery(
     await supabase.from("pantry_items").insert({
       user_id: userId,
       name,
-      category: item.category || "other",
+      category: groceryToPantryCategory(item.category || "other"),
       stock_level: 80,
     });
   }

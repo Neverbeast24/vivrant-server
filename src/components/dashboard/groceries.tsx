@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Check,
+  FileBarChart,
   Package,
   ShoppingBasket,
   Pencil,
@@ -12,8 +14,10 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import { confirmAction, confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   addGroceryItem,
+  addGroceryItemsBulk,
   clearCompletedGroceries,
   deleteGroceryItem,
   toggleGroceryItem,
@@ -26,10 +30,13 @@ import {
 } from "@/app/dashboard/groceries/ai-actions";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
+import { EntryModeToggle, useEntryMode } from "@/components/dashboard/entry-mode-toggle";
+import { QuickListPaste } from "@/components/dashboard/quick-list-paste";
 import {
   Bars,
   EmptyState,
   FormField,
+  ModuleJumpLinks,
   PageHeader,
   Panel,
   PrimaryButton,
@@ -47,6 +54,7 @@ import {
   suggestGroceryCategory,
 } from "@/lib/groceries/ph-price-catalog";
 import { kitchenSubNav } from "@/lib/nav";
+import { GROCERY_CATEGORY_META as CATEGORY_META, GROCERY_CATEGORY_ORDER as CATEGORY_ORDER } from "@/lib/groceries/categories";
 import { toast } from "sonner";
 import { addLowStockToGroceryList } from "@/app/dashboard/pantry/actions";
 import type { PantryItem } from "@/app/dashboard/pantry/shared";
@@ -77,19 +85,6 @@ type StapleTrend = {
   items: { name: string; price: number }[];
 };
 
-const CATEGORY_META: Record<string, { label: string; emoji: string; color: string }> = {
-  produce: { label: "Fruits & vegetables", emoji: "🥬", color: "from-accent to-accent-deep" },
-  protein: { label: "Meat & protein", emoji: "🍗", color: "from-accent to-accent-deep" },
-  dairy: { label: "Dairy & eggs", emoji: "🥛", color: "from-cyan to-accent-deep" },
-  grains: { label: "Grains & bread", emoji: "🍞", color: "from-[#6b8f7a] to-accent-deep" },
-  pantry: { label: "Pantry staples", emoji: "🫙", color: "from-[#5c7a6b] to-accent-deep" },
-  snacks: { label: "Snacks", emoji: "🍿", color: "from-cyan to-[#2a7a6e]" },
-  drinks: { label: "Drinks", emoji: "🧃", color: "from-[#4ec4b6] to-accent" },
-  household: { label: "Household", emoji: "🧼", color: "from-[#6b8a9a] to-[#3d5c70]" },
-  other: { label: "Other", emoji: "🛒", color: "from-ink/40 to-ink/60" },
-};
-
-const CATEGORY_ORDER = Object.keys(CATEGORY_META);
 const STAPLE_COLORS: Record<string, string> = {
   rice: "#0e7c66",
   chicken: "#2a9d8f",
@@ -107,6 +102,7 @@ export function GroceriesView({
   stapleTrends = [],
   lowStock = [],
   listOrder = [],
+  section = "list",
 }: {
   items: GroceryItem[];
   monthlyBudget?: number;
@@ -115,8 +111,10 @@ export function GroceriesView({
   stapleTrends?: StapleTrend[];
   lowStock?: Pick<PantryItem, "id" | "name" | "stock_level" | "category">[];
   listOrder?: number[];
+  section?: "list" | "add" | "plan" | "insights";
 }) {
   const { pending, submit } = useModuleAction(addGroceryItem);
+  const [entryMode, setEntryMode] = useEntryMode("groceries");
   const [togglePending, startToggle] = useTransition();
   const [planning, startPlan] = useTransition();
   const [estimating, startEstimate] = useTransition();
@@ -129,6 +127,27 @@ export function GroceriesView({
   const [trendStaple, setTrendStaple] = useState("rice");
   const [editingId, setEditingId] = useState<number | null>(null);
   const { items: orderedItems, move } = useSavedListOrder("groceries", items, listOrder);
+  const addMode = entryMode === "paste" ? "paste" : "form";
+  const headings = {
+    list: { title: "Shop", highlight: "smarter." },
+    add: { title: "Add to", highlight: "your list." },
+    plan: { title: "Plan", highlight: "the shop." },
+    insights: { title: "Prices", highlight: "& budget." },
+  } as const;
+  const jumps = (
+    [
+      { href: "/dashboard/groceries", title: "Shopping list", icon: ShoppingBasket },
+      { href: "/dashboard/groceries/add", title: "Add items", icon: Package },
+      { href: "/dashboard/groceries/sheet", title: "Sheet view", icon: FileBarChart },
+      { href: "/dashboard/groceries/plan", title: "AI meal + list", icon: Sparkles },
+      { href: "/dashboard/groceries/insights", title: "Prices & budget", icon: TrendingUp },
+    ] as const
+  ).filter((item) => {
+    if (section === "list") return item.href !== "/dashboard/groceries";
+    if (section === "add") return item.href !== "/dashboard/groceries/add";
+    if (section === "plan") return item.href !== "/dashboard/groceries/plan";
+    return item.href !== "/dashboard/groceries/insights";
+  });
 
   const done = items.filter((item) => item.is_checked).length;
   const openItems = items.filter((item) => !item.is_checked);
@@ -201,10 +220,13 @@ export function GroceriesView({
   }
 
   function runAction(action: () => Promise<{ ok: boolean; message: string }>) {
-    startToggle(async () => {
-      const result = await action();
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
+    return new Promise<boolean>((resolve) => {
+      startToggle(async () => {
+        const result = await action();
+        if (result.ok) toast.success(result.message);
+        else toast.error(result.message);
+        resolve(result.ok);
+      });
     });
   }
 
@@ -249,32 +271,32 @@ export function GroceriesView({
     <>
       <PageHeader
         eyebrow="KITCHEN · SHOPPING"
-        title="Shop"
-        highlight="smarter."
+        title={headings[section].title}
+        highlight={headings[section].highlight}
         action={
-          <div className="flex flex-wrap gap-2">
-            {items.length > 0 && <ShareExportMenu compact doc={groceryListDoc(items)} />}
-            <PrimaryButton
-              disabled={togglePending}
-              onClick={() => runAction(async () => {
-                const { restockPantryFromChecked } = await import("@/app/dashboard/groceries/actions");
-                return restockPantryFromChecked();
-              })}
-              className="rounded-full px-5"
-            >
-              <Package size={14} className="shrink-0" />
-              Restock pantry
-            </PrimaryButton>
+          section === "list" && items.length > 0 ? (
+            <ShareExportMenu compact doc={groceryListDoc(items)} />
+          ) : section === "plan" ? (
             <PrimaryButton disabled={planning} onClick={buildPlan} className="rounded-full px-5">
               <Sparkles size={14} className="shrink-0" />
-              {planning ? "Planning…" : "AI meal + list"}
+              {planning ? "Planning…" : "Build meal + list"}
             </PrimaryButton>
-          </div>
+          ) : undefined
         }
       />
+      <p className="-mt-4 mb-6 max-w-xl text-sm text-muted">
+        {section === "add"
+          ? "Name is enough. Category and price fill in for you — or paste a whole list."
+          : section === "plan"
+            ? "Get a meal idea and shopping list from what you already eat and stock."
+            : section === "insights"
+              ? "See how this list sits against your monthly health budget."
+              : "Check items off as you shop. Add more on its own page when you need it."}
+      </p>
       <ModuleSubNav items={kitchenSubNav} />
+      <ModuleJumpLinks items={jumps} />
 
-      {lowStock.length > 0 && (
+      {section === "list" && lowStock.length > 0 && (
         <Panel
           title="Low in pantry"
           className="mb-4"
@@ -314,7 +336,7 @@ export function GroceriesView({
         </Panel>
       )}
 
-      {plan && (
+      {section === "plan" && plan && (
         <Panel
           title={plan.title}
           className="mb-4"
@@ -360,6 +382,28 @@ export function GroceriesView({
         </Panel>
       )}
 
+      {section === "plan" && !plan && (
+        <Panel title="Build a list from meals" className="mb-8">
+          <p className="text-sm leading-6 text-muted">
+            VIVRΛNT looks at your pantry, meals, and budget, then suggests a shop. You can add the
+            whole list in one tap.
+          </p>
+          <PrimaryButton disabled={planning} onClick={buildPlan} className="mt-5 rounded-full px-5">
+            <Sparkles size={14} className="shrink-0" />
+            {planning ? "Planning…" : "Build meal + list"}
+          </PrimaryButton>
+        </Panel>
+      )}
+
+      {section === "add" && (
+      <>
+      <EntryModeToggle
+        value={addMode}
+        onChange={setEntryMode}
+        modes={["form", "paste"]}
+      />
+
+      {addMode === "form" && (
       <Panel title="Add grocery item" className="mb-4">
         <form action={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <FormField label="Grocery item" hint="Required" className="sm:col-span-2 lg:col-span-2">
@@ -412,7 +456,7 @@ export function GroceriesView({
               type="button"
               disabled={estimating || !name.trim()}
               onClick={runAiCost}
-              className="sm:flex-1 bg-accent text-white hover:bg-accent-deep"
+              className="sm:flex-1 bg-accent text-accent-fg hover:bg-accent-deep"
             >
               <Sparkles size={14} className="shrink-0" />
               {estimating ? "Pricing…" : "AI cost estimate"}
@@ -428,7 +472,22 @@ export function GroceriesView({
           </p>
         )}
       </Panel>
+      )}
 
+      {addMode === "paste" && (
+        <Panel title="Paste a grocery list" className="mb-4">
+          <QuickListPaste
+            pending={togglePending}
+            placeholder={"eggs\nmilk, 1L\nrice, 5kg, grains"}
+            hint="One name per line. Skip category and price if you want — we’ll fill those in."
+            onSubmit={(text) => runAction(() => addGroceryItemsBulk(text))}
+          />
+        </Panel>
+      )}
+      </>
+      )}
+
+      {section === "insights" && (
       <Stagger>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
@@ -547,17 +606,78 @@ export function GroceriesView({
           </Panel>
         </div>
 
+        <motion.article
+          variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
+          className="mt-8 rounded-[1.4rem] border border-ink/8 bg-gradient-to-br from-accent-soft via-card to-accent-soft p-6"
+        >
+          <Sparkles size={18} className="text-accent" />
+          <p className="mt-4 text-sm font-bold leading-6">
+            {overBudget
+              ? `Your open list is about ${formatPhp(Math.abs(roomForList))} over remaining budget — swap premium picks or trim quantities before you shop.`
+              : `Prices use ${priceMonthLabel ?? "this PH month"} mid-market bands (wet market → supermarket), auto-categorize items, and AI costing when you tap estimate — all inside your ${formatPhp(monthlyBudget)} monthly health budget.`}
+          </p>
+        </motion.article>
+      </Stagger>
+      )}
+
+      {section === "list" && (
+      <>
+      <Panel title="Add one item" className="mb-8">
+        <form action={submit} className="flex flex-col gap-3 sm:flex-row">
+          <input name="name" required placeholder="e.g. eggs" className={fieldClass} />
+          <input name="quantity" placeholder="qty (optional)" className={`${fieldClass} sm:max-w-40`} />
+          <PrimaryButton disabled={pending} className="shrink-0 sm:w-auto">
+            {pending ? "Adding…" : "Add"}
+          </PrimaryButton>
+        </form>
+        <p className="mt-3 text-xs text-muted">
+          Need a full form, paste, or Excel?{" "}
+          <Link href="/dashboard/groceries/add" className="font-black text-accent hover:underline">
+            Add items
+          </Link>
+          {" · "}
+          <Link href="/dashboard/groceries/sheet" className="font-black text-accent hover:underline">
+            Sheet view
+          </Link>
+        </p>
+      </Panel>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <PrimaryButton
+          disabled={togglePending}
+          onClick={() =>
+            runAction(async () => {
+              const { restockPantryFromChecked } = await import("@/app/dashboard/groceries/actions");
+              return restockPantryFromChecked();
+            })
+          }
+          className="rounded-full px-5"
+        >
+          <Package size={14} className="shrink-0" />
+          Restock pantry from checked
+        </PrimaryButton>
+      </div>
+
         <Panel
           title="Shopping list"
-          className="mt-4"
+          className="mb-8"
           right={
             <div className="flex flex-wrap items-center gap-2">
-              {items.length > 0 && <ShareExportMenu compact doc={groceryListDoc(items)} />}
               {done > 0 ? (
                 <button
                   type="button"
                   disabled={togglePending}
-                  onClick={() => runAction(clearCompletedGroceries)}
+                  onClick={async () => {
+                    if (
+                      !(await confirmAction({
+                        title: "Archive completed items?",
+                        body: "Checked groceries will leave this list and move to Archived.",
+                        confirmLabel: "Archive",
+                      }))
+                    )
+                      return;
+                    runAction(clearCompletedGroceries);
+                  }}
                   className="text-xs font-black text-accent transition hover:opacity-70"
                 >
                   Clear {done} completed
@@ -633,7 +753,7 @@ export function GroceriesView({
                             className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5"
                           >
                             <span
-                              className={`grid size-6 place-items-center rounded-lg border-2 ${item.is_checked ? "border-[#26bea9] bg-[#26bea9] text-white" : "border-[#d4cec0]"}`}
+                              className={`grid size-6 place-items-center rounded-lg border-2 ${item.is_checked ? "border-accent bg-accent text-accent-fg" : "border-ink/20"}`}
                             >
                               {item.is_checked && <Check size={13} />}
                             </span>
@@ -667,7 +787,10 @@ export function GroceriesView({
                           <button
                             type="button"
                             disabled={togglePending}
-                            onClick={() => runAction(() => deleteGroceryItem(item.id))}
+                            onClick={async () => {
+                              if (!(await confirmDelete(item.name))) return;
+                              runAction(() => deleteGroceryItem(item.id));
+                            }}
                             className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
                             aria-label={`Delete ${item.name}`}
                           >
@@ -685,19 +808,8 @@ export function GroceriesView({
             {!items.length && <EmptyState>Your list is empty.</EmptyState>}
           </div>
         </Panel>
-
-        <motion.article
-          variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-          className="mt-4 rounded-[1.4rem] border border-ink/8 bg-gradient-to-br from-accent-soft via-card to-accent-soft p-5"
-        >
-          <Sparkles size={18} className="text-accent" />
-          <p className="mt-4 text-sm font-bold leading-6">
-            {overBudget
-              ? `Your open list is about ${formatPhp(Math.abs(roomForList))} over remaining budget — swap premium picks or trim quantities before you shop.`
-              : `Prices use ${priceMonthLabel ?? "this PH month"} mid-market bands (wet market → supermarket), auto-categorize items, and AI costing when you tap estimate — all inside your ${formatPhp(monthlyBudget)} monthly health budget.`}
-          </p>
-        </motion.article>
-      </Stagger>
+      </>
+      )}
     </>
   );
 }

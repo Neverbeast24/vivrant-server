@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
+import { archiveRecord, quietSoftDelete } from "@/lib/archive";
 import { buildUserContext } from "@/lib/ai/context";
 import { draftReminder } from "@/lib/ai/gemini";
 import { computeNextFireAt } from "@/lib/reminders/schedule";
@@ -205,14 +206,15 @@ export async function deleteReminder(id: number) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not signed in." };
-  const { error } = await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return { ok: false, message: error.message };
+  const result = await archiveRecord(supabase, {
+    table: "user_reminders",
+    id,
+    userId: user.id,
+    auditAction: "reminder_deleted",
+  });
+  if (!result.ok) return result;
   revalidateReminderPaths();
-  return { ok: true, message: "Reminder removed." };
+  return result;
 }
 
 export async function draftAndSaveReminder(_formData?: FormData) {
@@ -291,12 +293,12 @@ export async function syncRemindersFromGymPlan() {
   // Prefer weekday names on the plan; fall back to a spread from days_per_week.
   const defaultDays = reminderDaysFromGymPlan(hydrateGymPlan(plan));
 
-  await supabase
-    .from("user_reminders")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("kind", "plan")
-    .eq("source_id", String(plan.id));
+  const cleared = await quietSoftDelete(supabase, {
+    table: "user_reminders",
+    userId: user.id,
+    match: { kind: "plan", source_id: String(plan.id) },
+  });
+  if (!cleared.ok) return { ok: false, message: cleared.message };
 
   const schedule_time = "07:30";
   const next = computeNextFireAt({

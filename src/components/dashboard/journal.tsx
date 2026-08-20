@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
   deleteJournalEntry,
   reflectOnJournal,
@@ -180,6 +181,7 @@ export function JournalView({
       setMobilePane("list");
       return;
     }
+    if (!(await confirmDelete("this note"))) return;
     const result = await deleteJournalEntry(selectedId);
     if (!result.ok) {
       toast.error(result.message);

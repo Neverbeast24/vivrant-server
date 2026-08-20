@@ -94,9 +94,14 @@ export function KitchenHub({
         <Panel
           title="Shopping list"
           right={
-            <Link href="/dashboard/groceries" className="text-xs font-black text-accent">
-              Full list →
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="/dashboard/groceries" className="text-xs font-black text-accent">
+                Full list →
+              </Link>
+              <Link href="/dashboard/groceries/sheet" className="text-xs font-black text-muted hover:text-accent">
+                Sheet
+              </Link>
+            </div>
           }
         >
           <ul className="space-y-2">
@@ -158,7 +163,7 @@ export function KitchenHub({
                     onClick={() => run(() => addPantryItemToGroceryList(item.id))}
                     className={`grid size-9 place-items-center rounded-xl border ${
                       onList
-                        ? "border-accent bg-accent text-white"
+                        ? "border-accent bg-accent text-accent-fg"
                         : "border-ink/15 text-muted"
                     }`}
                     aria-label={onList ? `${item.name} already on list` : `Add ${item.name}`}

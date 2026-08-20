@@ -1,6 +1,7 @@
 "use client";
 
 import { Toaster } from "sonner";
+import { ConfirmHost } from "@/components/dashboard/confirm-dialog";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import type { ThemePreference } from "@/lib/theme";
 
@@ -26,6 +27,7 @@ export function Providers({
   return (
     <ThemeProvider initialTheme={initialTheme}>
       {children}
+      <ConfirmHost />
       <ThemedToaster />
     </ThemeProvider>
   );

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireMobileUser, isMobileAuthError } from "@/lib/mobile/auth";
 import { jsonOk, jsonError, parseIdParam, readJson } from "@/lib/mobile/http";
+import { archiveRecord } from "@/lib/archive";
 import { writeAuditLog } from "@/lib/audit";
 import { gymSessionFocusFromPlan } from "@/lib/gym";
 
@@ -60,17 +61,12 @@ export async function DELETE(
   const id = parseIdParam(rawId);
   if (id == null) return jsonError("Invalid session id.", 400);
 
-  const { error } = await supabase
-    .from("gym_sessions")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return jsonError(error.message, 500);
-
-  await writeAuditLog(
-    { action: "gym_session_deleted", entity: "gym_sessions", entityId: String(id) },
-    supabase,
-  );
-
+  const result = await archiveRecord(supabase, {
+    table: "gym_sessions",
+    id,
+    userId: user.id,
+    auditAction: "gym_session_deleted",
+  });
+  if (!result.ok) return jsonError(result.message, 500);
   return jsonOk();
 }

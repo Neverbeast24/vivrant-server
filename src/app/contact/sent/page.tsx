@@ -28,7 +28,7 @@ export default async function ContactSentPage({ searchParams }: SentPageProps) {
           <Brand />
           <Link
             href="/login"
-            className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-accent-deep"
+            className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-accent-fg transition hover:bg-accent-deep"
           >
             Get started
             <ArrowUpRight size={14} />
@@ -56,7 +56,7 @@ export default async function ContactSentPage({ searchParams }: SentPageProps) {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/login"
-            className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-black text-white transition hover:bg-accent-deep"
+            className="focus-ring inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-black text-accent-fg transition hover:bg-accent-deep"
           >
             Create free account
             <ArrowUpRight size={15} />
