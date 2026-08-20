@@ -52,11 +52,31 @@ function withPlanPrefs(context: string, prefs: GymPlanPrefs) {
   }
 }
 
+async function loadSavedProgramsForGeneration(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<Array<{ title: string; days: GymPlanDay[] }>> {
+  const { data } = await supabase
+    .from("gym_plans")
+    .select("title, days")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(4);
+  return (data ?? []).map((row) => ({
+    title: String(row.title ?? "Saved program"),
+    days: parseGymPlanDays(row.days).days,
+  }));
+}
+
 export async function generatePreparedGymPlan(
   supabase: SupabaseClient,
   userId: string,
   prefs: GymPlanPrefs,
-  options?: { generateDays?: number[]; keptDays?: GymPlanDay[] },
+  options?: {
+    generateDays?: number[];
+    keptDays?: GymPlanDay[];
+    savedPrograms?: Array<{ title: string; days: GymPlanDay[] }>;
+  },
 ): Promise<GymPlanPayload> {
   const [{ data: exercises }, rawContext] = await Promise.all([
     supabase
@@ -94,6 +114,7 @@ export async function generatePreparedGymPlan(
     ...prefs,
     generate_days: generateDays,
     kept_days: options?.keptDays,
+    saved_programs: options?.savedPrograms,
   });
 
   const days = mapPreviewToWeekdays(
@@ -155,16 +176,17 @@ export async function previewGymProgram(
   supabase: SupabaseClient,
   userId: string,
   input?: Partial<GymPlanPrefs>,
+  draftOverride?: GymProgramDraft | null,
 ): Promise<GymProgramDraft> {
   const prefs = clampGymPlanPrefs(input);
-  const existing = await loadGymProgramDraft(supabase, userId);
+  const existing = draftOverride ?? (await loadGymProgramDraft(supabase, userId));
   const allowed = new Set(prefs.training_days);
   const kept = Object.fromEntries(
     Object.entries(existing?.kept_days ?? {}).filter(([key]) => allowed.has(Number(key))),
   );
   const remaining = remainingTrainingDays(prefs.training_days, kept);
   const generateDays = remaining.length ? remaining : prefs.training_days;
-  const keptList = assembleKeptPlanDays({
+  const baseDraft: GymProgramDraft = {
     title: existing?.title ?? "",
     focus: existing?.focus ?? prefs.level,
     level: existing?.level ?? prefs.level,
@@ -175,11 +197,17 @@ export async function previewGymProgram(
     kept_days: kept,
     training_days: prefs.training_days,
     updated_at: existing?.updated_at ?? new Date().toISOString(),
-  });
+  };
+  const keptList = assembleKeptPlanDays(baseDraft);
+  if (draftOverride) {
+    await saveGymProgramDraftRow(supabase, userId, { ...baseDraft, updated_at: new Date().toISOString() });
+  }
+  const savedPrograms = await loadSavedProgramsForGeneration(supabase, userId);
 
   const plan = await generatePreparedGymPlan(supabase, userId, prefs, {
     generateDays,
     keptDays: keptList,
+    savedPrograms,
   });
 
   const draft: GymProgramDraft = {

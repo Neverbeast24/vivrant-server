@@ -157,12 +157,14 @@ export function Panel({
   children,
   className = "",
   id,
+  dense = false,
 }: {
   title?: string;
   right?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   id?: string;
+  dense?: boolean;
 }) {
   return (
     <motion.section
@@ -171,10 +173,12 @@ export function Panel({
         hidden: { opacity: 0, y: 18 },
         show: { opacity: 1, y: 0 },
       }}
-      className={`rounded-[1.4rem] border border-ink/8 bg-card/90 p-5 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)] sm:p-6 ${className}`}
+      className={`rounded-[1.4rem] border border-ink/8 bg-card/90 shadow-[0_12px_30px_rgba(var(--shadow-color),.06)] ${
+        dense ? "p-4 sm:p-4" : "p-5 sm:p-6"
+      } ${className}`}
     >
       {(title || right) && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className={`flex flex-wrap items-center justify-between gap-3 ${dense ? "mb-3" : "mb-6"}`}>
           {title && <h2 className="font-display text-xl tracking-tight">{title}</h2>}
           {right}
         </div>

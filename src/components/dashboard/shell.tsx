@@ -248,7 +248,7 @@ export function DashboardShell({
           </AnimatePresence>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="mx-auto max-w-6xl p-6 sm:p-10 lg:p-12">
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className={pathname.startsWith("/dashboard/gym") ? "mx-auto max-w-[96rem] p-4 sm:p-6 lg:px-7 lg:py-6" : "mx-auto max-w-6xl p-6 sm:p-10 lg:p-12"}>
               {children}
             </motion.div>
           </div>

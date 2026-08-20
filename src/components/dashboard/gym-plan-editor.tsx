@@ -53,7 +53,7 @@ export function SavedGymPlanEditor({
   }
 
   return (
-    <div className="mt-4 space-y-4 rounded-2xl border border-accent/20 bg-accent-soft/30 p-3">
+    <div className="mt-3 space-y-3 rounded-2xl border border-accent/20 bg-accent-soft/30 p-3">
       <label className="block">
         <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted">
           Program name

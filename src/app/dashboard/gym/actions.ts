@@ -211,7 +211,7 @@ export async function deleteGymSession(id: number) {
   return result;
 }
 
-export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
+export async function createAiGymPlan(input?: Partial<GymPlanPrefs>, draftOverride?: unknown) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -219,16 +219,18 @@ export async function createAiGymPlan(input?: Partial<GymPlanPrefs>) {
   if (!user) return { ok: false, message: "Not signed in." };
 
   try {
-    const draft = await previewGymProgram(supabase, user.id, input);
+    const { parseGymProgramDraft } = await import("@/lib/gym-program-draft");
+    const draft = draftOverride ? parseGymProgramDraft(draftOverride) : null;
+    const next = await previewGymProgram(supabase, user.id, input, draft);
     revalidatePath("/dashboard/gym");
     revalidatePath("/dashboard/gym/plans");
-    const remaining = remainingTrainingDays(draft.training_days, draft.kept_days);
+    const remaining = remainingTrainingDays(next.training_days, next.kept_days);
     return {
       ok: true,
       message: remaining.length
         ? `Workouts ready — keep the days you like, then generate the rest.`
         : "Workouts ready — keep the days you like, then save the program.",
-      draft,
+      draft: next,
     };
   } catch (error) {
     const message =

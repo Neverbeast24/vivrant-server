@@ -9,16 +9,14 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  GitMerge,
   Clock3,
   Cog,
   Dumbbell,
-  ExternalLink,
   Flame,
   Lightbulb,
   Pencil,
   Play,
-  Plus,
-  Repeat2,
   Search,
   Sparkles,
   Target,
@@ -52,15 +50,22 @@ import {
   fieldClass,
 } from "@/components/dashboard/ui";
 import { gymPlanDoc, gymPlansDoc } from "@/lib/share-export";
-import { GYM_PROGRAM_DRAFT_KEY, newerDraft, parseGymProgramDraft, type GymProgramDraft } from "@/lib/gym-program-draft";
+import {
+  GYM_PROGRAM_DRAFT_KEY,
+  draftFromSavedPlan,
+  mergePlanDaysIntoDraft,
+  newerDraft,
+  parseGymProgramDraft,
+  type GymProgramDraft,
+  type MergeSavedPlanMode,
+} from "@/lib/gym-program-draft";
 import { GymProgramBuilder } from "@/components/dashboard/gym-program-builder";
 import { SavedGymPlanEditor } from "@/components/dashboard/gym-plan-editor";
 import {
   enrichGymPlanDays,
   findExerciseMatch,
-  findRelatedExerciseMatch,
+  formatGymExerciseLine,
   formatGymMoveName,
-  gymMoveDetails,
   formatRestDaysLabel,
   formatTrainingDaysLabel,
   gymExerciseCardImage,
@@ -774,9 +779,12 @@ export function GymPlansView({
   const [knownQuery, setKnownQuery] = useState("");
   const [knownMuscle, setKnownMuscle] = useState<(typeof muscleFilters)[number]>("all");
   const [showCustomize, setShowCustomize] = useState(false);
+  const [customizeTab, setCustomizeTab] = useState<"goals" | "skip" | "known">("skip");
   const [draft, setDraft] = useState<GymProgramDraft | null>(initialDraft);
   const [savingDraft, startSaveDraft] = useTransition();
   const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  const [expandedPlanId, setExpandedPlanId] = useState<number | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const machines = useMemo(
     () => exercises.filter((item) => isMachineGear(item.equipment)),
     [exercises],
@@ -1003,12 +1011,37 @@ export function GymPlansView({
     }
 
     startPlan(async () => {
-      const result = await createAiGymPlan(prefs);
+      const result = await createAiGymPlan(prefs, draft);
       if (result.ok && "draft" in result && result.draft) {
         persistDraft(result.draft);
         toast.success(result.message);
       } else toast.error(result.message);
     });
+  }
+
+  function mergeSavedPlan(plan: GymPlan, mode: MergeSavedPlanMode) {
+    const source = plans.find((item) => item.id === plan.id) ?? plan;
+    const next = draft
+      ? mergePlanDaysIntoDraft(draft, source.days ?? [], mode)
+      : draftFromSavedPlan(
+          source,
+          clampGymPlanPrefs({
+            training_days: trainingDays,
+            days_per_week: trainingDays.length,
+            session_minutes: Number(sessionMinutes),
+            level,
+            known_machine_slugs: knownMachineSlugs,
+            known_custom_exercises: knownCustomExercises,
+            avoid_targets: avoidTargets,
+          }),
+        );
+    setTrainingDays(next.training_days);
+    updateDraft(next);
+    toast.success(
+      mode === "overwrite"
+        ? `Replaced matching days from ${source.title}.`
+        : `Filled empty days from ${source.title}.`,
+    );
   }
 
   function keepDay(iso: number) {
@@ -1088,41 +1121,29 @@ export function GymPlansView({
           </PrimaryButton>
         }
       />
-      <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Pick the weekdays you train, then generate workouts. Keep the days you like, generate again for
-        the rest, and only then save them as your program. Workouts and reminders follow this calendar —
-        rest days stay rest days.
+      <p className="-mt-4 mb-3 text-sm leading-6 text-muted">
+        Pick training days, generate workouts, keep what you like, then save. Remaining-day generation
+        sees your kept sessions and saved programs so it does not clone them.
       </p>
       <ModuleSubNav items={trainingSubNav} />
 
       {displayPlans.length > 0 && (
-        <div className="mb-4 grid gap-2 sm:grid-cols-2">
-          {displayPlans.slice(0, 4).map((plan) => {
+        <div className="mb-3 flex flex-wrap gap-2">
+          {displayPlans.slice(0, 6).map((plan) => {
             const today = pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days);
-            const schedule = formatTrainingDaysLabel(plan.training_days ?? []);
             return (
               <a
                 key={plan.id}
-                href={
-                  today
-                    ? `/dashboard/movement/log?plan=${plan.id}&day=${encodeURIComponent(today.day)}`
-                    : `/dashboard/movement/log?plan=${plan.id}`
-                }
-                className="rounded-[1.3rem] border border-ink/8 bg-card p-4 transition hover:border-accent/30"
+                href="#saved-programs"
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-ink/8 bg-card px-3 py-1.5 text-xs font-black transition hover:border-accent/30"
               >
-                <p className="text-[10px] font-black tracking-wider text-accent">SAVED PROGRAM</p>
-                <p className="mt-1 text-sm font-black">{plan.title}</p>
-                <p className="mt-0.5 text-xs capitalize text-muted">
-                  {humanizeGymLabel(plan.focus)} · {plan.level} ·{" "}
-                  {schedule || `${plan.days_per_week} days/week`}
-                </p>
+                <span className="truncate">{plan.title}</span>
                 {today ? (
-                  <p className="mt-2 text-xs font-black text-accent">
-                    Start today · {today.day} · {humanizeGymLabel(today.focus)}
-                    {today.exercises[0] ? ` · ${today.exercises[0].name}` : ""}
-                  </p>
+                  <span className="truncate font-bold text-accent">
+                    today · {humanizeGymLabel(today.focus)}
+                  </span>
                 ) : (
-                  <p className="mt-2 text-xs font-black text-muted">Rest day — nothing programmed today</p>
+                  <span className="text-muted">rest</span>
                 )}
               </a>
             );
@@ -1130,8 +1151,9 @@ export function GymPlansView({
         </div>
       )}
 
-      <Panel title="How often do you train?" className="mb-4">
-        <div className="rounded-2xl border border-ink/5 bg-card px-3 py-3">
+      <Panel title="How often do you train?" dense className="mb-4">
+        <div className="grid gap-2 lg:grid-cols-3">
+        <div className="rounded-2xl border border-ink/5 bg-card px-3 py-2.5">
           <p className="text-[10px] font-black uppercase tracking-wider text-muted">Training days</p>
           <p className="mt-1 text-xs leading-5 text-muted">
             Pick 2–6 weekdays. {trainingDays.length} days/week
@@ -1161,7 +1183,7 @@ export function GymPlansView({
             <p className="mt-2 text-[10px] text-muted">Suggested {scaling.days_per_week} days/week</p>
           )}
         </div>
-        <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
+        <div className="rounded-2xl border border-ink/5 bg-card px-3 py-2.5">
           <p className="text-[10px] font-black uppercase tracking-wider text-muted">
             Minutes per workout
           </p>
@@ -1196,7 +1218,7 @@ export function GymPlansView({
             <p className="mt-2 text-[10px] text-muted">Suggested {scaling.session_minutes} min</p>
           )}
         </div>
-        <div className="mt-3 rounded-2xl border border-ink/5 bg-card px-3 py-3">
+        <div className="rounded-2xl border border-ink/5 bg-card px-3 py-2.5">
           <p className="text-[10px] font-black uppercase tracking-wider text-muted">Experience</p>
           <p className="mt-1 text-xs leading-5 text-muted">
             Working loads use your body weight and this level.
@@ -1222,7 +1244,8 @@ export function GymPlansView({
             })}
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <PrimaryButton disabled={planning} onClick={generatePlan} className="rounded-full px-5">
             <Sparkles size={14} className="shrink-0" />
             {planning ? "Generating workouts…" : "Generate workouts"}
@@ -1243,18 +1266,52 @@ export function GymPlansView({
           draft={draft}
           planning={planning}
           saving={savingDraft}
+          savedPlans={displayPlans}
           onKeep={keepDay}
           onDrop={dropDay}
           onGenerate={generatePlan}
           onSave={saveDraftProgram}
           onDiscard={discardDraft}
           onUpdate={updateDraft}
+          onMergePlan={mergeSavedPlan}
         />
       )}
 
-      {showCustomize && scaling && (
-        <Panel title="Your goals & fitness level" className="mb-4">
-          <div className="space-y-4">
+      {showCustomize && (
+      <Panel title="Optional settings" dense className="mb-4">
+        <div className="mb-3 flex flex-wrap gap-1">
+          {scaling && (
+            <button
+              type="button"
+              onClick={() => setCustomizeTab("goals")}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                customizeTab === "goals" ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+              }`}
+            >
+              Goals
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setCustomizeTab("skip")}
+            className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+              customizeTab === "skip" ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+            }`}
+          >
+            Skip areas
+          </button>
+          <button
+            type="button"
+            onClick={() => setCustomizeTab("known")}
+            className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+              customizeTab === "known" ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+            }`}
+          >
+            Known moves
+          </button>
+        </div>
+        {customizeTab === "goals" && scaling && (
+          <div className="space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-ink">{scaling.summary}</p>
@@ -1326,12 +1383,10 @@ export function GymPlansView({
               </p>
             )}
           </div>
-        </Panel>
-      )}
+        )}
 
-      {showCustomize && (
-      <>
-      <Panel title="Skip these body areas" className="mb-4">
+        {customizeTab === "skip" && (
+        <div>
         <p className="mb-3 text-sm leading-6 text-muted">
           Optional: pick areas you want to skip for now (for example core). Your program will avoid them.
         </p>
@@ -1370,25 +1425,17 @@ export function GymPlansView({
             );
           })}
         </div>
-      </Panel>
+        </div>
+        )}
 
-      <Panel
-        title="Moves you already know"
-        className="mb-4"
-        right={
-          <Link
-            href="/dashboard/gym/machines"
-            className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-black text-accent transition hover:bg-accent-soft"
-          >
-            <ExternalLink size={12} />
+        {customizeTab === "known" && (
+        <div>
+        <p className="mb-2 text-sm leading-5 text-muted">
+          Optional: mark machines and moves you know. If you pick any, the program uses only those.
+          {" "}
+          <Link href="/dashboard/gym/machines" className="font-black text-accent">
             Machine demos
           </Link>
-        }
-      >
-        <p className="mb-3 text-sm leading-6 text-muted">
-          Optional: mark machines and moves you know. If you pick any, your program uses only those (plus
-          anything you type) — it will not add extras like a leg press. Leave this empty to let the program
-          choose from the full list. Choices stay in this browser.
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
@@ -1448,22 +1495,12 @@ export function GymPlansView({
           )}
         </label>
 
-        <FilterChipRow>
-          {muscleFilters.map((item) => (
-            <FilterChip
-              key={item}
-              active={knownMuscle === item}
-              onClick={() => setKnownMuscle(item)}
-            >
-              {muscleFilterLabel(item)}
-            </FilterChip>
-          ))}
-        </FilterChipRow>
+        <MuscleFilterChips muscle={knownMuscle} onChange={setKnownMuscle} />
 
         <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">
           Machines ({filteredMachines.length})
         </p>
-        <div className="mb-4 grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mb-3 grid max-h-52 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredMachines.map((machine) => {
             const checked = knownMachineSlugs.includes(machine.slug);
             return (
@@ -1525,7 +1562,7 @@ export function GymPlansView({
         <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted">
           Free weights &amp; bodyweight ({filteredFreeWeights.length})
         </p>
-        <div className="mb-4 grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mb-3 grid max-h-52 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredFreeWeights.map((move) => {
             const checked = knownMachineSlugs.includes(move.slug);
             return (
@@ -1631,13 +1668,15 @@ export function GymPlansView({
             ))}
           </div>
         )}
+        </div>
+        )}
       </Panel>
-      </>
       )}
 
       <Panel
         id="saved-programs"
         title="Your saved programs"
+        dense
         right={displayPlans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(displayPlans)} /> : undefined}
       >
         <div className="space-y-4">
@@ -1645,30 +1684,15 @@ export function GymPlansView({
             const today = pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days);
             const schedule = formatTrainingDaysLabel(plan.training_days ?? []);
             return (
-            <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-4">
+            <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-3">
               <div>
                 <p className="text-sm font-black">{plan.title}</p>
-                <p className="mt-1 text-xs capitalize text-muted">
+                <p className="mt-0.5 text-xs capitalize text-muted">
                   {humanizeGymLabel(plan.focus)} · {plan.level} ·{" "}
                   {schedule || `${plan.days_per_week} days/week`}
+                  {(plan.days ?? []).length ? ` · ${(plan.days ?? []).length} sessions` : ""}
                 </p>
-                {plan.summary && <p className="mt-2 text-sm leading-6 text-muted">{plan.summary}</p>}
-                {(plan.recommendations ?? []).length > 0 && (
-                  <div className="mt-3 rounded-2xl border border-accent/15 bg-accent-soft/40 p-3">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-accent">
-                      Coach notes
-                    </p>
-                    <ul className="mt-2 space-y-1.5">
-                      {(plan.recommendations ?? []).map((rec) => (
-                        <li key={rec} className="flex gap-2 text-sm leading-5 text-muted">
-                          <Lightbulb size={14} className="mt-0.5 shrink-0 text-accent" />
-                          <span>{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Link
                     href={
                       today
@@ -1679,6 +1703,22 @@ export function GymPlansView({
                   >
                     Start {today ? "today’s workout" : "program"}
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => mergeSavedPlan(plan, "fill")}
+                    className="inline-flex items-center gap-1 rounded-full border border-ink/10 px-3 py-1.5 text-[11px] font-black text-accent hover:border-accent/40"
+                  >
+                    <GitMerge size={12} />
+                    Add to draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
+                    className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-black text-muted hover:text-ink"
+                  >
+                    {expandedPlanId === plan.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    {expandedPlanId === plan.id ? "Hide week" : "Show week"}
+                  </button>
                   <ShareExportMenu compact doc={gymPlanDoc(plan)} />
                   <button
                     type="button"
@@ -1716,9 +1756,25 @@ export function GymPlansView({
                     })
                   }
                 />
-              ) : (
+              ) : expandedPlanId === plan.id ? (
               <>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {plan.summary && <p className="mt-2 text-sm leading-5 text-muted">{plan.summary}</p>}
+              {(plan.recommendations ?? []).length > 0 && (
+                <div className="mt-2 rounded-2xl border border-accent/15 bg-accent-soft/40 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-accent">
+                    Coach notes
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {(plan.recommendations ?? []).map((rec) => (
+                      <li key={rec} className="flex gap-2 text-xs leading-5 text-muted">
+                        <Lightbulb size={14} className="mt-0.5 shrink-0 text-accent" />
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {(plan.days ?? []).map((day) => {
                   const isToday = today?.day === day.day;
                   return (
@@ -1733,109 +1789,16 @@ export function GymPlansView({
                       {isToday ? " · today" : ""}
                     </p>
                     <p className="mt-1 text-sm font-bold capitalize">{humanizeGymLabel(day.focus)}</p>
-                    <ul className="mt-2 space-y-2">
-                      {(day.exercises ?? []).map((ex) => {
-                        const details = gymMoveDetails(ex.name);
-                        const linked =
-                          findExerciseMatch(ex.name, exercises) ??
-                          findRelatedExerciseMatch(ex.name, exercises);
-                        const cue = ex.notes || linked?.cues || details.cues;
-                        return (
-                          <li key={`${day.day}-${ex.name}`} className="text-xs text-muted">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-soft ring-1 ring-ink/8">
-                                  {linked ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={gymExerciseCardImage(linked) ?? "/vivrant-mark.png"}
-                                      alt=""
-                                      className="size-full object-cover"
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <span className="grid size-full place-items-center text-accent">
-                                      <Dumbbell size={14} />
-                                    </span>
-                                  )}
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="font-bold text-ink">{details.displayName}</p>
-                                  <p className="capitalize">
-                                    {humanizeGymLabel(linked?.muscle_group ?? details.muscle_group)} ·{" "}
-                                    {humanizeGymLabel(linked?.equipment ?? details.equipment)}
-                                  </p>
-                                  <p>
-                                    {[ex.sets, ex.weight, `rest ${ex.rest}`]
-                                      .filter(Boolean)
-                                      .join(" · ")}
-                                  </p>
-                                  {cue && (
-                                    <p className="mt-0.5 text-[11px] leading-4 text-muted/90">{cue}</p>
-                                  )}
-                                </div>
-                              </div>
-                              {linked && (
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveDemo(linked)}
-                                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-soft px-2 py-1 text-[10px] font-black text-accent transition hover:bg-accent hover:text-inverse-fg"
-                                  aria-label={`Watch ${details.displayName} demo`}
-                                >
-                                  <Play size={10} fill="currentColor" />
-                                  Demo
-                                </button>
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
+                    <ul className="mt-1.5 space-y-0.5">
+                      {(day.exercises ?? []).map((ex) => (
+                        <li key={`${day.day}-${ex.name}`} className="truncate text-xs text-muted">
+                          {formatGymExerciseLine(ex)}
+                        </li>
+                      ))}
                     </ul>
-                    {(day.alternatives ?? []).length > 0 && (
-                      <div className="mt-3 border-t border-ink/8 pt-2">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-accent">
-                          Alternatives
-                        </p>
-                        <ul className="mt-1.5 space-y-1">
-                          {day.alternatives?.map((swap) => (
-                            <li
-                              key={`${day.day}-alt-${swap.instead_of}-${swap.use}`}
-                              className="flex gap-1.5 text-[11px] leading-4 text-muted"
-                            >
-                              <Repeat2 size={12} className="mt-0.5 shrink-0 text-accent" />
-                              <span>
-                                <span className="font-bold text-ink">{swap.use}</span>
-                                {" "}instead of {swap.instead_of}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {(day.additionals ?? []).length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-accent">
-                          Add to this workout
-                        </p>
-                        <ul className="mt-1.5 space-y-1">
-                          {day.additionals?.map((addon) => (
-                            <li
-                              key={`${day.day}-add-${addon.name}`}
-                              className="flex gap-1.5 text-[11px] leading-4 text-muted"
-                            >
-                              <Plus size={12} className="mt-0.5 shrink-0 text-accent" />
-                              <span>
-                                <span className="font-bold text-ink">{addon.name}</span>
-                                {addon.sets ? ` · ${addon.sets}` : ""}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                     <Link
                       href={`/dashboard/movement/log?plan=${plan.id}&day=${encodeURIComponent(day.day)}`}
-                      className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-full bg-inverse px-3 py-2 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-full bg-inverse px-3 py-1.5 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
                     >
                       <Play size={12} fill="currentColor" />
                       Start this day
@@ -1873,7 +1836,7 @@ export function GymPlansView({
                 </div>
               )}
               </>
-              )}
+              ) : null}
             </article>
             );
           })}
@@ -1887,27 +1850,35 @@ export function GymPlansView({
       {programHistory.length > 0 && (
         <Panel
           title="Program history"
+          dense
           className="mt-4"
           right={
-            <Link href="/dashboard/activity" className="text-[11px] font-black text-accent">
-              All activity
-            </Link>
+            <button
+              type="button"
+              onClick={() => setShowHistory((v) => !v)}
+              className="text-[11px] font-black text-accent"
+            >
+              {showHistory ? "Hide" : `Show ${Math.min(programHistory.length, 12)}`}
+            </button>
           }
         >
-          <div className="grid gap-2">
+          {showHistory ? (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {programHistory.slice(0, 12).map((item) => (
               <div
                 key={item.id}
-                className="rounded-2xl border border-ink/6 bg-surface/45 px-4 py-3"
+                className="rounded-2xl border border-ink/6 bg-surface/45 px-3 py-2.5"
               >
                 <p className="truncate text-sm font-bold">{item.title}</p>
-                <p className="mt-0.5 text-xs text-muted">{item.detail}</p>
-                <p className="mt-1 text-[11px] text-muted">
-                  {new Date(item.created_at).toLocaleString()}
-                </p>
+                <p className="mt-0.5 truncate text-xs text-muted">{item.detail}</p>
               </div>
             ))}
           </div>
+          ) : (
+            <p className="text-xs text-muted">
+              {programHistory.length} earlier program change{programHistory.length === 1 ? "" : "s"} — open to review.
+            </p>
+          )}
         </Panel>
       )}
       <AnimatePresence>

@@ -211,6 +211,147 @@ export function assembleKeptPlanDays(draft: GymProgramDraft): GymPlanDay[] {
   return isos.map((iso) => stampDayWeekday(draft.kept_days[weekdayKey(iso)], iso));
 }
 
+export type SavedProgramSeed = {
+  title?: string | null;
+  focus?: string | null;
+  level?: string | null;
+  summary?: string | null;
+  recommendations?: string[];
+  days: GymPlanDay[];
+  training_days?: number[];
+};
+
+export type MergeSavedPlanMode = "fill" | "overwrite";
+
+function clonePlanDay(day: GymPlanDay): GymPlanDay {
+  return {
+    ...day,
+    exercises: (day.exercises ?? []).map((ex) => ({ ...ex })),
+    alternatives: day.alternatives?.map((swap) => ({ ...swap })),
+    additionals: day.additionals?.map((addon) => ({ ...addon })),
+  };
+}
+
+function inferTrainingDaysFromPlan(plan: SavedProgramSeed): number[] {
+  if (plan.training_days?.length) return sanitizeTrainingDays(plan.training_days, plan.days.length || 3);
+  const labeled = plan.days
+    .map((day) => weekdayIsoFromLabel(day.day))
+    .filter((iso): iso is number => iso != null);
+  return sanitizeTrainingDays(labeled.length ? labeled : plan.days.map((_, index) => index + 1), plan.days.length || 3);
+}
+
+/** Start a draft week from a saved program so those days can be remixed. */
+export function draftFromSavedPlan(
+  plan: SavedProgramSeed,
+  prefs?: GymPlanPrefs | null,
+): GymProgramDraft {
+  const trainingDays = inferTrainingDaysFromPlan(plan);
+  const kept: Record<string, GymPlanDay> = {};
+  plan.days.forEach((day, index) => {
+    const iso = weekdayIsoFromLabel(day.day) ?? trainingDays[index];
+    if (iso == null || iso < 1 || iso > 7) return;
+    kept[weekdayKey(iso)] = stampDayWeekday(clonePlanDay(day), iso);
+  });
+  const sessionMinutes = prefs?.session_minutes ?? 45;
+  return {
+    title: String(plan.title ?? "Your VIVRΛNT gym program").slice(0, 120),
+    focus: String(plan.focus ?? "full_body").slice(0, 40),
+    level: String(plan.level ?? prefs?.level ?? "beginner").slice(0, 20),
+    summary: plan.summary == null ? null : String(plan.summary).slice(0, 600),
+    recommendations: plan.recommendations ?? [],
+    prefs: prefs
+      ? {
+          ...prefs,
+          training_days: trainingDays,
+          days_per_week: trainingDays.length,
+        }
+      : {
+          days_per_week: trainingDays.length,
+          training_days: trainingDays,
+          session_minutes: sessionMinutes,
+          level: (plan.level as GymPlanPrefs["level"]) || "beginner",
+          known_machine_slugs: [],
+          known_custom_exercises: [],
+          avoid_targets: [],
+        },
+    preview_days: [],
+    kept_days: kept,
+    training_days: trainingDays,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Copy saved-program days onto the current draft.
+ * `fill` only occupies empty weekday slots; `overwrite` replaces matching weekdays.
+ */
+export function mergePlanDaysIntoDraft(
+  draft: GymProgramDraft,
+  days: GymPlanDay[],
+  mode: MergeSavedPlanMode = "fill",
+): GymProgramDraft {
+  const next = { ...draft.kept_days };
+  let training = [...draft.training_days];
+
+  for (const day of days) {
+    let iso = weekdayIsoFromLabel(day.day);
+    if (iso == null) {
+      iso = training.find((slot) => !next[weekdayKey(slot)]) ?? null;
+    }
+    if (iso == null) continue;
+    if (!training.includes(iso)) {
+      if (training.length >= 6) {
+        iso = training.find((slot) => !next[weekdayKey(slot)]) ?? null;
+        if (iso == null) continue;
+      } else {
+        training = [...training, iso].sort((a, b) => a - b);
+      }
+    }
+    const key = weekdayKey(iso);
+    if (mode === "fill" && next[key]) continue;
+    next[key] = stampDayWeekday(clonePlanDay(day), iso);
+  }
+
+  return stampNow({
+    ...draft,
+    kept_days: next,
+    training_days: training,
+    prefs: {
+      ...draft.prefs,
+      training_days: training,
+      days_per_week: training.length,
+    },
+  });
+}
+
+export function summarizeSessionsForAi(days: GymPlanDay[]): string {
+  return days
+    .map((day) => {
+      const moves = (day.exercises ?? [])
+        .map((ex) => String(ex.name ?? "").trim())
+        .filter(Boolean);
+      const focus = humanizeGymLabel(day.focus) || "Training";
+      return `- ${day.day || "Day"}: ${focus}${moves.length ? ` (${moves.join(", ")})` : ""}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function collectSessionMoveNames(days: GymPlanDay[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const day of days) {
+    for (const ex of day.exercises ?? []) {
+      const name = String(ex.name ?? "").trim();
+      const key = name.toLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+    }
+  }
+  return out;
+}
+
 export function hydrateDraftPlan(draft: GymProgramDraft) {
   const days = assembleKeptPlanDays(draft);
   return hydrateGymPlan({

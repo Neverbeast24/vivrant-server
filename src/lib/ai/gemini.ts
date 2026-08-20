@@ -12,6 +12,7 @@ import {
   type GymPlanDay,
 } from "@/lib/gym";
 import { sanitizeTrainingDays, formatRestDaysLabel, GYM_WEEKDAYS, parseWeekdayIsos } from "@/lib/gym-schedule";
+import { summarizeSessionsForAi } from "@/lib/gym-program-draft";
 import {
   clampGymPlanLevel,
   MAX_KNOWN_MACHINE_SLUGS,
@@ -728,6 +729,7 @@ export async function generateGymPlan(
     training_days?: number[];
     generate_days?: number[];
     kept_days?: GymPlanDay[];
+    saved_programs?: Array<{ title?: string; days?: GymPlanDay[] }>;
     session_minutes?: number;
     level?: GymPlanLevel;
     known_machine_slugs?: string[];
@@ -774,14 +776,25 @@ export async function generateGymPlan(
     .join(", ");
   const restNote = formatRestDaysLabel(trainingDays);
   const keptDays = Array.isArray(prefs?.kept_days) ? prefs.kept_days : [];
-  const keptNote = keptDays.length
-    ? `The user already kept these sessions. Generate complementary days that do NOT repeat the same focus or main lifts:\n${keptDays
-        .map((day) => {
-          const moves = (day.exercises ?? []).map((ex) => ex.name).filter(Boolean).join(", ");
-          return `- ${day.day}: ${day.focus}${moves ? ` (${moves})` : ""}`;
-        })
-        .join("\n")}`
+  const keptSummary = summarizeSessionsForAi(keptDays);
+  const savedPrograms = (prefs?.saved_programs ?? [])
+    .map((program) => {
+      const days = Array.isArray(program.days) ? program.days : [];
+      const summary = summarizeSessionsForAi(days);
+      if (!summary) return "";
+      return `${String(program.title ?? "Saved program").slice(0, 80)}:\n${summary}`;
+    })
+    .filter(Boolean);
+  const fillingRemaining = keptDays.length > 0;
+  const keptNote = fillingRemaining
+    ? `The member already kept these sessions for this week. You are ONLY generating the remaining weekdays listed above (${weekdayNames}). Return exactly ${requestedDays} day entries for those remaining weekdays — do not regenerate Monday/Tuesday/etc. if they are already kept.
+Do NOT repeat the same day focus or the same main lifts. Complementary remaining days only. Repeating a small accessory (e.g. calves) is fine; cloning a whole session is not.
+Already kept this week:
+${keptSummary}`
     : "No days have been kept yet — generate a fresh complementary week.";
+  const savedNote = savedPrograms.length
+    ? `The member also has saved programs. Treat those as already owned — do not clone their sessions as "new" remaining days. Pull a different split / different primary lifts if you must cover the same muscle group.\n${savedPrograms.join("\n")}`
+    : "No saved programs to avoid duplicating.";
 
   const parsed = await generateJson<Partial<GymPlanPayload>>(`Create a practical gym training program for this user.
 Use their profile, energy, goals, recent activity, and especially bmi_details + routine_scaling (BMI band + target-date forecast).
@@ -798,6 +811,7 @@ Scale the program explicitly:
 - ${knownMachinesNote}
 - ${avoidTargetsNote}
 - ${keptNote}
+- ${savedNote}
 Prefer exercises from the available catalog when possible.
 Return JSON:
 - "title"

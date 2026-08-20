@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   assembleKeptPlanDays,
   dropKeptDay,
+  draftFromSavedPlan,
   keepPreviewDay,
   mapPreviewToWeekdays,
+  mergePlanDaysIntoDraft,
   moveKeptDay,
   remainingTrainingDays,
   reorderPreviewExercises,
+  summarizeSessionsForAi,
   type GymProgramDraft,
 } from "./gym-program-draft";
 import { restEndsAtFromSeconds, restRemainingSeconds } from "./gym-live-session";
@@ -89,6 +92,53 @@ describe("program builder days", () => {
       [3, 5],
     );
     expect(mapped.map((day) => day.day)).toEqual(["Wednesday · Push", "Friday · Legs"]);
+  });
+
+  it("copies a saved program into an empty draft week", () => {
+    const next = draftFromSavedPlan({
+      title: "Push Pull",
+      focus: "strength",
+      level: "intermediate",
+      days: [
+        { day: "Monday · Push", focus: "Push", exercises: [{ name: "Press", sets: "3 x 10", rest: "60s" }] },
+        { day: "Friday · Pull", focus: "Pull", exercises: [{ name: "Row", sets: "3 x 12", rest: "60s" }] },
+      ],
+    });
+    expect(next.kept_days["1"]?.exercises[0]?.name).toBe("Press");
+    expect(next.kept_days["5"]?.exercises[0]?.name).toBe("Row");
+    expect(next.training_days).toEqual([1, 5]);
+  });
+
+  it("fills empty draft slots from a saved program without replacing kept days", () => {
+    const base = keepPreviewDay(draft(), 1);
+    const next = mergePlanDaysIntoDraft(
+      base,
+      [
+        { day: "Monday · Push", focus: "Push", exercises: [{ name: "Press", sets: "3 x 8", rest: "90s" }] },
+        { day: "Wednesday · Legs", focus: "Legs", exercises: [{ name: "Squat", sets: "3 x 8", rest: "90s" }] },
+      ],
+      "fill",
+    );
+    expect(next.kept_days["1"]?.exercises[0]?.name).toBe("Lat pulldown");
+    expect(next.kept_days["3"]?.exercises[0]?.name).toBe("Squat");
+  });
+
+  it("overwrites matching weekdays when merging a saved program", () => {
+    const base = keepPreviewDay(draft(), 1);
+    const next = mergePlanDaysIntoDraft(
+      base,
+      [{ day: "Monday · Push", focus: "Push", exercises: [{ name: "Press", sets: "3 x 8", rest: "90s" }] }],
+      "overwrite",
+    );
+    expect(next.kept_days["1"]?.exercises[0]?.name).toBe("Press");
+  });
+
+  it("summarizes kept sessions for the generator prompt", () => {
+    const note = summarizeSessionsForAi([
+      { day: "Monday · Push", focus: "Push", exercises: [{ name: "Press", sets: "3 x 10", rest: "60s" }] },
+    ]);
+    expect(note).toContain("Monday · Push");
+    expect(note).toContain("Press");
   });
 });
 
