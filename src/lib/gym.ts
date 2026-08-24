@@ -10,6 +10,7 @@ import {
   resolveTrainingDays,
   sanitizeTrainingDays,
   SESSION_MINUTE_PRESETS,
+  trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
 } from "@/lib/gym-schedule";
 
@@ -25,6 +26,7 @@ export {
   resolveTrainingDays,
   sanitizeTrainingDays,
   SESSION_MINUTE_PRESETS,
+  trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
 };
 
@@ -468,6 +470,49 @@ export function labelGymPlanDaysWithWeekdays(days: GymPlanDay[], trainingDays: n
       day: `${weekday} · ${focus}`.slice(0, 40),
     };
   });
+}
+
+export function emptyGymPlanExercise(): GymPlanExercise {
+  return { name: "", sets: "3 x 10", rest: "60s" };
+}
+
+export function cloneGymPlanDay(day: GymPlanDay): GymPlanDay {
+  return {
+    ...day,
+    exercises: (day.exercises ?? []).map((ex) => ({ ...ex })),
+    alternatives: day.alternatives?.map((item) => ({ ...item })),
+    additionals: day.additionals?.map((item) => ({ ...item })),
+  };
+}
+
+export function stampGymPlanDayWeekday(day: GymPlanDay, iso: number): GymPlanDay {
+  const weekday = GYM_WEEKDAYS.find((item) => item.iso === iso)?.full ?? `Day ${iso}`;
+  const focus = humanizeGymLabel(day.focus) || "Training";
+  return { ...cloneGymPlanDay(day), day: `${weekday} · ${focus}`.slice(0, 40) };
+}
+
+/** Move a saved program day onto another weekday, swapping if that slot is taken. */
+export function moveSavedPlanDay(days: GymPlanDay[], fromIndex: number, toIso: number): GymPlanDay[] {
+  if (fromIndex < 0 || fromIndex >= days.length || toIso < 1 || toIso > 7) return days;
+  const next = days.map(cloneGymPlanDay);
+  const fromIso = weekdayIsoFromLabel(next[fromIndex].day);
+  if (fromIso === toIso) return next;
+  const toIndex = next.findIndex(
+    (day, index) => index !== fromIndex && weekdayIsoFromLabel(day.day) === toIso,
+  );
+  next[fromIndex] = stampGymPlanDayWeekday(next[fromIndex], toIso);
+  if (toIndex >= 0 && fromIso != null) {
+    next[toIndex] = stampGymPlanDayWeekday(next[toIndex], fromIso);
+  }
+  return next.sort(
+    (a, b) => (weekdayIsoFromLabel(a.day) ?? 99) - (weekdayIsoFromLabel(b.day) ?? 99),
+  );
+}
+
+export function addExerciseToPlanDay(day: GymPlanDay, max = 6): GymPlanDay {
+  const exercises = day.exercises ?? [];
+  if (exercises.length >= max) return day;
+  return { ...day, exercises: [...exercises, emptyGymPlanExercise()] };
 }
 
 /** Pick today’s session. Rest days return null so Today does not invent a workout. */

@@ -2,24 +2,30 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, Repeat2, Timer, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Plus, Repeat2, Timer, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   clearGymLiveSessionAction,
   loadGymLiveSessionAction,
   logProgramGymSession,
   saveGymLiveSessionAction,
+  updateGymPlan,
 } from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import {
   formatRestClock,
   formatGymMoveName,
   gymSessionFocusFromPlan,
+  GYM_WEEKDAYS,
   humanizeGymLabel,
+  moveSavedPlanDay,
   parseRestSeconds,
   parseSetCount,
   pickTodaysPlanDay,
   resolveSessionPlanDay,
+  trainingDaysFromPlanDays,
+  weekdayIsoFromLabel,
   type GymPlan,
   type GymPlanDay,
 } from "@/lib/gym";
@@ -111,7 +117,7 @@ function emptyChecks(items: RunnerItem[]) {
 export function ProgramSessionPanel({
   plans,
   compact = false,
-  allowDayPick = false,
+  allowDayPick = true,
   initialPlanId,
   initialDayLabel,
 }: {
@@ -134,7 +140,9 @@ export function ProgramSessionPanel({
   const [saving, startSave] = useTransition();
   const [restored, setRestored] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  const [extras, setExtras] = useState<RunnerItem[]>([]);
   const syncTimer = useRef<number | null>(null);
+  const router = useRouter();
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
   const calendarToday = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
@@ -144,7 +152,10 @@ export function ProgramSessionPanel({
         trainingDays: plan.training_days,
       })
     : null;
-  const items = useMemo(() => (sessionDay ? buildItems(sessionDay) : []), [sessionDay]);
+  const items = useMemo(
+    () => [...(sessionDay ? buildItems(sessionDay) : []), ...extras],
+    [extras, sessionDay],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -155,6 +166,7 @@ export function ProgramSessionPanel({
         setNames({});
         setRest(null);
         setRestored(false);
+        setExtras([]);
         setHydrated(true);
       });
       return () => {
@@ -162,6 +174,7 @@ export function ProgramSessionPanel({
       };
     }
     const nextItems = buildItems(sessionDay);
+    setExtras([]);
     const nextNames = Object.fromEntries(nextItems.map((item) => [item.key, item.name]));
     const applyDraft = (saved: GymLiveSessionDraft | null) => {
       if (cancelled) return;
@@ -342,6 +355,51 @@ export function ProgramSessionPanel({
     });
   }
 
+  function addExtra() {
+    const key = `extra-${Date.now()}`;
+    const item: RunnerItem = {
+      key,
+      name: "Extra move",
+      originalName: "Extra move",
+      setsLabel: "3 x 10",
+      rest: "60s",
+      restSeconds: 60,
+      setCount: 3,
+      kind: "addon",
+    };
+    setExtras((current) => [...current, item]);
+    setChecks((current) => ({ ...current, [key]: [false, false, false] }));
+    setNames((current) => ({ ...current, [key]: "Extra move" }));
+  }
+
+  function persistMove(toIso: number) {
+    if (!plan || !sessionDay) return;
+    const fromIndex = (plan.days ?? []).findIndex((item) => item.day === sessionDay.day);
+    if (fromIndex < 0) return;
+    const days = moveSavedPlanDay(plan.days ?? [], fromIndex, toIso);
+    const training = trainingDaysFromPlanDays(days);
+    startSave(async () => {
+      const result = await updateGymPlan({
+        id: plan.id,
+        title: plan.title,
+        summary: plan.summary ?? "",
+        focus: plan.focus,
+        level: plan.level,
+        days,
+        recommendations: plan.recommendations,
+        training_days: training.length ? training : plan.training_days,
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success("Moved that workout to a new weekday.");
+      const moved = days.find((item) => weekdayIsoFromLabel(item.day) === toIso);
+      if (moved) setDayLabel(moved.day);
+      router.refresh();
+    });
+  }
+
   function save() {
     if (!plan || !sessionDay) return;
     const logged = items
@@ -499,6 +557,27 @@ export function ProgramSessionPanel({
             </select>
           </label>
         )}
+        <label className="mb-3 block">
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted">
+            Move this workout to
+          </span>
+          <select
+            value={weekdayIsoFromLabel(sessionDay.day) ?? ""}
+            disabled={saving}
+            onChange={(event) => persistMove(Number(event.target.value))}
+            className="w-full rounded-xl border border-ink/10 bg-surface/70 px-3.5 py-2.5 text-sm outline-none focus:border-accent/45"
+          >
+            <option value="" disabled>
+              Keep on {sessionDay.day}
+            </option>
+            {GYM_WEEKDAYS.map((item) => (
+              <option key={item.iso} value={item.iso}>
+                {item.full}
+                {weekdayIsoFromLabel(sessionDay.day) === item.iso ? " · current" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="mb-3 rounded-2xl border border-accent/15 bg-accent-soft/50 px-3.5 py-3">
           <p className="text-[11px] font-black text-accent">
             {sessionDay.day} · {humanizeGymLabel(sessionDay.focus)}
@@ -562,7 +641,18 @@ export function ProgramSessionPanel({
                   </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <p className="text-sm font-black">{formatGymMoveName(displayName)}</p>
+                      {item.key.startsWith("extra-") ? (
+                        <input
+                          value={displayName}
+                          onChange={(event) =>
+                            setNames((current) => ({ ...current, [item.key]: event.target.value }))
+                          }
+                          className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
+                          aria-label="Extra move name"
+                        />
+                      ) : (
+                        <p className="text-sm font-black">{formatGymMoveName(displayName)}</p>
+                      )}
                       {item.kind === "addon" && (
                         <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
                           Extra
@@ -607,6 +697,14 @@ export function ProgramSessionPanel({
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={addExtra}
+          className="mt-3 inline-flex items-center gap-1 text-[11px] font-black text-accent"
+        >
+          <Plus size={12} />
+          Add a move
+        </button>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <PrimaryButton disabled={saving || doneCount === 0} onClick={save}>

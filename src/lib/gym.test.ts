@@ -20,6 +20,7 @@ import {
   summarizeTodaysProgram,
   labelGymPlanDaysWithWeekdays,
   reminderDaysFromGymPlan,
+  moveSavedPlanDay,
 } from "./gym";
 
 describe("parseGymPlanDays", () => {
@@ -407,6 +408,46 @@ describe("labelGymPlanDaysWithWeekdays", () => {
       [1, 7],
     );
     expect(labeled.map((day) => day.day)).toEqual(["Monday · Pull", "Sunday · Push"]);
+  });
+});
+
+describe("moveSavedPlanDay", () => {
+  it("moves a workout onto an empty weekday", () => {
+    const next = moveSavedPlanDay(
+      [
+        {
+          day: "Monday · Pull",
+          focus: "Pull",
+          exercises: [{ name: "Row", sets: "3 x 10", rest: "60s" }],
+        },
+      ],
+      0,
+      3,
+    );
+    expect(next).toHaveLength(1);
+    expect(next[0].day).toMatch(/Wednesday/);
+    expect(next[0].exercises[0].name).toBe("Row");
+  });
+
+  it("swaps two weekday sessions", () => {
+    const next = moveSavedPlanDay(
+      [
+        {
+          day: "Monday · Pull",
+          focus: "Pull",
+          exercises: [{ name: "Row", sets: "3 x 10", rest: "60s" }],
+        },
+        {
+          day: "Wednesday · Push",
+          focus: "Push",
+          exercises: [{ name: "Press", sets: "3 x 8", rest: "90s" }],
+        },
+      ],
+      0,
+      3,
+    );
+    expect(next.find((day) => day.day.includes("Wednesday"))?.focus).toBe("Pull");
+    expect(next.find((day) => day.day.includes("Monday"))?.focus).toBe("Push");
   });
 });
 

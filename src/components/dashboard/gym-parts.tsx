@@ -61,6 +61,7 @@ import {
 } from "@/lib/gym-program-draft";
 import { GymProgramBuilder } from "@/components/dashboard/gym-program-builder";
 import { SavedGymPlanEditor } from "@/components/dashboard/gym-plan-editor";
+import { GymSavedDayCard } from "@/components/dashboard/gym-saved-day-card";
 import {
   enrichGymPlanDays,
   findExerciseMatch,
@@ -74,6 +75,7 @@ import {
   isMachineGear,
   pickTodaysPlanDay,
   SESSION_MINUTE_PRESETS,
+  trainingDaysFromPlanDays,
   type GymExercise,
   type GymPlan,
 } from "@/lib/gym";
@@ -1775,37 +1777,32 @@ export function GymPlansView({
                 </div>
               )}
               <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {(plan.days ?? []).map((day) => {
-                  const isToday = today?.day === day.day;
-                  return (
-                  <div
-                    key={`${plan.id}-${day.day}`}
-                    className={`rounded-2xl border p-3 ${
-                      isToday ? "border-accent/30 bg-accent-soft/30" : "border-ink/5 bg-panel/80"
-                    }`}
-                  >
-                    <p className="text-xs font-black text-accent">
-                      {day.day}
-                      {isToday ? " · today" : ""}
-                    </p>
-                    <p className="mt-1 text-sm font-bold capitalize">{humanizeGymLabel(day.focus)}</p>
-                    <ul className="mt-1.5 space-y-0.5">
-                      {(day.exercises ?? []).map((ex) => (
-                        <li key={`${day.day}-${ex.name}`} className="truncate text-xs text-muted">
-                          {formatGymExerciseLine(ex)}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href={`/dashboard/movement/log?plan=${plan.id}&day=${encodeURIComponent(day.day)}`}
-                      className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-full bg-inverse px-3 py-1.5 text-[11px] font-black text-inverse-fg transition hover:bg-accent"
-                    >
-                      <Play size={12} fill="currentColor" />
-                      Start this day
-                    </Link>
-                  </div>
-                  );
-                })}
+                {(plan.days ?? []).map((day, dayIndex) => (
+                  <GymSavedDayCard
+                    key={`${plan.id}-${day.day}-${dayIndex}`}
+                    plan={plan}
+                    day={day}
+                    dayIndex={dayIndex}
+                    isToday={today?.day === day.day}
+                    busy={busy}
+                    onSaveDays={(days) =>
+                      run(async () =>
+                        updateGymPlan({
+                          id: plan.id,
+                          title: plan.title,
+                          summary: plan.summary ?? "",
+                          focus: plan.focus,
+                          level: plan.level,
+                          days,
+                          recommendations: plan.recommendations,
+                          training_days: trainingDaysFromPlanDays(days).length
+                            ? trainingDaysFromPlanDays(days)
+                            : plan.training_days,
+                        }),
+                      )
+                    }
+                  />
+                ))}
               </div>
               {(plan.days ?? []).some(
                 (day) => (day.alternatives ?? []).length > 0 || (day.additionals ?? []).length > 0,
