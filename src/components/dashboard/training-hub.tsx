@@ -7,7 +7,7 @@ import { ProgramSessionPanel } from "@/components/dashboard/program-session";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { PageHeader, Panel, PrimaryButton, Stagger, StatCard } from "@/components/dashboard/ui";
 import { trainingSubNav } from "@/lib/nav";
-import type { GymPlan } from "@/lib/gym";
+import type { GymExercise, GymPlan } from "@/lib/gym";
 
 export function TrainingHub({
   workoutsToday,
@@ -21,6 +21,7 @@ export function TrainingHub({
   demoCount,
   planCount,
   plans = [],
+  exercises = [],
 }: {
   workoutsToday: number;
   workoutMinutes: number;
@@ -33,6 +34,7 @@ export function TrainingHub({
   demoCount: number;
   planCount: number;
   plans?: GymPlan[];
+  exercises?: GymExercise[];
 }) {
   const stepPct = Math.min(100, Math.round((steps / Math.max(stepGoal, 1)) * 100));
 
@@ -68,7 +70,7 @@ export function TrainingHub({
       </Stagger>
 
       <div className="mt-4">
-        <ProgramSessionPanel plans={plans} compact />
+        <ProgramSessionPanel plans={plans} compact moveOptions={exercises} />
       </div>
 
       <Panel

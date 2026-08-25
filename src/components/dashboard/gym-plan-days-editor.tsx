@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import { DayDragRow, DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
-import type { GymPlanDay, GymPlanExercise } from "@/lib/gym";
+import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
+import type { GymMoveCatalogItem, GymPlanDay, GymPlanExercise } from "@/lib/gym";
 import { formatGymExerciseLine } from "@/lib/gym";
 import { moveItem } from "@/lib/reorder";
 
@@ -29,9 +30,11 @@ export function cloneGymPlanDays(days: GymPlanDay[]): GymPlanDay[] {
 export function GymPlanDaysEditor({
   days,
   onChange,
+  moveOptions = [],
 }: {
   days: GymPlanDay[];
   onChange: (days: GymPlanDay[]) => void;
+  moveOptions?: GymMoveCatalogItem[];
 }) {
   const [openDay, setOpenDay] = useState(0);
 
@@ -140,16 +143,15 @@ export function GymPlanDaysEditor({
                       <div className="flex items-start gap-1.5">
                         <DragGrip label={`Reorder ${ex.name || "move"}`} />
                         <div className="grid min-w-0 flex-1 gap-1.5 sm:grid-cols-4">
-                          <input
-                            value={ex.name}
-                            onChange={(event) =>
-                              updateExercise(dayIndex, exIndex, { name: event.target.value })
-                            }
-                            className={`${compactField} sm:col-span-2`}
-                            placeholder="Move name"
-                            maxLength={80}
-                            aria-label="Move name"
-                          />
+                          <div className="min-w-0 sm:col-span-2">
+                            <GymMovePicker
+                              value={ex.name}
+                              onChange={(name) => updateExercise(dayIndex, exIndex, { name })}
+                              options={moveOptions}
+                              className={compactField}
+                              placeholder="Search moves…"
+                            />
+                          </div>
                           <input
                             value={ex.sets}
                             onChange={(event) =>

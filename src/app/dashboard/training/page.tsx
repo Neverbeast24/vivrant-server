@@ -47,6 +47,7 @@ export default async function TrainingPage() {
       demoCount={gym.demoCount}
       planCount={gym.plans.length}
       plans={gym.plans}
+      exercises={gym.exercises}
     />
   );
 }

@@ -1269,6 +1269,7 @@ export function GymPlansView({
           planning={planning}
           saving={savingDraft}
           savedPlans={displayPlans}
+          moveOptions={exercises}
           onKeep={keepDay}
           onDrop={dropDay}
           onGenerate={generatePlan}
@@ -1749,6 +1750,7 @@ export function GymPlansView({
                 <SavedGymPlanEditor
                   plan={plans.find((item) => item.id === plan.id) ?? plan}
                   busy={busy}
+                  moveOptions={exercises}
                   onCancel={() => setEditingPlanId(null)}
                   onSave={(input) =>
                     run(async () => {
@@ -1785,6 +1787,7 @@ export function GymPlansView({
                     dayIndex={dayIndex}
                     isToday={today?.day === day.day}
                     busy={busy}
+                    moveOptions={exercises}
                     onSaveDays={(days) =>
                       run(async () =>
                         updateGymPlan({

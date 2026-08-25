@@ -24,7 +24,7 @@ import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { movementWorkoutsDoc } from "@/lib/share-export";
 import { trainingSubNav } from "@/lib/nav";
 import { ProgramSessionPanel } from "@/components/dashboard/program-session";
-import type { GymPlan } from "@/lib/gym";
+import type { GymExercise, GymPlan } from "@/lib/gym";
 
 type Workout = {
   id: number;
@@ -40,6 +40,7 @@ export function MovementView({
   stepGoal = 8000,
   mode = "overview",
   plans = [],
+  exercises = [],
   initialPlanId,
   initialDayLabel,
 }: {
@@ -48,6 +49,7 @@ export function MovementView({
   stepGoal?: number;
   mode?: "overview" | "log";
   plans?: GymPlan[];
+  exercises?: GymExercise[];
   initialPlanId?: number;
   initialDayLabel?: string;
 }) {
@@ -115,6 +117,7 @@ export function MovementView({
           allowDayPick={mode === "log"}
           initialPlanId={initialPlanId}
           initialDayLabel={initialDayLabel}
+          moveOptions={exercises}
         />
       )}
 

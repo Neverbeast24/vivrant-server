@@ -777,6 +777,37 @@ export function findExerciseMatch<T extends { name: string }>(name: string, exer
   });
 }
 
+export type GymMoveCatalogItem = {
+  name: string;
+  muscle_group?: string;
+  equipment?: string;
+};
+
+/** Ranked catalog search for move pickers. Empty query returns A–Z, capped. */
+export function filterGymMoveCatalog<T extends GymMoveCatalogItem>(
+  query: string,
+  items: T[],
+  limit = 40,
+): T[] {
+  const q = query.trim().toLowerCase();
+  const ranked = items
+    .map((item) => {
+      const name = item.name.toLowerCase();
+      const muscle = String(item.muscle_group ?? "").toLowerCase();
+      const gear = String(item.equipment ?? "").toLowerCase();
+      let score = 0;
+      if (!q) score = 1;
+      else if (name === q) score = 100;
+      else if (name.startsWith(q)) score = 80;
+      else if (name.includes(q)) score = 60;
+      else if (muscle.includes(q) || gear.includes(q)) score = 30;
+      return { item, score };
+    })
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name));
+  return ranked.slice(0, Math.max(1, limit)).map((row) => row.item);
+}
+
 function formatGymCatalogLine(row: GymPlanCatalogRow) {
   return `${row.name}${row.slug ? ` [${row.slug}]` : ""} (${row.muscle_group}, ${row.equipment}${
     row.difficulty ? `, ${row.difficulty}` : ""

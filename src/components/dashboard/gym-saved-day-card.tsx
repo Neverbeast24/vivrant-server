@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
+import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
 import {
   addExerciseToPlanDay,
   cloneGymPlanDay,
@@ -12,6 +13,7 @@ import {
   humanizeGymLabel,
   moveSavedPlanDay,
   weekdayIsoFromLabel,
+  type GymMoveCatalogItem,
   type GymPlan,
   type GymPlanDay,
   type GymPlanExercise,
@@ -26,6 +28,7 @@ export function GymSavedDayCard({
   dayIndex,
   isToday,
   busy,
+  moveOptions = [],
   onSaveDays,
 }: {
   plan: GymPlan;
@@ -33,6 +36,7 @@ export function GymSavedDayCard({
   dayIndex: number;
   isToday: boolean;
   busy: boolean;
+  moveOptions?: GymMoveCatalogItem[];
   onSaveDays: (days: GymPlanDay[]) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -109,14 +113,15 @@ export function GymSavedDayCard({
           {draft.exercises.map((ex, index) => (
             <div key={`edit-${index}`} className="rounded-lg border border-ink/8 bg-card/80 p-1.5">
               <div className="flex gap-1">
-                <input
-                  value={ex.name}
-                  onChange={(event) => updateExercise(index, { name: event.target.value })}
-                  className={tinyField}
-                  placeholder="Move name"
-                  maxLength={80}
-                  aria-label="Move name"
-                />
+                <div className="min-w-0 flex-1">
+                  <GymMovePicker
+                    value={ex.name}
+                    onChange={(name) => updateExercise(index, { name })}
+                    options={moveOptions}
+                    className={tinyField}
+                    placeholder="Search moves…"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => void removeExercise(index)}

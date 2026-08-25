@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PrimaryButton, fieldClass } from "@/components/dashboard/ui";
 import { GymPlanDaysEditor, cloneGymPlanDays } from "@/components/dashboard/gym-plan-days-editor";
-import type { GymPlan, GymPlanDay } from "@/lib/gym";
+import type { GymMoveCatalogItem, GymPlan, GymPlanDay } from "@/lib/gym";
 import { weekdayIsoFromLabel } from "@/lib/gym";
 
 export function SavedGymPlanEditor({
@@ -11,9 +11,11 @@ export function SavedGymPlanEditor({
   busy,
   onCancel,
   onSave,
+  moveOptions = [],
 }: {
   plan: GymPlan;
   busy: boolean;
+  moveOptions?: GymMoveCatalogItem[];
   onCancel: () => void;
   onSave: (input: {
     id: number;
@@ -76,7 +78,7 @@ export function SavedGymPlanEditor({
           maxLength={800}
         />
       </label>
-      <GymPlanDaysEditor days={days} onChange={setDays} />
+      <GymPlanDaysEditor days={days} onChange={setDays} moveOptions={moveOptions} />
       <div className="flex flex-wrap gap-2">
         <PrimaryButton type="button" disabled={busy || title.trim().length < 2} onClick={save} className="rounded-full px-5">
           {busy ? "Saving…" : "Save program"}

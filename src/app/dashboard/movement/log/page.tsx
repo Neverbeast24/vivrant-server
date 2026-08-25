@@ -45,6 +45,7 @@ export default async function MovementLogPage({ searchParams }: MovementLogPageP
       steps={checkinRes.data?.steps ?? 0}
       stepGoal={profile.data?.daily_step_goal ?? 8000}
       plans={gym.plans}
+      exercises={gym.exercises}
       initialPlanId={Number(query.plan) || undefined}
       initialDayLabel={query.day?.trim() || undefined}
     />

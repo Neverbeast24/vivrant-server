@@ -13,6 +13,7 @@ import {
   updateGymPlan,
 } from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
+import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
 import {
   formatRestClock,
   formatGymMoveName,
@@ -26,6 +27,7 @@ import {
   resolveSessionPlanDay,
   trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
+  type GymMoveCatalogItem,
   type GymPlan,
   type GymPlanDay,
 } from "@/lib/gym";
@@ -120,12 +122,14 @@ export function ProgramSessionPanel({
   allowDayPick = true,
   initialPlanId,
   initialDayLabel,
+  moveOptions = [],
 }: {
   plans: GymPlan[];
   compact?: boolean;
   allowDayPick?: boolean;
   initialPlanId?: number;
   initialDayLabel?: string;
+  moveOptions?: GymMoveCatalogItem[];
 }) {
   const [planId, setPlanId] = useState(() => {
     if (initialPlanId && plans.some((item) => item.id === initialPlanId)) return initialPlanId;
@@ -641,18 +645,18 @@ export function ProgramSessionPanel({
                   </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      {item.key.startsWith("extra-") ? (
-                        <input
-                          value={displayName}
-                          onChange={(event) =>
-                            setNames((current) => ({ ...current, [item.key]: event.target.value }))
+                      <div className="min-w-0 flex-1">
+                        <GymMovePicker
+                          value={displayName === "Extra move" ? "" : displayName}
+                          onChange={(name) =>
+                            setNames((current) => ({ ...current, [item.key]: name }))
                           }
-                          className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
-                          aria-label="Extra move name"
+                          options={moveOptions}
+                          className="min-w-0 w-full rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
+                          placeholder="Search moves…"
+                          aria-label={item.key.startsWith("extra-") ? "Extra move name" : "Move name"}
                         />
-                      ) : (
-                        <p className="text-sm font-black">{formatGymMoveName(displayName)}</p>
-                      )}
+                      </div>
                       {item.kind === "addon" && (
                         <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
                           Extra

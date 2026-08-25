@@ -7,7 +7,7 @@ import { GymPlanDaysEditor, cloneGymPlanDays } from "@/components/dashboard/gym-
 import { DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
 import { Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
-import { formatGymExerciseLine, GYM_WEEKDAYS, humanizeGymLabel, type GymPlan } from "@/lib/gym";
+import { formatGymExerciseLine, GYM_WEEKDAYS, humanizeGymLabel, type GymMoveCatalogItem, type GymPlan } from "@/lib/gym";
 import {
   assembleKeptPlanDays,
   keptIsoList,
@@ -57,11 +57,13 @@ export function GymProgramBuilder({
   onDiscard,
   onUpdate,
   onMergePlan,
+  moveOptions = [],
 }: {
   draft: GymProgramDraft;
   planning: boolean;
   saving: boolean;
   savedPlans: GymPlan[];
+  moveOptions?: GymMoveCatalogItem[];
   onKeep: (iso: number) => void;
   onDrop: (iso: number) => void;
   onGenerate: () => void;
@@ -244,7 +246,7 @@ export function GymProgramBuilder({
         <div className="mb-3">
           {editingKept ? (
             <div className="rounded-2xl border border-accent/20 bg-accent-soft/30 p-3">
-              <GymPlanDaysEditor days={keptDraftDays} onChange={setKeptDraftDays} />
+              <GymPlanDaysEditor days={keptDraftDays} onChange={setKeptDraftDays} moveOptions={moveOptions} />
               <div className="mt-3 flex flex-wrap gap-2">
                 <PrimaryButton type="button" onClick={applyCustomize} className="rounded-full px-4">
                   Apply customization

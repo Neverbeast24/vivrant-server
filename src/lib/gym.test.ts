@@ -14,6 +14,7 @@ import {
   parseSetCount,
   pickTodaysPlanDay,
   findPlanDayByLabel,
+  filterGymMoveCatalog,
   resolveSessionPlanDay,
   serializeGymPlanDays,
   enrichGymPlanDays,
@@ -472,6 +473,31 @@ describe("reminderDaysFromGymPlan", () => {
     expect(reminderDaysFromGymPlan({ days_per_week: 6, days: [{ day: "Day 1" }] })).toEqual([
       1, 2, 3, 4, 5, 7,
     ]);
+  });
+});
+
+describe("filterGymMoveCatalog", () => {
+  const catalog = [
+    { name: "Pec Deck Fly Machine", muscle_group: "chest", equipment: "machine" },
+    { name: "Chest Press Machine", muscle_group: "chest", equipment: "machine" },
+    { name: "Tricep Rope", muscle_group: "arms", equipment: "cable" },
+    { name: "Treadmill Intervals", muscle_group: "cardio", equipment: "cardio_machine" },
+  ];
+
+  it("ranks prefix matches ahead of contains, then muscle/equipment", () => {
+    expect(filterGymMoveCatalog("pec", catalog).map((item) => item.name)).toEqual([
+      "Pec Deck Fly Machine",
+    ]);
+    expect(filterGymMoveCatalog("chest", catalog).map((item) => item.name)).toEqual([
+      "Chest Press Machine",
+      "Pec Deck Fly Machine",
+    ]);
+    expect(filterGymMoveCatalog("cable", catalog).map((item) => item.name)).toEqual(["Tricep Rope"]);
+  });
+
+  it("caps an empty query to an A–Z slice", () => {
+    const names = filterGymMoveCatalog("", catalog, 2).map((item) => item.name);
+    expect(names).toEqual(["Chest Press Machine", "Pec Deck Fly Machine"]);
   });
 });
 
