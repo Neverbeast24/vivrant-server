@@ -1270,6 +1270,7 @@ export function GymPlansView({
           saving={savingDraft}
           savedPlans={displayPlans}
           moveOptions={exercises}
+          bodyWeightKg={scaling?.weight_kg ?? null}
           onKeep={keepDay}
           onDrop={dropDay}
           onGenerate={generatePlan}
@@ -1751,6 +1752,7 @@ export function GymPlansView({
                   plan={plans.find((item) => item.id === plan.id) ?? plan}
                   busy={busy}
                   moveOptions={exercises}
+                  bodyWeightKg={scaling?.weight_kg ?? null}
                   onCancel={() => setEditingPlanId(null)}
                   onSave={(input) =>
                     run(async () => {
@@ -1788,6 +1790,7 @@ export function GymPlansView({
                     isToday={today?.day === day.day}
                     busy={busy}
                     moveOptions={exercises}
+                    bodyWeightKg={scaling?.weight_kg ?? null}
                     onSaveDays={(days) =>
                       run(async () =>
                         updateGymPlan({

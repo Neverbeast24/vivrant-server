@@ -6,6 +6,7 @@ export type GymLiveSessionDraft = {
   session_date: string;
   checks: Record<string, boolean[]>;
   names: Record<string, string>;
+  weights: Record<string, string>;
   started_at: number | null;
   rest_ends_at: number | null;
   rest_label: string | null;
@@ -37,6 +38,7 @@ export function emptyLiveSession(planId: number, dayLabel: string, date = todayS
     session_date: date,
     checks: {},
     names: {},
+    weights: {},
     started_at: null,
     rest_ends_at: null,
     rest_label: null,
@@ -51,13 +53,21 @@ function asBoolList(raw: unknown): boolean[] {
   return raw.map((item) => Boolean(item));
 }
 
+function asStringMap(raw: unknown, max = 80): Record<string, string> {
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>)
+      .map(([key, value]) => [key, String(value ?? "").slice(0, max)] as const)
+      .filter((entry) => entry[1].length > 0),
+  );
+}
+
 export function parseGymLiveSession(raw: unknown): GymLiveSessionDraft | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
   const planId = Math.round(Number(row.plan_id ?? row.planId));
   if (!Number.isFinite(planId) || planId <= 0) return null;
   const checksRaw = row.checks && typeof row.checks === "object" ? (row.checks as Record<string, unknown>) : {};
-  const namesRaw = row.names && typeof row.names === "object" ? (row.names as Record<string, unknown>) : {};
   const started =
     typeof row.started_at === "number"
       ? row.started_at
@@ -80,11 +90,8 @@ export function parseGymLiveSession(raw: unknown): GymLiveSessionDraft | null {
     day_label: String(row.day_label ?? row.day ?? "").slice(0, 80),
     session_date: String(row.session_date ?? row.date ?? todaySessionDate()).slice(0, 10),
     checks: Object.fromEntries(Object.entries(checksRaw).map(([key, value]) => [key, asBoolList(value)])),
-    names: Object.fromEntries(
-      Object.entries(namesRaw)
-        .map(([key, value]) => [key, String(value ?? "").slice(0, 80)] as const)
-        .filter((entry) => entry[1].length > 0),
-    ),
+    names: asStringMap(row.names, 80),
+    weights: asStringMap(row.weights, 40),
     started_at: Number.isFinite(started) && started && started > 0 ? started : null,
     rest_ends_at: Number.isFinite(restEnds) && restEnds && restEnds > 0 ? restEnds : null,
     rest_label: row.rest_label == null && row.restLabel == null ? null : String(row.rest_label ?? row.restLabel).slice(0, 80),
@@ -126,6 +133,7 @@ export function serializeLiveSessionForDb(draft: GymLiveSessionDraft) {
     session_date: draft.session_date,
     checks: draft.checks,
     names: draft.names,
+    weights: draft.weights,
     started_at: draft.started_at ? new Date(draft.started_at).toISOString() : null,
     rest_ends_at: draft.rest_ends_at ? new Date(draft.rest_ends_at).toISOString() : null,
     rest_label: draft.rest_label,

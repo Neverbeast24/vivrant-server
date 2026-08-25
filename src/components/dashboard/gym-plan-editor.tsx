@@ -12,10 +12,12 @@ export function SavedGymPlanEditor({
   onCancel,
   onSave,
   moveOptions = [],
+  bodyWeightKg = null,
 }: {
   plan: GymPlan;
   busy: boolean;
   moveOptions?: GymMoveCatalogItem[];
+  bodyWeightKg?: number | null;
   onCancel: () => void;
   onSave: (input: {
     id: number;
@@ -78,7 +80,13 @@ export function SavedGymPlanEditor({
           maxLength={800}
         />
       </label>
-      <GymPlanDaysEditor days={days} onChange={setDays} moveOptions={moveOptions} />
+      <GymPlanDaysEditor
+        days={days}
+        onChange={setDays}
+        moveOptions={moveOptions}
+        level={plan.level}
+        bodyWeightKg={bodyWeightKg}
+      />
       <div className="flex flex-wrap gap-2">
         <PrimaryButton type="button" disabled={busy || title.trim().length < 2} onClick={save} className="rounded-full px-5">
           {busy ? "Saving…" : "Save program"}

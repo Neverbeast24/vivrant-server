@@ -21,9 +21,11 @@ import {
   GYM_WEEKDAYS,
   humanizeGymLabel,
   moveSavedPlanDay,
+  nextGymMoveWeight,
   parseRestSeconds,
   parseSetCount,
   pickTodaysPlanDay,
+  resolveSessionMoveWeight,
   resolveSessionPlanDay,
   trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
@@ -123,6 +125,7 @@ export function ProgramSessionPanel({
   initialPlanId,
   initialDayLabel,
   moveOptions = [],
+  bodyWeightKg = null,
 }: {
   plans: GymPlan[];
   compact?: boolean;
@@ -130,6 +133,7 @@ export function ProgramSessionPanel({
   initialPlanId?: number;
   initialDayLabel?: string;
   moveOptions?: GymMoveCatalogItem[];
+  bodyWeightKg?: number | null;
 }) {
   const [planId, setPlanId] = useState(() => {
     if (initialPlanId && plans.some((item) => item.id === initialPlanId)) return initialPlanId;
@@ -138,6 +142,7 @@ export function ProgramSessionPanel({
   const [dayLabel, setDayLabel] = useState(initialDayLabel ?? "");
   const [checks, setChecks] = useState<Record<string, boolean[]>>({});
   const [names, setNames] = useState<Record<string, string>>({});
+  const [weights, setWeights] = useState<Record<string, string>>({});
   const [rest, setRest] = useState<RestState | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -149,6 +154,11 @@ export function ProgramSessionPanel({
   const router = useRouter();
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
+  const loadHint = {
+    level: plan?.level,
+    bodyWeightKg,
+    catalog: moveOptions,
+  };
   const calendarToday = plan ? pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days) : null;
   const sessionDay = plan
     ? resolveSessionPlanDay(plan.days ?? [], {
@@ -168,6 +178,7 @@ export function ProgramSessionPanel({
         if (cancelled) return;
         setChecks({});
         setNames({});
+        setWeights({});
         setRest(null);
         setRestored(false);
         setExtras([]);
@@ -184,6 +195,16 @@ export function ProgramSessionPanel({
       if (cancelled) return;
       let nextChecks = emptyChecks(nextItems);
       const namesOut = { ...nextNames };
+      const weightsOut = Object.fromEntries(
+        nextItems.map((item) => [
+          item.key,
+          resolveSessionMoveWeight(item.name, item.weight, undefined, {
+            level: plan.level,
+            bodyWeightKg,
+            catalog: moveOptions,
+          }),
+        ]),
+      );
       if (saved && liveSessionMatches(saved, plan.id, sessionDay.day)) {
         nextChecks = Object.fromEntries(
           nextItems.map((item) => {
@@ -193,6 +214,12 @@ export function ProgramSessionPanel({
         );
         for (const item of nextItems) {
           if (saved.names[item.key]) namesOut[item.key] = saved.names[item.key];
+          weightsOut[item.key] = resolveSessionMoveWeight(
+            namesOut[item.key] ?? item.name,
+            item.weight,
+            saved.weights?.[item.key],
+            { level: plan.level, bodyWeightKg, catalog: moveOptions },
+          );
         }
         setStartedAt(saved.started_at);
         const remaining = restRemainingSeconds(saved.rest_ends_at);
@@ -218,6 +245,7 @@ export function ProgramSessionPanel({
       }
       setChecks(nextChecks);
       setNames(namesOut);
+      setWeights(weightsOut);
       setHydrated(true);
     };
 
@@ -256,6 +284,7 @@ export function ProgramSessionPanel({
       session_date: todaySessionDate(),
       checks,
       names,
+      weights,
       started_at: startedAt,
       rest_ends_at: rest?.endsAt ?? null,
       rest_label: rest?.label ?? null,
@@ -272,7 +301,7 @@ export function ProgramSessionPanel({
     return () => {
       if (syncTimer.current) window.clearTimeout(syncTimer.current);
     };
-  }, [checks, hydrated, names, plan, rest, startedAt, sessionDay]);
+  }, [checks, hydrated, names, plan, rest, startedAt, sessionDay, weights]);
 
   useEffect(() => {
     if (!rest) return;
@@ -355,6 +384,10 @@ export function ProgramSessionPanel({
     setNames((prev) => {
       const current = prev[item.key] ?? item.name;
       const next = current === item.originalName ? item.swap! : item.originalName;
+      setWeights((weightsPrev) => ({
+        ...weightsPrev,
+        [item.key]: nextGymMoveWeight(next, weightsPrev[item.key], current, loadHint),
+      }));
       return { ...prev, [item.key]: next };
     });
   }
@@ -374,6 +407,7 @@ export function ProgramSessionPanel({
     setExtras((current) => [...current, item]);
     setChecks((current) => ({ ...current, [key]: [false, false, false] }));
     setNames((current) => ({ ...current, [key]: "Extra move" }));
+    setWeights((current) => ({ ...current, [key]: "" }));
   }
 
   function persistMove(toIso: number) {
@@ -415,7 +449,7 @@ export function ProgramSessionPanel({
           name: names[item.key] ?? item.name,
           sets: item.setsLabel,
           rest: item.rest,
-          ...(item.weight ? { weight: item.weight } : {}),
+          ...((weights[item.key] ?? item.weight) ? { weight: weights[item.key] ?? item.weight } : {}),
           done: completed >= item.setCount,
           completed_sets: completed,
         };
@@ -648,9 +682,18 @@ export function ProgramSessionPanel({
                       <div className="min-w-0 flex-1">
                         <GymMovePicker
                           value={displayName === "Extra move" ? "" : displayName}
-                          onChange={(name) =>
-                            setNames((current) => ({ ...current, [item.key]: name }))
-                          }
+                          onChange={(name) => {
+                            setNames((current) => ({ ...current, [item.key]: name }));
+                            setWeights((current) => ({
+                              ...current,
+                              [item.key]: nextGymMoveWeight(
+                                name,
+                                current[item.key],
+                                names[item.key] ?? item.name,
+                                loadHint,
+                              ),
+                            }));
+                          }}
                           options={moveOptions}
                           className="min-w-0 w-full rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
                           placeholder="Search moves…"
@@ -663,10 +706,28 @@ export function ProgramSessionPanel({
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-muted">
-                      {[item.setsLabel, item.weight, item.restSeconds ? `rest ${item.rest}` : null]
-                        .filter(Boolean)
-                        .join(" · ")}
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
+                      <span>{item.setsLabel}</span>
+                      <span aria-hidden>·</span>
+                      <input
+                        value={weights[item.key] ?? item.weight ?? ""}
+                        onChange={(event) =>
+                          setWeights((current) => ({
+                            ...current,
+                            [item.key]: event.target.value.slice(0, 40),
+                          }))
+                        }
+                        placeholder="Weight"
+                        maxLength={40}
+                        aria-label={`${displayName} weight`}
+                        className="w-[7.5rem] rounded-lg border border-ink/10 bg-card px-2 py-0.5 text-xs font-semibold text-ink outline-none placeholder:text-muted focus:border-accent/45"
+                      />
+                      {item.restSeconds ? (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>rest {item.rest}</span>
+                        </>
+                      ) : null}
                     </p>
                     {item.notes && <p className="mt-1 text-[11px] leading-4 text-muted">{item.notes}</p>}
                     <div className="mt-2 flex flex-wrap gap-1.5">

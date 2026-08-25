@@ -15,6 +15,9 @@ import {
   pickTodaysPlanDay,
   findPlanDayByLabel,
   filterGymMoveCatalog,
+  nextGymMoveWeight,
+  resolveSessionMoveWeight,
+  suggestGymMoveWeight,
   resolveSessionPlanDay,
   serializeGymPlanDays,
   enrichGymPlanDays,
@@ -221,6 +224,44 @@ describe("formatGymExerciseLine", () => {
     expect(
       formatGymExerciseLine({ name: "Lat pulldown", sets: "4 x 10", rest: "90s", weight: "18 kg" }),
     ).toBe("Lat Pulldown · 4 x 10 · 18 kg · rest 90s");
+  });
+});
+
+describe("suggestGymMoveWeight", () => {
+  it("labels cardio and bodyweight moves", () => {
+    expect(suggestGymMoveWeight("Treadmill incline walk")).toBe("easy pace");
+    expect(suggestGymMoveWeight("Bodyweight Squat")).toBe("bodyweight");
+    expect(
+      suggestGymMoveWeight("Forearm plank", {
+        catalog: [{ name: "Forearm plank", equipment: "bodyweight" }],
+      }),
+    ).toBe("bodyweight");
+  });
+
+  it("sizes isolation vs compound loads from body weight and program level", () => {
+    expect(suggestGymMoveWeight("Leg Extension Machine", { level: "beginner", bodyWeightKg: 70 })).toBe(
+      "16–20 kg",
+    );
+    expect(suggestGymMoveWeight("Chest Press Machine", { level: "beginner", bodyWeightKg: 70 })).toBe(
+      "36–40 kg",
+    );
+    expect(suggestGymMoveWeight("Chest Press Machine", { level: "advanced", bodyWeightKg: 70 })).toBe(
+      "76–80 kg",
+    );
+  });
+
+  it("keeps a typed load when the move changes, otherwise follows the new suggestion", () => {
+    expect(nextGymMoveWeight("Leg Extension Machine", "40 kg", "Chest Press Machine", { level: "beginner" })).toBe(
+      "40 kg",
+    );
+    expect(
+      nextGymMoveWeight("Bodyweight Squat", "36–40 kg", "Chest Press Machine", {
+        level: "beginner",
+        bodyWeightKg: 70,
+      }),
+    ).toBe("bodyweight");
+    expect(resolveSessionMoveWeight("Lat pulldown", "15–20 kg", undefined)).toBe("15–20 kg");
+    expect(resolveSessionMoveWeight("Lat pulldown", undefined, "18 kg")).toBe("18 kg");
   });
 });
 

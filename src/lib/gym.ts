@@ -808,6 +808,107 @@ export function filterGymMoveCatalog<T extends GymMoveCatalogItem>(
   return ranked.slice(0, Math.max(1, limit)).map((row) => row.item);
 }
 
+export type GymLoadHint = {
+  level?: string | null;
+  bodyWeightKg?: number | null;
+  equipment?: string | null;
+  catalog?: GymMoveCatalogItem[];
+};
+
+const GYM_LOAD_BANDS = {
+  beginner: { isolation: [0.15, 0.35], compound: [0.4, 0.7] },
+  intermediate: { isolation: [0.25, 0.45], compound: [0.6, 1] },
+  advanced: { isolation: [0.35, 0.55], compound: [0.8, 1.4] },
+} as const;
+
+function gymLoadLevel(level?: string | null): keyof typeof GYM_LOAD_BANDS {
+  const raw = String(level ?? "").toLowerCase();
+  if (raw === "advanced") return "advanced";
+  if (raw === "intermediate") return "intermediate";
+  return "beginner";
+}
+
+function gymLoadBodyKg(bodyWeightKg?: number | null) {
+  const kg = Number(bodyWeightKg);
+  return Number.isFinite(kg) && kg >= 30 && kg <= 400 ? kg : 70;
+}
+
+function roundGymKg(n: number) {
+  return Math.max(2, Math.round(n / 2) * 2);
+}
+
+function formatGymKgWindow(bodyKg: number, loPct: number, hiPct: number) {
+  const mid = bodyKg * ((loPct + hiPct) / 2);
+  const lo = roundGymKg(mid - 2);
+  const hi = Math.max(lo + 2, roundGymKg(mid + 2));
+  return `${lo}–${hi} kg`;
+}
+
+function isCardioGymMove(name: string, equipment?: string) {
+  const gear = String(equipment ?? "").toLowerCase();
+  if (gear === "cardio_machine" || gear === "cardio") return true;
+  return /\b(treadmill|elliptical|bike|cycle|row(?:er|ing)?|climber|stair|intervals?|incline walk)\b/.test(
+    name.toLowerCase(),
+  );
+}
+
+function isBodyweightGymMove(name: string, equipment?: string) {
+  const n = name.toLowerCase();
+  const gear = String(equipment ?? "").toLowerCase();
+  if (/\b(dumbbell|barbell|kettlebell|machine|cable|smith|landmine)\b/.test(n)) return false;
+  if (gear === "bodyweight") return true;
+  return /\b(bodyweight|air squat|push-?ups?|plank|sit-?ups?|crunch|jumping jack|mountain climber|burpee)\b/.test(
+    n,
+  );
+}
+
+function isIsolationGymMove(name: string) {
+  return /\b(extension|curl|flye?s?|raise|kickback|pushdown|pullover|abduct|adduct|calf|shrug|pec deck|lateral|concentration|preacher)\b/.test(
+    name.toLowerCase(),
+  );
+}
+
+/** Working load for a program move: cardio / bodyweight labels, or a kg window from level + body weight. */
+export function suggestGymMoveWeight(name: string, hint: GymLoadHint = {}): string {
+  const trimmed = name.trim();
+  if (!trimmed || /^extra move$/i.test(trimmed)) return "";
+  const match = findExerciseMatch(trimmed, hint.catalog ?? []);
+  const equipment = hint.equipment || match?.equipment || inferCustomEquipment(trimmed);
+  if (isCardioGymMove(trimmed, equipment)) return "easy pace";
+  if (isBodyweightGymMove(trimmed, equipment)) return "bodyweight";
+  const band = GYM_LOAD_BANDS[gymLoadLevel(hint.level)];
+  const pct = isIsolationGymMove(trimmed) ? band.isolation : band.compound;
+  return formatGymKgWindow(gymLoadBodyKg(hint.bodyWeightKg), pct[0], pct[1]);
+}
+
+/** Keep a typed load; otherwise follow the programmed/suggested weight for the selected move. */
+export function nextGymMoveWeight(
+  name: string,
+  currentWeight: string | undefined,
+  previousName: string | undefined,
+  hint: GymLoadHint = {},
+): string {
+  const suggested = suggestGymMoveWeight(name, hint);
+  const current = String(currentWeight ?? "").trim();
+  if (!current) return suggested;
+  const previousSuggested = previousName ? suggestGymMoveWeight(previousName, hint) : "";
+  if (current === previousSuggested) return suggested;
+  return current;
+}
+
+export function resolveSessionMoveWeight(
+  name: string,
+  programmedWeight: string | undefined,
+  savedWeight: string | undefined,
+  hint: GymLoadHint = {},
+): string {
+  const saved = String(savedWeight ?? "").trim();
+  if (saved) return saved;
+  const programmed = String(programmedWeight ?? "").trim();
+  if (programmed) return programmed;
+  return suggestGymMoveWeight(name, hint);
+}
+
 function formatGymCatalogLine(row: GymPlanCatalogRow) {
   return `${row.name}${row.slug ? ` [${row.slug}]` : ""} (${row.muscle_group}, ${row.equipment}${
     row.difficulty ? `, ${row.difficulty}` : ""

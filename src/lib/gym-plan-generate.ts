@@ -371,17 +371,27 @@ export async function discardGymProgramDraft(supabase: SupabaseClient, userId: s
   if (error) throw new Error(error.message);
 }
 
+const LIVE_SESSION_COLUMNS =
+  "plan_id, day_label, session_date, checks, names, weights, started_at, rest_ends_at, rest_label, rest_total, rest_alerted, updated_at";
+const LIVE_SESSION_COLUMNS_LEGACY =
+  "plan_id, day_label, session_date, checks, names, started_at, rest_ends_at, rest_label, rest_total, rest_alerted, updated_at";
+
 export async function loadGymLiveSessionRow(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<GymLiveSessionDraft | null> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("gym_live_sessions")
-    .select(
-      "plan_id, day_label, session_date, checks, names, started_at, rest_ends_at, rest_label, rest_total, rest_alerted, updated_at",
-    )
+    .select(LIVE_SESSION_COLUMNS)
     .eq("user_id", userId)
     .maybeSingle();
+  if (error && /weights/i.test(error.message)) {
+    ({ data, error } = await supabase
+      .from("gym_live_sessions")
+      .select(LIVE_SESSION_COLUMNS_LEGACY)
+      .eq("user_id", userId)
+      .maybeSingle());
+  }
   if (error || !data) return null;
   return parseGymLiveSession(data);
 }
@@ -391,13 +401,15 @@ export async function saveGymLiveSessionRow(
   userId: string,
   draft: GymLiveSessionDraft,
 ) {
-  const { error } = await supabase.from("gym_live_sessions").upsert(
-    {
-      user_id: userId,
-      ...serializeLiveSessionForDb(draft),
-    },
-    { onConflict: "user_id" },
-  );
+  const payload = {
+    user_id: userId,
+    ...serializeLiveSessionForDb(draft),
+  };
+  let { error } = await supabase.from("gym_live_sessions").upsert(payload, { onConflict: "user_id" });
+  if (error && /weights/i.test(error.message)) {
+    const { weights: _weights, ...legacy } = payload;
+    ({ error } = await supabase.from("gym_live_sessions").upsert(legacy, { onConflict: "user_id" }));
+  }
   if (error) throw new Error(error.message);
 }
 

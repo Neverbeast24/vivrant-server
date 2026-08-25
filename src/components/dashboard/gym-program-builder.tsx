@@ -58,12 +58,14 @@ export function GymProgramBuilder({
   onUpdate,
   onMergePlan,
   moveOptions = [],
+  bodyWeightKg = null,
 }: {
   draft: GymProgramDraft;
   planning: boolean;
   saving: boolean;
   savedPlans: GymPlan[];
   moveOptions?: GymMoveCatalogItem[];
+  bodyWeightKg?: number | null;
   onKeep: (iso: number) => void;
   onDrop: (iso: number) => void;
   onGenerate: () => void;
@@ -246,7 +248,13 @@ export function GymProgramBuilder({
         <div className="mb-3">
           {editingKept ? (
             <div className="rounded-2xl border border-accent/20 bg-accent-soft/30 p-3">
-              <GymPlanDaysEditor days={keptDraftDays} onChange={setKeptDraftDays} moveOptions={moveOptions} />
+              <GymPlanDaysEditor
+                days={keptDraftDays}
+                onChange={setKeptDraftDays}
+                moveOptions={moveOptions}
+                level={draft.level}
+                bodyWeightKg={bodyWeightKg}
+              />
               <div className="mt-3 flex flex-wrap gap-2">
                 <PrimaryButton type="button" onClick={applyCustomize} className="rounded-full px-4">
                   Apply customization

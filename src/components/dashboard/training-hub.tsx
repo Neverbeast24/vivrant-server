@@ -22,6 +22,7 @@ export function TrainingHub({
   planCount,
   plans = [],
   exercises = [],
+  bodyWeightKg = null,
 }: {
   workoutsToday: number;
   workoutMinutes: number;
@@ -35,6 +36,7 @@ export function TrainingHub({
   planCount: number;
   plans?: GymPlan[];
   exercises?: GymExercise[];
+  bodyWeightKg?: number | null;
 }) {
   const stepPct = Math.min(100, Math.round((steps / Math.max(stepGoal, 1)) * 100));
 
@@ -70,7 +72,7 @@ export function TrainingHub({
       </Stagger>
 
       <div className="mt-4">
-        <ProgramSessionPanel plans={plans} compact moveOptions={exercises} />
+        <ProgramSessionPanel plans={plans} compact moveOptions={exercises} bodyWeightKg={bodyWeightKg} />
       </div>
 
       <Panel

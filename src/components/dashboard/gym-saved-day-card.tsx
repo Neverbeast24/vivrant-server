@@ -12,6 +12,7 @@ import {
   GYM_WEEKDAYS,
   humanizeGymLabel,
   moveSavedPlanDay,
+  nextGymMoveWeight,
   weekdayIsoFromLabel,
   type GymMoveCatalogItem,
   type GymPlan,
@@ -29,6 +30,7 @@ export function GymSavedDayCard({
   isToday,
   busy,
   moveOptions = [],
+  bodyWeightKg = null,
   onSaveDays,
 }: {
   plan: GymPlan;
@@ -37,6 +39,7 @@ export function GymSavedDayCard({
   isToday: boolean;
   busy: boolean;
   moveOptions?: GymMoveCatalogItem[];
+  bodyWeightKg?: number | null;
   onSaveDays: (days: GymPlanDay[]) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -46,6 +49,10 @@ export function GymSavedDayCard({
   function startEdit(nextDay: GymPlanDay = cloneGymPlanDay(day)) {
     setDraft(nextDay);
     setEditing(true);
+  }
+
+  function loadHint() {
+    return { level: plan.level, bodyWeightKg, catalog: moveOptions };
   }
 
   function updateExercise(index: number, patch: Partial<GymPlanExercise>) {
@@ -116,7 +123,12 @@ export function GymSavedDayCard({
                 <div className="min-w-0 flex-1">
                   <GymMovePicker
                     value={ex.name}
-                    onChange={(name) => updateExercise(index, { name })}
+                    onChange={(name) =>
+                      updateExercise(index, {
+                        name,
+                        weight: nextGymMoveWeight(name, ex.weight, ex.name, loadHint()),
+                      })
+                    }
                     options={moveOptions}
                     className={tinyField}
                     placeholder="Search moves…"
@@ -131,7 +143,7 @@ export function GymSavedDayCard({
                   <Trash2 size={12} />
                 </button>
               </div>
-              <div className="mt-1 grid grid-cols-2 gap-1">
+              <div className="mt-1 grid grid-cols-3 gap-1">
                 <input
                   value={ex.sets}
                   onChange={(event) => updateExercise(index, { sets: event.target.value })}
@@ -139,6 +151,14 @@ export function GymSavedDayCard({
                   placeholder="3 x 10"
                   maxLength={40}
                   aria-label="Sets"
+                />
+                <input
+                  value={ex.weight ?? ""}
+                  onChange={(event) => updateExercise(index, { weight: event.target.value })}
+                  className={tinyField}
+                  placeholder="Weight"
+                  maxLength={40}
+                  aria-label="Weight"
                 />
                 <input
                   value={ex.rest}

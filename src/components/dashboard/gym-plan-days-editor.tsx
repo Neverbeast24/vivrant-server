@@ -6,7 +6,7 @@ import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import { DayDragRow, DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
 import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
 import type { GymMoveCatalogItem, GymPlanDay, GymPlanExercise } from "@/lib/gym";
-import { formatGymExerciseLine } from "@/lib/gym";
+import { formatGymExerciseLine, nextGymMoveWeight } from "@/lib/gym";
 import { moveItem } from "@/lib/reorder";
 
 const compactField =
@@ -31,10 +31,14 @@ export function GymPlanDaysEditor({
   days,
   onChange,
   moveOptions = [],
+  level,
+  bodyWeightKg = null,
 }: {
   days: GymPlanDay[];
   onChange: (days: GymPlanDay[]) => void;
   moveOptions?: GymMoveCatalogItem[];
+  level?: string | null;
+  bodyWeightKg?: number | null;
 }) {
   const [openDay, setOpenDay] = useState(0);
 
@@ -146,7 +150,16 @@ export function GymPlanDaysEditor({
                           <div className="min-w-0 sm:col-span-2">
                             <GymMovePicker
                               value={ex.name}
-                              onChange={(name) => updateExercise(dayIndex, exIndex, { name })}
+                              onChange={(name) =>
+                                updateExercise(dayIndex, exIndex, {
+                                  name,
+                                  weight: nextGymMoveWeight(name, ex.weight, ex.name, {
+                                    level,
+                                    bodyWeightKg,
+                                    catalog: moveOptions,
+                                  }),
+                                })
+                              }
                               options={moveOptions}
                               className={compactField}
                               placeholder="Search moves…"

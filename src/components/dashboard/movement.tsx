@@ -43,6 +43,7 @@ export function MovementView({
   exercises = [],
   initialPlanId,
   initialDayLabel,
+  bodyWeightKg = null,
 }: {
   workouts: Workout[];
   steps?: number;
@@ -52,6 +53,7 @@ export function MovementView({
   exercises?: GymExercise[];
   initialPlanId?: number;
   initialDayLabel?: string;
+  bodyWeightKg?: number | null;
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
@@ -118,6 +120,7 @@ export function MovementView({
           initialPlanId={initialPlanId}
           initialDayLabel={initialDayLabel}
           moveOptions={exercises}
+          bodyWeightKg={bodyWeightKg}
         />
       )}
 
