@@ -12,7 +12,11 @@ import {
   summarizeSessionsForAi,
   type GymProgramDraft,
 } from "./gym-program-draft";
-import { restEndsAtFromSeconds, restRemainingSeconds } from "./gym-live-session";
+import {
+  parseGymLiveSession,
+  restEndsAtFromSeconds,
+  restRemainingSeconds,
+} from "./gym-live-session";
 
 const sampleDay = {
   day: "Monday · Pull",
@@ -149,5 +153,32 @@ describe("live rest timer", () => {
     expect(restRemainingSeconds(ends, now)).toBe(90);
     expect(restRemainingSeconds(ends, now + 30_000)).toBe(60);
     expect(restRemainingSeconds(ends, now + 120_000)).toBe(0);
+  });
+
+  it("round-trips extra moves on a live session draft", () => {
+    const parsed = parseGymLiveSession({
+      plan_id: 7,
+      day_label: "Monday · Pull",
+      session_date: "2026-08-27",
+      checks: { "extra-1": [false, false] },
+      names: { "extra-1": "Treadmill" },
+      weights: { "extra-1": "easy pace" },
+      extras: [
+        {
+          key: "extra-1",
+          name: "Treadmill",
+          setsLabel: "10 mins",
+          rest: "0s",
+          setCount: 1,
+          restSeconds: 0,
+        },
+      ],
+      removed_keys: ["main-2"],
+      rest_kind: "work",
+    });
+    expect(parsed?.extras[0]?.setsLabel).toBe("10 mins");
+    expect(parsed?.removed_keys).toEqual(["main-2"]);
+    expect(parsed?.rest_kind).toBe("work");
+    expect(parsed?.names["extra-1"]).toBe("Treadmill");
   });
 });

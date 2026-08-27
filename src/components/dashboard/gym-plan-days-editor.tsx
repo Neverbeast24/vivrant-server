@@ -6,7 +6,7 @@ import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import { DayDragRow, DragGrip, ExerciseDragRow } from "@/components/dashboard/drag-list";
 import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
 import type { GymMoveCatalogItem, GymPlanDay, GymPlanExercise } from "@/lib/gym";
-import { formatGymExerciseLine, nextGymMoveWeight } from "@/lib/gym";
+import { formatGymExerciseLine, nextGymMovePrescription } from "@/lib/gym";
 import { moveItem } from "@/lib/reorder";
 
 const compactField =
@@ -153,11 +153,16 @@ export function GymPlanDaysEditor({
                               onChange={(name) =>
                                 updateExercise(dayIndex, exIndex, {
                                   name,
-                                  weight: nextGymMoveWeight(name, ex.weight, ex.name, {
-                                    level,
-                                    bodyWeightKg,
-                                    catalog: moveOptions,
-                                  }),
+                                  ...nextGymMovePrescription(
+                                    name,
+                                    { sets: ex.sets, rest: ex.rest, weight: ex.weight },
+                                    ex.name,
+                                    {
+                                      level,
+                                      bodyWeightKg,
+                                      catalog: moveOptions,
+                                    },
+                                  ),
                                 })
                               }
                               options={moveOptions}
@@ -171,7 +176,7 @@ export function GymPlanDaysEditor({
                               updateExercise(dayIndex, exIndex, { sets: event.target.value })
                             }
                             className={compactField}
-                            placeholder="4 x 10–12"
+                            placeholder="3 x 10 or 10 mins"
                             maxLength={40}
                             aria-label="Sets"
                           />

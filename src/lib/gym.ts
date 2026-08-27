@@ -265,11 +265,30 @@ export function parseSetCount(sets: string): number {
     .replace(/[–—]/g, "-")
     .replace(/\s+/g, " ")
     .trim();
+  if (parseTimedMinutes(raw) != null && !/(\d+)\s*[x×]/.test(raw) && !/(\d+)\s*sets?\b/.test(raw)) {
+    return 1;
+  }
   const x = raw.match(/(\d+)\s*[x×]/);
   if (x) return Math.max(1, Math.min(10, Number(x[1])));
   const word = raw.match(/(\d+)\s*sets?\b/);
   if (word) return Math.max(1, Math.min(10, Number(word[1])));
   return 1;
+}
+
+/** "10 mins" / "8–12 mins easy" / "1 set of 35-40 mins" → duration, else null for strength sets. */
+export function parseTimedMinutes(sets: string): number | null {
+  const raw = String(sets ?? "")
+    .toLowerCase()
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!raw) return null;
+  if (/(\d+)\s*[x×]/.test(raw) && !/\b(m|min|mins|minutes)\b/.test(raw)) return null;
+  const match = raw.match(/(\d+(?:\.\d+)?)(?:\s*-\s*\d+(?:\.\d+)?)?\s*(?:m|min|mins|minutes)\b/);
+  if (!match) return null;
+  const n = Number(match[1]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.max(1, Math.min(180, Math.round(n)));
 }
 
 export function formatRestClock(totalSeconds: number) {
@@ -781,6 +800,7 @@ export type GymMoveCatalogItem = {
   name: string;
   muscle_group?: string;
   equipment?: string;
+  duration_seconds?: number;
 };
 
 /** Ranked catalog search for move pickers. Empty query returns A–Z, capped. */
@@ -844,10 +864,10 @@ function formatGymKgWindow(bodyKg: number, loPct: number, hiPct: number) {
   return `${lo}–${hi} kg`;
 }
 
-function isCardioGymMove(name: string, equipment?: string) {
+export function isCardioGymMove(name: string, equipment?: string | null) {
   const gear = String(equipment ?? "").toLowerCase();
   if (gear === "cardio_machine" || gear === "cardio") return true;
-  return /\b(treadmill|elliptical|bike|cycle|row(?:er|ing)?|climber|stair|intervals?|incline walk)\b/.test(
+  return /\b(treadmill|elliptical|bike|cycle|row(?:er|ing)?|climber|stair|ski(?:\s|-)?erg|assault bike|intervals?|incline walk)\b/.test(
     name.toLowerCase(),
   );
 }
@@ -907,6 +927,50 @@ export function resolveSessionMoveWeight(
   const programmed = String(programmedWeight ?? "").trim();
   if (programmed) return programmed;
   return suggestGymMoveWeight(name, hint);
+}
+
+export function suggestGymMoveSets(name: string, hint: GymLoadHint = {}): string {
+  const trimmed = name.trim();
+  if (!trimmed || /^extra move$/i.test(trimmed)) return "3 x 10";
+  const match = findExerciseMatch(trimmed, hint.catalog ?? []);
+  const equipment = hint.equipment || match?.equipment;
+  if (!isCardioGymMove(trimmed, equipment)) return "3 x 10";
+  const secs = Number(match && "duration_seconds" in match ? match.duration_seconds : 0);
+  const mins = Number.isFinite(secs) && secs >= 60 ? Math.round(secs / 60) : 10;
+  return `${Math.max(5, Math.min(60, mins))} mins`;
+}
+
+export function suggestGymMoveRest(name: string, hint: GymLoadHint = {}): string {
+  const trimmed = name.trim();
+  if (!trimmed || /^extra move$/i.test(trimmed)) return "60s";
+  const match = findExerciseMatch(trimmed, hint.catalog ?? []);
+  const equipment = hint.equipment || match?.equipment;
+  return isCardioGymMove(trimmed, equipment) ? "0s" : "60s";
+}
+
+export function nextGymMovePrescription(
+  name: string,
+  current: { sets?: string; rest?: string; weight?: string },
+  previousName: string | undefined,
+  hint: GymLoadHint = {},
+): { sets: string; rest: string; weight: string } {
+  const nextCardio = isCardioGymMove(name, hint.equipment ?? undefined);
+  const prevCardio = previousName ? isCardioGymMove(previousName, hint.equipment ?? undefined) : !nextCardio;
+  const weight =
+    nextCardio !== prevCardio ? suggestGymMoveWeight(name, hint) : nextGymMoveWeight(name, current.weight, previousName, hint);
+  const prevSets = previousName ? suggestGymMoveSets(previousName, hint) : "";
+  const prevRest = previousName ? suggestGymMoveRest(previousName, hint) : "";
+  const currentSets = String(current.sets ?? "").trim();
+  const currentRest = String(current.rest ?? "").trim();
+  const sets =
+    !currentSets || currentSets === prevSets || currentSets === "3 x 10" || nextCardio !== prevCardio
+      ? suggestGymMoveSets(name, hint)
+      : currentSets;
+  const rest =
+    !currentRest || currentRest === prevRest || currentRest === "60s" || currentRest === "45s" || nextCardio !== prevCardio
+      ? suggestGymMoveRest(name, hint)
+      : currentRest;
+  return { sets, rest, weight };
 }
 
 function formatGymCatalogLine(row: GymPlanCatalogRow) {

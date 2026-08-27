@@ -12,7 +12,7 @@ import {
   GYM_WEEKDAYS,
   humanizeGymLabel,
   moveSavedPlanDay,
-  nextGymMoveWeight,
+  nextGymMovePrescription,
   weekdayIsoFromLabel,
   type GymMoveCatalogItem,
   type GymPlan,
@@ -126,7 +126,12 @@ export function GymSavedDayCard({
                     onChange={(name) =>
                       updateExercise(index, {
                         name,
-                        weight: nextGymMoveWeight(name, ex.weight, ex.name, loadHint()),
+                        ...nextGymMovePrescription(
+                          name,
+                          { sets: ex.sets, rest: ex.rest, weight: ex.weight },
+                          ex.name,
+                          loadHint(),
+                        ),
                       })
                     }
                     options={moveOptions}
@@ -148,7 +153,7 @@ export function GymSavedDayCard({
                   value={ex.sets}
                   onChange={(event) => updateExercise(index, { sets: event.target.value })}
                   className={tinyField}
-                  placeholder="3 x 10"
+                  placeholder="3 x 10 or 10 mins"
                   maxLength={40}
                   aria-label="Sets"
                 />

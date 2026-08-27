@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Plus, Repeat2, Timer, X } from "lucide-react";
@@ -20,10 +20,12 @@ import {
   gymSessionFocusFromPlan,
   GYM_WEEKDAYS,
   humanizeGymLabel,
+  isCardioGymMove,
   moveSavedPlanDay,
-  nextGymMoveWeight,
+  nextGymMovePrescription,
   parseRestSeconds,
   parseSetCount,
+  parseTimedMinutes,
   pickTodaysPlanDay,
   resolveSessionMoveWeight,
   resolveSessionPlanDay,
@@ -42,9 +44,16 @@ import {
   restEndsAtFromSeconds,
   restRemainingSeconds,
   todaySessionDate,
+  type GymLiveExtraMove,
   type GymLiveSessionDraft,
 } from "@/lib/gym-live-session";
-import { playGymRestAlarm, requestGymRestNotifyPermission, unlockGymRestAlert } from "@/lib/gym-rest-alert";
+import {
+  cancelGymRestAlarm,
+  playGymRestAlarm,
+  requestGymRestNotifyPermission,
+  scheduleGymRestAlarm,
+  unlockGymRestAlert,
+} from "@/lib/gym-rest-alert";
 
 type RunnerItem = {
   key: string;
@@ -65,6 +74,13 @@ type RestState = {
   total: number;
   endsAt: number;
   alerted: boolean;
+  kind: "rest" | "work";
+};
+
+type MoveMeta = {
+  setsLabel: string;
+  rest: string;
+  restSeconds: number;
 };
 
 function readLocalLiveSession(): GymLiveSessionDraft | null {
@@ -114,6 +130,35 @@ function buildItems(day: GymPlanDay): RunnerItem[] {
   return [...mains, ...addons];
 }
 
+function extraFromDraft(row: GymLiveExtraMove): RunnerItem {
+  return {
+    key: row.key,
+    name: row.name || "Extra move",
+    originalName: row.name || "Extra move",
+    setsLabel: row.setsLabel || "3 x 10",
+    rest: row.rest || "60s",
+    restSeconds: row.restSeconds,
+    setCount: Math.max(1, row.setCount),
+    kind: "addon",
+  };
+}
+
+function extraToDraft(item: RunnerItem, name: string, meta?: MoveMeta): GymLiveExtraMove {
+  return {
+    key: item.key,
+    name,
+    setsLabel: meta?.setsLabel ?? item.setsLabel,
+    rest: meta?.rest ?? item.rest,
+    setCount: item.setCount,
+    restSeconds: meta?.restSeconds ?? item.restSeconds,
+  };
+}
+
+function repsFromSets(sets: string) {
+  const match = String(sets).match(/[x×]\s*(\d+(?:\s*[-–]\s*\d+)?)/i);
+  return match?.[1]?.replace(/\s+/g, "") || "10";
+}
+
 function emptyChecks(items: RunnerItem[]) {
   return Object.fromEntries(items.map((item) => [item.key, Array.from({ length: item.setCount }, () => false)]));
 }
@@ -150,7 +195,10 @@ export function ProgramSessionPanel({
   const [restored, setRestored] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [extras, setExtras] = useState<RunnerItem[]>([]);
+  const [removedKeys, setRemovedKeys] = useState<string[]>([]);
+  const [meta, setMeta] = useState<Record<string, MoveMeta>>({});
   const syncTimer = useRef<number | null>(null);
+  const alarmGuard = useRef(false);
   const router = useRouter();
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
@@ -166,10 +214,21 @@ export function ProgramSessionPanel({
         trainingDays: plan.training_days,
       })
     : null;
-  const items = useMemo(
-    () => [...(sessionDay ? buildItems(sessionDay) : []), ...extras],
-    [extras, sessionDay],
-  );
+  const items = useMemo(() => {
+    const base = [...(sessionDay ? buildItems(sessionDay) : []), ...extras].filter(
+      (item) => !removedKeys.includes(item.key),
+    );
+    return base.map((item) => {
+      const over = meta[item.key];
+      const row = checks[item.key];
+      const setCount = Math.max(over ? parseSetCount(over.setsLabel) : item.setCount, row?.length ?? 0, 1);
+      return {
+        ...item,
+        ...(over ?? {}),
+        setCount,
+      };
+    });
+  }, [checks, extras, meta, removedKeys, sessionDay]);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +241,8 @@ export function ProgramSessionPanel({
         setRest(null);
         setRestored(false);
         setExtras([]);
+        setRemovedKeys([]);
+        setMeta({});
         setHydrated(true);
       });
       return () => {
@@ -189,14 +250,17 @@ export function ProgramSessionPanel({
       };
     }
     const nextItems = buildItems(sessionDay);
-    setExtras([]);
     const nextNames = Object.fromEntries(nextItems.map((item) => [item.key, item.name]));
     const applyDraft = (saved: GymLiveSessionDraft | null) => {
       if (cancelled) return;
-      let nextChecks = emptyChecks(nextItems);
+      const restoredExtras: RunnerItem[] = (saved?.extras ?? []).map((row) => extraFromDraft(row));
+      const removed = saved?.removed_keys ?? [];
+      const visibleBase = nextItems.filter((item) => !removed.includes(item.key));
+      const visible = [...visibleBase, ...restoredExtras];
+      let nextChecks = emptyChecks(visible);
       const namesOut = { ...nextNames };
       const weightsOut = Object.fromEntries(
-        nextItems.map((item) => [
+        visible.map((item) => [
           item.key,
           resolveSessionMoveWeight(item.name, item.weight, undefined, {
             level: plan.level,
@@ -205,14 +269,16 @@ export function ProgramSessionPanel({
           }),
         ]),
       );
+      const metaOut: Record<string, MoveMeta> = {};
       if (saved && liveSessionMatches(saved, plan.id, sessionDay.day)) {
         nextChecks = Object.fromEntries(
-          nextItems.map((item) => {
+          visible.map((item) => {
             const row = saved.checks[item.key];
-            return [item.key, Array.from({ length: item.setCount }, (_, i) => Boolean(row?.[i]))];
+            const count = Math.max(item.setCount, Array.isArray(row) ? row.length : 0, 1);
+            return [item.key, Array.from({ length: count }, (_, i) => Boolean(row?.[i]))];
           }),
         );
-        for (const item of nextItems) {
+        for (const item of visible) {
           if (saved.names[item.key]) namesOut[item.key] = saved.names[item.key];
           weightsOut[item.key] = resolveSessionMoveWeight(
             namesOut[item.key] ?? item.name,
@@ -220,28 +286,45 @@ export function ProgramSessionPanel({
             saved.weights?.[item.key],
             { level: plan.level, bodyWeightKg, catalog: moveOptions },
           );
+          const extra = restoredExtras.find((row) => row.key === item.key);
+          if (extra) {
+            metaOut[item.key] = {
+              setsLabel: extra.setsLabel,
+              rest: extra.rest,
+              restSeconds: extra.restSeconds,
+            };
+          }
         }
         setStartedAt(saved.started_at);
         const remaining = restRemainingSeconds(saved.rest_ends_at);
         if (remaining > 0 && saved.rest_ends_at) {
+          alarmGuard.current = false;
           setRest({
             label: saved.rest_label ?? "Rest",
             total: saved.rest_total ?? remaining,
             endsAt: saved.rest_ends_at,
             alerted: Boolean(saved.rest_alerted),
+            kind: saved.rest_kind === "work" ? "work" : "rest",
           });
+          scheduleGymRestAlarm(remaining, saved.rest_label ?? undefined);
         } else if (saved.rest_ends_at && remaining <= 0 && !saved.rest_alerted) {
           setRest(null);
           void playGymRestAlarm(saved.rest_label ?? undefined);
-          toast.success("Rest done — next set.");
+          toast.success(saved.rest_kind === "work" ? "Time’s up — nice work." : "Rest done — next set.");
         } else {
           setRest(null);
         }
         setRestored(liveSessionHasProgress(saved));
+        setExtras(restoredExtras);
+        setRemovedKeys(removed);
+        setMeta(metaOut);
       } else {
         setStartedAt(null);
         setRest(null);
         setRestored(false);
+        setExtras([]);
+        setRemovedKeys([]);
+        setMeta({});
       }
       setChecks(nextChecks);
       setNames(namesOut);
@@ -274,10 +357,11 @@ export function ProgramSessionPanel({
     return () => {
       cancelled = true;
     };
-  }, [plan, sessionDay]);
+  }, [plan?.id, sessionDay?.day, plan?.level, bodyWeightKg]);
 
   useEffect(() => {
     if (!hydrated || !plan || !sessionDay || !Object.keys(checks).length) return;
+    const extraDrafts = extras.map((item) => extraToDraft(item, names[item.key] ?? item.name, meta[item.key]));
     const draft: GymLiveSessionDraft = {
       plan_id: plan.id,
       day_label: sessionDay.day,
@@ -285,15 +369,18 @@ export function ProgramSessionPanel({
       checks,
       names,
       weights,
+      extras: extraDrafts,
+      removed_keys: removedKeys,
       started_at: startedAt,
       rest_ends_at: rest?.endsAt ?? null,
       rest_label: rest?.label ?? null,
       rest_total: rest?.total ?? null,
       rest_alerted: rest?.alerted ?? false,
+      rest_kind: rest?.kind ?? null,
       updated_at: new Date().toISOString(),
     };
     writeLocalLiveSession(draft);
-    if (!liveSessionHasProgress(draft) && !draft.rest_ends_at) return;
+    if (!liveSessionHasProgress(draft) && !draft.rest_ends_at && !extraDrafts.length && !removedKeys.length) return;
     if (syncTimer.current) window.clearTimeout(syncTimer.current);
     syncTimer.current = window.setTimeout(() => {
       void saveGymLiveSessionAction(draft);
@@ -301,16 +388,26 @@ export function ProgramSessionPanel({
     return () => {
       if (syncTimer.current) window.clearTimeout(syncTimer.current);
     };
-  }, [checks, hydrated, names, plan, rest, startedAt, sessionDay, weights]);
+  }, [checks, extras, hydrated, meta, names, plan, removedKeys, rest, startedAt, sessionDay, weights]);
 
   useEffect(() => {
-    if (!rest) return;
+    if (!startedAt && !rest) return;
+    const id = window.setInterval(() => setNowTick(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [rest?.endsAt, startedAt]);
+
+  useEffect(() => {
+    if (!rest) {
+      alarmGuard.current = false;
+      return;
+    }
     const tick = () => {
       const remaining = restRemainingSeconds(rest.endsAt);
       setNowTick(Date.now());
-      if (remaining <= 0 && !rest.alerted) {
+      if (remaining <= 0 && !rest.alerted && !alarmGuard.current) {
+        alarmGuard.current = true;
         void playGymRestAlarm(rest.label);
-        toast.success("Rest done — next set.");
+        toast.success(rest.kind === "work" ? "Time’s up — nice work." : "Rest done — next set.");
         setRest(null);
       }
     };
@@ -324,7 +421,7 @@ export function ProgramSessionPanel({
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [rest]);
+  }, [rest?.endsAt, rest?.alerted, rest?.kind, rest?.label]);
 
   const doneCount = items.reduce(
     (sum, item) => sum + (checks[item.key] ?? []).filter(Boolean).length,
@@ -340,8 +437,9 @@ export function ProgramSessionPanel({
     setStartedAt((current) => current ?? Date.now());
   }
 
-  function startRest(label: string, seconds: number) {
+  function startRest(label: string, seconds: number, kind: "rest" | "work" = "rest") {
     if (seconds <= 0) return;
+    alarmGuard.current = false;
     unlockGymRestAlert();
     requestGymRestNotifyPermission();
     const endsAt = restEndsAtFromSeconds(seconds);
@@ -350,7 +448,15 @@ export function ProgramSessionPanel({
       total: seconds,
       endsAt,
       alerted: false,
+      kind,
     });
+    scheduleGymRestAlarm(seconds, label);
+  }
+
+  function skipRest() {
+    cancelGymRestAlarm();
+    alarmGuard.current = true;
+    setRest(null);
   }
 
   function toggleSet(item: RunnerItem, index: number) {
@@ -360,12 +466,18 @@ export function ProgramSessionPanel({
     setChecks((prev) => ({ ...prev, [item.key]: next }));
     if (!nextValue) return;
     markStarted();
+    const displayName = names[item.key] ?? item.name;
+    const timed = parseTimedMinutes(meta[item.key]?.setsLabel ?? item.setsLabel);
+    if (timed && isCardioGymMove(displayName)) {
+      startRest(displayName, timed * 60, "work");
+      return;
+    }
     const remainingSets = items.some((row) => {
       const rowChecks = row.key === item.key ? next : checks[row.key] ?? [];
       return rowChecks.some((value) => !value);
     });
     if (item.restSeconds > 0 && remainingSets) {
-      startRest(names[item.key] ?? item.name, item.restSeconds);
+      startRest(displayName, item.restSeconds, "rest");
     }
   }
 
@@ -376,20 +488,59 @@ export function ProgramSessionPanel({
     setChecks((prev) => ({ ...prev, [item.key]: next }));
     if (allOn) return;
     markStarted();
-    startRest(names[item.key] ?? item.name, item.restSeconds);
+    const displayName = names[item.key] ?? item.name;
+    const timed = parseTimedMinutes(meta[item.key]?.setsLabel ?? item.setsLabel);
+    if (timed && isCardioGymMove(displayName)) {
+      startRest(displayName, timed * 60, "work");
+      return;
+    }
+    startRest(displayName, item.restSeconds, "rest");
+  }
+
+  function applyMoveName(item: RunnerItem, name: string) {
+    const previous = names[item.key] ?? item.name;
+    const next = nextGymMovePrescription(
+      name,
+      {
+        sets: meta[item.key]?.setsLabel ?? item.setsLabel,
+        rest: meta[item.key]?.rest ?? item.rest,
+        weight: weights[item.key],
+      },
+      previous,
+      loadHint,
+    );
+    const restSeconds = parseRestSeconds(next.rest);
+    const setCount = parseSetCount(next.sets);
+    setNames((current) => ({ ...current, [item.key]: name }));
+    setWeights((current) => ({ ...current, [item.key]: next.weight }));
+    setMeta((current) => ({
+      ...current,
+      [item.key]: { setsLabel: next.sets, rest: next.rest, restSeconds },
+    }));
+    setChecks((current) => {
+      const row = current[item.key] ?? [];
+      if (row.length === setCount) return current;
+      return {
+        ...current,
+        [item.key]: Array.from({ length: setCount }, (_, i) => Boolean(row[i])),
+      };
+    });
+    if (item.key.startsWith("extra-")) {
+      setExtras((current) =>
+        current.map((row) =>
+          row.key === item.key
+            ? { ...row, name, originalName: name, setsLabel: next.sets, rest: next.rest, restSeconds, setCount }
+            : row,
+        ),
+      );
+    }
   }
 
   function swapItem(item: RunnerItem) {
     if (!item.swap) return;
-    setNames((prev) => {
-      const current = prev[item.key] ?? item.name;
-      const next = current === item.originalName ? item.swap! : item.originalName;
-      setWeights((weightsPrev) => ({
-        ...weightsPrev,
-        [item.key]: nextGymMoveWeight(next, weightsPrev[item.key], current, loadHint),
-      }));
-      return { ...prev, [item.key]: next };
-    });
+    const current = names[item.key] ?? item.name;
+    const next = current === item.originalName ? item.swap : item.originalName;
+    applyMoveName(item, next);
   }
 
   function addExtra() {
@@ -408,6 +559,73 @@ export function ProgramSessionPanel({
     setChecks((current) => ({ ...current, [key]: [false, false, false] }));
     setNames((current) => ({ ...current, [key]: "Extra move" }));
     setWeights((current) => ({ ...current, [key]: "" }));
+    setMeta((current) => ({ ...current, [key]: { setsLabel: "3 x 10", rest: "60s", restSeconds: 60 } }));
+  }
+
+  function removeMove(item: RunnerItem) {
+    setChecks((current) => {
+      const next = { ...current };
+      delete next[item.key];
+      return next;
+    });
+    setNames((current) => {
+      const next = { ...current };
+      delete next[item.key];
+      return next;
+    });
+    setWeights((current) => {
+      const next = { ...current };
+      delete next[item.key];
+      return next;
+    });
+    setMeta((current) => {
+      const next = { ...current };
+      delete next[item.key];
+      return next;
+    });
+    if (item.key.startsWith("extra-")) {
+      setExtras((current) => current.filter((row) => row.key !== item.key));
+    } else {
+      setRemovedKeys((current) => (current.includes(item.key) ? current : [...current, item.key]));
+    }
+  }
+
+  function addSet(item: RunnerItem) {
+    if (parseTimedMinutes(meta[item.key]?.setsLabel ?? item.setsLabel) != null) {
+      nudgeMinutes(item, 5);
+      return;
+    }
+    const current = checks[item.key] ?? Array.from({ length: item.setCount }, () => false);
+    if (current.length >= 10) return;
+    const next = [...current, false];
+    setChecks((prev) => ({ ...prev, [item.key]: next }));
+    const setsLabel = `${next.length} x ${repsFromSets(meta[item.key]?.setsLabel ?? item.setsLabel)}`;
+    const rest = meta[item.key]?.rest ?? item.rest;
+    setMeta((prev) => ({
+      ...prev,
+      [item.key]: { setsLabel, rest, restSeconds: parseRestSeconds(rest) },
+    }));
+    if (item.key.startsWith("extra-")) {
+      setExtras((rows) =>
+        rows.map((row) => (row.key === item.key ? { ...row, setsLabel, setCount: next.length } : row)),
+      );
+    }
+  }
+
+  function nudgeMinutes(item: RunnerItem, delta: number) {
+    const current = parseTimedMinutes(meta[item.key]?.setsLabel ?? item.setsLabel) ?? 10;
+    const next = Math.max(5, Math.min(90, current + delta));
+    const setsLabel = `${next} mins`;
+    const rest = "0s";
+    setMeta((prev) => ({ ...prev, [item.key]: { setsLabel, rest, restSeconds: 0 } }));
+    setChecks((prev) => ({ ...prev, [item.key]: prev[item.key]?.length ? prev[item.key] : [false] }));
+    if (item.key.startsWith("extra-")) {
+      setExtras((rows) =>
+        rows.map((row) =>
+          row.key === item.key ? { ...row, setsLabel, rest, restSeconds: 0, setCount: 1 } : row,
+        ),
+      );
+    }
   }
 
   function persistMove(toIso: number) {
@@ -447,8 +665,8 @@ export function ProgramSessionPanel({
         if (!completed) return null;
         return {
           name: names[item.key] ?? item.name,
-          sets: item.setsLabel,
-          rest: item.rest,
+          sets: meta[item.key]?.setsLabel ?? item.setsLabel,
+          rest: meta[item.key]?.rest ?? item.rest,
           ...((weights[item.key] ?? item.weight) ? { weight: weights[item.key] ?? item.weight } : {}),
           done: completed >= item.setCount,
           completed_sets: completed,
@@ -547,8 +765,9 @@ export function ProgramSessionPanel({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Check off each set. Rest starts automatically from the program (skip anytime). Close the tab
-          anytime — your sets and rest timer come back. Save when you are done.
+          Check off each set. Rest starts automatically from the program (skip anytime). Swipe a
+          move left or right to remove it. Close the tab anytime — your sets and rest timer come
+          back. Save when you are done.
         </p>
         {restored && (
           <p className="mb-3 rounded-2xl border border-accent/20 bg-accent-soft/50 px-3.5 py-2 text-xs font-black text-accent">
@@ -628,7 +847,7 @@ export function ProgramSessionPanel({
           <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-inverse px-4 py-3 text-inverse-fg">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-wider text-inverse-fg/70">
-                Rest · {rest.label}
+                {rest.kind === "work" ? "Work" : "Rest"} · {rest.label}
               </p>
               <p className="font-display text-3xl leading-none">{formatRestClock(restRemaining)}</p>
             </div>
@@ -641,7 +860,7 @@ export function ProgramSessionPanel({
               </div>
               <button
                 type="button"
-                onClick={() => setRest(null)}
+                onClick={skipRest}
                 className="inline-flex items-center gap-1 rounded-full bg-inverse-fg/12 px-3 py-1.5 text-[11px] font-black"
               >
                 <X size={12} /> Skip
@@ -655,110 +874,144 @@ export function ProgramSessionPanel({
             const row = checks[item.key] ?? [];
             const complete = row.length > 0 && row.every(Boolean);
             const displayName = names[item.key] ?? item.name;
+            const setsLabel = meta[item.key]?.setsLabel ?? item.setsLabel;
+            const timed = parseTimedMinutes(setsLabel);
+            const cardio = isCardioGymMove(displayName);
             return (
-              <article
-                key={item.key}
-                className={`rounded-2xl border p-3 ${
-                  complete ? "border-accent/30 bg-accent-soft/40" : "border-ink/8 bg-surface/50"
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={complete}
-                    onClick={() => toggleExercise(item)}
-                    className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition ${
-                      complete
-                        ? "border-accent bg-accent text-accent-fg"
-                        : "border-ink/20 bg-card text-transparent hover:border-accent/50"
-                    }`}
-                    aria-label={`Mark ${displayName} complete`}
-                  >
-                    <Check size={14} strokeWidth={3} />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <div className="min-w-0 flex-1">
-                        <GymMovePicker
-                          value={displayName === "Extra move" ? "" : displayName}
-                          onChange={(name) => {
-                            setNames((current) => ({ ...current, [item.key]: name }));
+              <SwipeRemove key={item.key} onRemove={() => removeMove(item)} label={displayName}>
+                <article
+                  className={`rounded-2xl border p-3 ${
+                    complete ? "border-accent/30 bg-accent-soft/40" : "border-ink/8 bg-surface/50"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={complete}
+                      onClick={() => toggleExercise(item)}
+                      className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition ${
+                        complete
+                          ? "border-accent bg-accent text-accent-fg"
+                          : "border-ink/20 bg-card text-transparent hover:border-accent/50"
+                      }`}
+                      aria-label={`Mark ${displayName} complete`}
+                    >
+                      <Check size={14} strokeWidth={3} />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <div className="min-w-0 flex-1">
+                          <GymMovePicker
+                            value={displayName === "Extra move" ? "" : displayName}
+                            onChange={(name) => applyMoveName(item, name)}
+                            options={moveOptions}
+                            className="min-w-0 w-full rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
+                            placeholder="Search moves…"
+                            aria-label={item.key.startsWith("extra-") ? "Extra move name" : "Move name"}
+                          />
+                        </div>
+                        {item.kind === "addon" && (
+                          <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
+                            Extra
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
+                        <span>{setsLabel}</span>
+                        <span aria-hidden>·</span>
+                        <input
+                          value={weights[item.key] ?? item.weight ?? ""}
+                          onChange={(event) =>
                             setWeights((current) => ({
                               ...current,
-                              [item.key]: nextGymMoveWeight(
-                                name,
-                                current[item.key],
-                                names[item.key] ?? item.name,
-                                loadHint,
-                              ),
-                            }));
-                          }}
-                          options={moveOptions}
-                          className="min-w-0 w-full rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
-                          placeholder="Search moves…"
-                          aria-label={item.key.startsWith("extra-") ? "Extra move name" : "Move name"}
+                              [item.key]: event.target.value.slice(0, 40),
+                            }))
+                          }
+                          placeholder={cardio ? "Pace" : "Weight"}
+                          maxLength={40}
+                          aria-label={`${displayName} ${cardio ? "pace" : "weight"}`}
+                          className="w-[7.5rem] rounded-lg border border-ink/10 bg-card px-2 py-0.5 text-xs font-semibold text-ink outline-none placeholder:text-muted focus:border-accent/45"
                         />
+                        {item.restSeconds ? (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>rest {meta[item.key]?.rest ?? item.rest}</span>
+                          </>
+                        ) : null}
+                      </p>
+                      {item.notes && <p className="mt-1 text-[11px] leading-4 text-muted">{item.notes}</p>}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {timed != null ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => toggleSet(item, 0)}
+                              className={`rounded-full border px-2.5 py-1 text-[11px] font-black transition ${
+                                row[0]
+                                  ? "border-accent/40 bg-accent text-accent-fg"
+                                  : "border-ink/10 bg-card text-muted hover:border-accent/30 hover:text-ink"
+                              }`}
+                            >
+                              {row[0] ? `${timed} min done` : `Start ${timed} min`}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => nudgeMinutes(item, -5)}
+                              className="rounded-full border border-ink/10 bg-card px-2 py-1 text-[11px] font-black text-muted"
+                              aria-label="Fewer minutes"
+                            >
+                              −5
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => nudgeMinutes(item, 5)}
+                              className="rounded-full border border-ink/10 bg-card px-2 py-1 text-[11px] font-black text-muted"
+                              aria-label="More minutes"
+                            >
+                              +5
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {row.map((on, index) => (
+                              <button
+                                key={`${item.key}-set-${index}`}
+                                type="button"
+                                onClick={() => toggleSet(item, index)}
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-black transition ${
+                                  on
+                                    ? "border-accent/40 bg-accent text-accent-fg"
+                                    : "border-ink/10 bg-card text-muted hover:border-accent/30 hover:text-ink"
+                                }`}
+                              >
+                                Set {index + 1}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => addSet(item)}
+                              className="rounded-full border border-dashed border-accent/30 bg-card px-2.5 py-1 text-[11px] font-black text-accent"
+                            >
+                              + Set
+                            </button>
+                          </>
+                        )}
                       </div>
-                      {item.kind === "addon" && (
-                        <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
-                          Extra
-                        </span>
+                      {item.swap && (
+                        <button
+                          type="button"
+                          onClick={() => swapItem(item)}
+                          className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-accent"
+                        >
+                          <Repeat2 size={12} />
+                          {displayName === item.originalName ? `Swap for ${item.swap}` : `Back to ${item.originalName}`}
+                        </button>
                       )}
                     </div>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
-                      <span>{item.setsLabel}</span>
-                      <span aria-hidden>·</span>
-                      <input
-                        value={weights[item.key] ?? item.weight ?? ""}
-                        onChange={(event) =>
-                          setWeights((current) => ({
-                            ...current,
-                            [item.key]: event.target.value.slice(0, 40),
-                          }))
-                        }
-                        placeholder="Weight"
-                        maxLength={40}
-                        aria-label={`${displayName} weight`}
-                        className="w-[7.5rem] rounded-lg border border-ink/10 bg-card px-2 py-0.5 text-xs font-semibold text-ink outline-none placeholder:text-muted focus:border-accent/45"
-                      />
-                      {item.restSeconds ? (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span>rest {item.rest}</span>
-                        </>
-                      ) : null}
-                    </p>
-                    {item.notes && <p className="mt-1 text-[11px] leading-4 text-muted">{item.notes}</p>}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {row.map((on, index) => (
-                        <button
-                          key={`${item.key}-set-${index}`}
-                          type="button"
-                          onClick={() => toggleSet(item, index)}
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-black transition ${
-                            on
-                              ? "border-accent/40 bg-accent text-accent-fg"
-                              : "border-ink/10 bg-card text-muted hover:border-accent/30 hover:text-ink"
-                          }`}
-                        >
-                          Set {index + 1}
-                        </button>
-                      ))}
-                    </div>
-                    {item.swap && (
-                      <button
-                        type="button"
-                        onClick={() => swapItem(item)}
-                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-accent"
-                      >
-                        <Repeat2 size={12} />
-                        {displayName === item.originalName ? `Swap for ${item.swap}` : `Back to ${item.originalName}`}
-                      </button>
-                    )}
                   </div>
-                </div>
-              </article>
+                </article>
+              </SwipeRemove>
             );
           })}
         </div>
@@ -786,11 +1039,72 @@ export function ProgramSessionPanel({
           <span className="inline-flex items-center gap-2 text-sm font-black">
             <Timer size={16} /> {formatRestClock(restRemaining)}
           </span>
-          <button type="button" onClick={() => setRest(null)} className="text-[11px] font-black">
+          <button type="button" onClick={skipRest} className="text-[11px] font-black">
             Skip rest
           </button>
         </div>
       )}
     </>
+  );
+}
+
+function SwipeRemove({
+  onRemove,
+  label,
+  children,
+}: {
+  onRemove: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const [dx, setDx] = useState(0);
+  const dragging = useRef(false);
+
+  function reset() {
+    start.current = null;
+    dragging.current = false;
+    setDx(0);
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex w-20 items-center justify-center bg-ember/90 text-[11px] font-black text-white">
+        Remove
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-ember/90 text-[11px] font-black text-white">
+        Remove
+      </div>
+      <div
+        className="relative"
+        style={{ transform: `translateX(${dx}px)`, transition: dragging.current ? "none" : "transform 180ms ease" }}
+        onPointerDown={(event) => {
+          if ((event.target as HTMLElement).closest("input, button, textarea, [role='combobox']")) return;
+          start.current = { x: event.clientX, y: event.clientY };
+          dragging.current = true;
+        }}
+        onPointerMove={(event) => {
+          if (!start.current) return;
+          const nextX = event.clientX - start.current.x;
+          const nextY = event.clientY - start.current.y;
+          if (Math.abs(nextY) > 36 && Math.abs(nextY) > Math.abs(nextX)) {
+            reset();
+            return;
+          }
+          setDx(Math.max(-120, Math.min(120, nextX)));
+        }}
+        onPointerUp={() => {
+          if (Math.abs(dx) > 72) onRemove();
+          reset();
+        }}
+        onPointerCancel={reset}
+        onPointerLeave={() => {
+          if (dragging.current) reset();
+        }}
+      >
+        {children}
+      </div>
+      <span className="sr-only">Swipe {label} left or right to remove</span>
+    </div>
   );
 }

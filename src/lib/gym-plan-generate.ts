@@ -372,6 +372,8 @@ export async function discardGymProgramDraft(supabase: SupabaseClient, userId: s
 }
 
 const LIVE_SESSION_COLUMNS =
+  "plan_id, day_label, session_date, checks, names, weights, extras, removed_keys, started_at, rest_ends_at, rest_label, rest_total, rest_alerted, rest_kind, updated_at";
+const LIVE_SESSION_COLUMNS_WEIGHTS =
   "plan_id, day_label, session_date, checks, names, weights, started_at, rest_ends_at, rest_label, rest_total, rest_alerted, updated_at";
 const LIVE_SESSION_COLUMNS_LEGACY =
   "plan_id, day_label, session_date, checks, names, started_at, rest_ends_at, rest_label, rest_total, rest_alerted, updated_at";
@@ -385,6 +387,13 @@ export async function loadGymLiveSessionRow(
     .select(LIVE_SESSION_COLUMNS)
     .eq("user_id", userId)
     .maybeSingle();
+  if (error && /(extras|removed_keys|rest_kind)/i.test(error.message)) {
+    ({ data, error } = await supabase
+      .from("gym_live_sessions")
+      .select(LIVE_SESSION_COLUMNS_WEIGHTS)
+      .eq("user_id", userId)
+      .maybeSingle());
+  }
   if (error && /weights/i.test(error.message)) {
     ({ data, error } = await supabase
       .from("gym_live_sessions")
@@ -406,8 +415,12 @@ export async function saveGymLiveSessionRow(
     ...serializeLiveSessionForDb(draft),
   };
   let { error } = await supabase.from("gym_live_sessions").upsert(payload, { onConflict: "user_id" });
+  if (error && /(extras|removed_keys|rest_kind)/i.test(error.message)) {
+    const { extras: _extras, removed_keys: _removed, rest_kind: _kind, ...withoutUi } = payload;
+    ({ error } = await supabase.from("gym_live_sessions").upsert(withoutUi, { onConflict: "user_id" }));
+  }
   if (error && /weights/i.test(error.message)) {
-    const { weights: _weights, ...legacy } = payload;
+    const { weights: _weights, extras: _extras, removed_keys: _removed, rest_kind: _kind, ...legacy } = payload;
     ({ error } = await supabase.from("gym_live_sessions").upsert(legacy, { onConflict: "user_id" }));
   }
   if (error) throw new Error(error.message);

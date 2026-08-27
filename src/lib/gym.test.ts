@@ -12,10 +12,13 @@ import {
   parseGymPlanDays,
   parseRestSeconds,
   parseSetCount,
+  parseTimedMinutes,
   pickTodaysPlanDay,
   findPlanDayByLabel,
   filterGymMoveCatalog,
   nextGymMoveWeight,
+  nextGymMovePrescription,
+  isCardioGymMove,
   resolveSessionMoveWeight,
   suggestGymMoveWeight,
   resolveSessionPlanDay,
@@ -389,6 +392,45 @@ describe("parseSetCount", () => {
     expect(parseSetCount("3x10")).toBe(3);
     expect(parseSetCount("1 set of 35-40 mins")).toBe(1);
     expect(parseSetCount("12 minutes steady")).toBe(1);
+  });
+});
+
+describe("cardio prescriptions", () => {
+  it("detects treadmill and other cardio machines", () => {
+    expect(isCardioGymMove("Treadmill incline walk")).toBe(true);
+    expect(isCardioGymMove("Chest Press Machine")).toBe(false);
+    expect(isCardioGymMove("Row", "cardio_machine")).toBe(true);
+  });
+
+  it("reads timed minutes from cardio labels", () => {
+    expect(parseTimedMinutes("10 mins")).toBe(10);
+    expect(parseTimedMinutes("8–12 mins easy")).toBe(8);
+    expect(parseTimedMinutes("1 set of 35-40 mins")).toBe(35);
+    expect(parseTimedMinutes("3 x 10")).toBeNull();
+  });
+
+  it("auto-fills minutes and zero rest when switching onto a treadmill", () => {
+    const next = nextGymMovePrescription(
+      "Treadmill",
+      { sets: "3 x 10", rest: "60s", weight: "36–40 kg" },
+      "Chest Press Machine",
+      { level: "beginner", bodyWeightKg: 70 },
+    );
+    expect(next.sets).toBe("10 mins");
+    expect(next.rest).toBe("0s");
+    expect(next.weight).toBe("easy pace");
+  });
+
+  it("returns strength defaults when leaving cardio", () => {
+    const next = nextGymMovePrescription(
+      "Chest Press Machine",
+      { sets: "10 mins", rest: "0s", weight: "easy pace" },
+      "Treadmill",
+      { level: "beginner", bodyWeightKg: 70 },
+    );
+    expect(next.sets).toBe("3 x 10");
+    expect(next.rest).toBe("60s");
+    expect(next.weight).toMatch(/kg/);
   });
 });
 
