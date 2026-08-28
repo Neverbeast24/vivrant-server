@@ -1058,13 +1058,24 @@ function SwipeRemove({
   children: ReactNode;
 }) {
   const start = useRef<{ x: number; y: number } | null>(null);
-  const [dx, setDx] = useState(0);
+  const dxRef = useRef(0);
   const dragging = useRef(false);
+  const axisLock = useRef<"x" | "y" | null>(null);
+  const [dx, setDx] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   function reset() {
     start.current = null;
     dragging.current = false;
+    axisLock.current = null;
+    dxRef.current = 0;
+    setIsDragging(false);
     setDx(0);
+  }
+
+  function finish() {
+    if (Math.abs(dxRef.current) > 72) onRemove();
+    reset();
   }
 
   return (
@@ -1076,30 +1087,52 @@ function SwipeRemove({
         Remove
       </div>
       <div
-        className="relative"
-        style={{ transform: `translateX(${dx}px)`, transition: dragging.current ? "none" : "transform 180ms ease" }}
+        className="relative touch-pan-y"
+        style={{ transform: `translateX(${dx}px)`, transition: isDragging ? "none" : "transform 180ms ease" }}
         onPointerDown={(event) => {
-          if ((event.target as HTMLElement).closest("input, button, textarea, [role='combobox']")) return;
-          start.current = { x: event.clientX, y: event.clientY };
-          dragging.current = true;
-        }}
-        onPointerMove={(event) => {
-          if (!start.current) return;
-          const nextX = event.clientX - start.current.x;
-          const nextY = event.clientY - start.current.y;
-          if (Math.abs(nextY) > 36 && Math.abs(nextY) > Math.abs(nextX)) {
-            reset();
+          if (event.button !== 0) return;
+          if ((event.target as HTMLElement).closest("input, button, textarea, a, [role='combobox'], [role='checkbox']")) {
             return;
           }
-          setDx(Math.max(-120, Math.min(120, nextX)));
+          start.current = { x: event.clientX, y: event.clientY };
+          dragging.current = true;
+          axisLock.current = null;
+          dxRef.current = 0;
+          setIsDragging(true);
+          setDx(0);
+          event.currentTarget.setPointerCapture(event.pointerId);
         }}
-        onPointerUp={() => {
-          if (Math.abs(dx) > 72) onRemove();
-          reset();
+        onPointerMove={(event) => {
+          if (!start.current || !dragging.current) return;
+          const nextX = event.clientX - start.current.x;
+          const nextY = event.clientY - start.current.y;
+
+          if (!axisLock.current) {
+            if (Math.abs(nextX) < 8 && Math.abs(nextY) < 8) return;
+            axisLock.current = Math.abs(nextX) >= Math.abs(nextY) ? "x" : "y";
+            if (axisLock.current === "y") {
+              dragging.current = false;
+              try {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              } catch {
+                /* already released */
+              }
+              reset();
+              return;
+            }
+          }
+
+          if (axisLock.current !== "x") return;
+
+          event.preventDefault();
+          const clamped = Math.max(-120, Math.min(120, nextX));
+          dxRef.current = clamped;
+          setDx(clamped);
         }}
+        onPointerUp={finish}
         onPointerCancel={reset}
-        onPointerLeave={() => {
-          if (dragging.current) reset();
+        onLostPointerCapture={() => {
+          if (dragging.current) finish();
         }}
       >
         {children}
