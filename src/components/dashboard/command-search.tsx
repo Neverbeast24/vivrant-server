@@ -247,7 +247,7 @@ export function CommandSearch({
       <button
         type="button"
         onClick={openSearch}
-        className="focus-ring group hidden min-w-0 items-center gap-3 rounded-xl border border-ink/6 bg-card/90 px-3.5 py-2 text-left shadow-[0_5px_16px_rgba(var(--shadow-color),.06)] transition hover:-translate-y-0.5 hover:border-accent/20 sm:flex sm:w-80"
+        className="focus-ring group hidden min-w-0 items-center gap-3 rounded-2xl border border-ink/7 bg-card/90 px-3.5 py-2.5 text-left shadow-[inset_0_1px_0_var(--glass-inset),0_5px_16px_rgba(var(--shadow-color),.06)] transition hover:-translate-y-0.5 hover:border-accent/20 sm:flex sm:w-80"
         aria-label="Global search"
       >
         <Search size={15} className="shrink-0 text-muted group-hover:text-accent" />
@@ -284,7 +284,7 @@ export function CommandSearch({
                   role="dialog"
                   aria-modal="true"
                   aria-label="Global search"
-                  className="w-full max-w-2xl overflow-hidden rounded-[1.4rem] border border-panel/70 bg-card/95 shadow-[0_35px_100px_rgba(var(--shadow-color),.35)] backdrop-blur-2xl"
+                  className="w-full max-w-2xl overflow-hidden rounded-[1.6rem] border border-panel/70 bg-card/95 shadow-[0_35px_100px_rgba(var(--shadow-color),.35)] backdrop-blur-2xl"
                 >
                   <div className="flex items-center gap-3 border-b border-ink/6 px-5">
                     {loading ? (

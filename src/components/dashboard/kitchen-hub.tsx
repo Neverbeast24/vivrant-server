@@ -60,11 +60,12 @@ export function KitchenHub({
 
   return (
     <>
-      <PageHeader eyebrow="KITCHEN" title="Shop and" highlight="stock." />
-      <p className="-mt-5 mb-4 max-w-xl text-sm text-muted">
-        Check off shopping here and it restocks the pantry. Low stock on the shelf goes straight onto
-        the list.
-      </p>
+      <PageHeader
+        eyebrow="KITCHEN"
+        title="Shop and"
+        highlight="stock."
+        lede="Check off shopping here and it restocks the pantry. Low stock on the shelf goes straight onto the list."
+      />
       <ModuleSubNav items={kitchenSubNav} />
 
       <Stagger>

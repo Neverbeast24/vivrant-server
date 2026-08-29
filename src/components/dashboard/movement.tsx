@@ -5,6 +5,14 @@ import Link from "next/link";
 import { Flame, Footprints, Heart, Pencil, Sparkles, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
+import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
 import { deleteWorkout, logWorkout, updateWorkout } from "@/app/dashboard/movement/actions";
 import { suggestWorkoutWithAi } from "@/app/dashboard/movement/ai-actions";
 import {
@@ -64,6 +72,7 @@ export function MovementView({
   const [duration, setDuration] = useState("");
   const [calories, setCalories] = useState("");
   const [reason, setReason] = useState<string | null>(null);
+  const bulk = useBulkSelect(workouts.map((workout) => workout.id));
 
   const totalMinutes = workouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
   const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0);
@@ -227,8 +236,34 @@ export function MovementView({
         <Panel
           title="Sessions"
           className="mt-4"
-          right={workouts.length > 0 ? <ShareExportMenu compact doc={movementWorkoutsDoc(workouts)} /> : undefined}
+          right={
+            workouts.length > 0 ? (
+              <div className="flex items-center gap-3">
+                <ShareExportMenu compact doc={movementWorkoutsDoc(workouts)} />
+                <SelectModeButton
+                  selecting={bulk.selecting}
+                  onStart={bulk.start}
+                  onCancel={bulk.clear}
+                />
+              </div>
+            ) : undefined
+          }
         >
+          <BulkBar
+            selecting={bulk.selecting}
+            count={bulk.count}
+            total={workouts.length}
+            allSelected={bulk.allSelected}
+            onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+            onClear={bulk.clear}
+            pending={deleting}
+            onConfirm={() =>
+              startDelete(async () => {
+                const ok = await archiveSelected("workout_logs", bulk.selectedIds);
+                if (ok) bulk.clear();
+              })
+            }
+          />
           <div className="space-y-2">
             {workouts.map((workout) => (
               editingId === workout.id ? (
@@ -262,11 +297,31 @@ export function MovementView({
                   </div>
                 </form>
               ) : (
-              <ListRow
+              <SelectableRow
                 key={workout.id}
+                id={workout.id}
+                label={workout.title}
+                selecting={bulk.selecting}
+                selected={bulk.selected.has(workout.id)}
+                onToggle={bulk.toggle}
+                onArchive={async () => {
+                  if (!(await confirmDelete(workout.title))) return;
+                  startDelete(async () => {
+                    const result = await deleteWorkout(workout.id);
+                    if (result.ok) toast.success(result.message);
+                    else toast.error(result.message);
+                  });
+                }}
+              >
+              <ListRow
                 title={workout.title}
                 meta={workout.activity_type}
+                selected={bulk.selecting && bulk.selected.has(workout.id)}
+                left={bulk.selecting ? <SelectCheck checked={bulk.selected.has(workout.id)} /> : undefined}
                 right={
+                  bulk.selecting ? (
+                    <span className="text-xs font-black">{workout.duration_minutes ?? 0} min</span>
+                  ) : (
                   <span className="flex items-center gap-1">
                     <span className="text-xs font-black">{workout.duration_minutes ?? 0} min</span>
                     <button
@@ -294,8 +349,10 @@ export function MovementView({
                       <Trash2 size={14} />
                     </button>
                   </span>
+                  )
                 }
               />
+              </SelectableRow>
               )
             ))}
             {!workouts.length && (

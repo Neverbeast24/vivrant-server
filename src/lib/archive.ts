@@ -93,6 +93,8 @@ async function snapshotBackup(
   });
 }
 
+export const ARCHIVE_BULK_LIMIT = 80;
+
 export async function archiveRecord(
   supabase: SupabaseClient,
   input: {
@@ -100,6 +102,7 @@ export async function archiveRecord(
     id: number;
     userId: string;
     auditAction?: string;
+    skipRevalidate?: boolean;
   },
 ): Promise<ArchiveResult> {
   const loaded = await loadOwnedRow(supabase, input.table, input.id, input.userId);
@@ -144,8 +147,65 @@ export async function archiveRecord(
     supabase,
   );
 
-  revalidateArchivedModule(input.table);
+  if (!input.skipRevalidate) revalidateArchivedModule(input.table);
   return { ok: true, message: `${ARCHIVE_LABELS[input.table]} moved to Archived.` };
+}
+
+export function parseArchiveIds(ids: unknown, limit = ARCHIVE_BULK_LIMIT): number[] {
+  if (!Array.isArray(ids)) return [];
+  const unique: number[] = [];
+  const seen = new Set<number>();
+  for (const value of ids) {
+    const id = Number(value);
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
+    seen.add(id);
+    unique.push(id);
+    if (unique.length >= limit) break;
+  }
+  return unique;
+}
+
+export async function archiveRecordsByIds(
+  supabase: SupabaseClient,
+  input: {
+    table: ArchiveTable;
+    ids: number[];
+    userId: string;
+    auditAction?: string;
+  },
+): Promise<ArchiveResult> {
+  const ids = parseArchiveIds(input.ids);
+  if (!ids.length) return { ok: false, message: "Select at least one item." };
+
+  let archived = 0;
+  let lastError: string | null = null;
+  for (const id of ids) {
+    const result =
+      input.table === "gym_plans"
+        ? await archiveGymPlan(supabase, { id, userId: input.userId, skipRevalidate: true })
+        : await archiveRecord(supabase, {
+            table: input.table,
+            id,
+            userId: input.userId,
+            auditAction: input.auditAction,
+            skipRevalidate: true,
+          });
+    if (result.ok) archived += 1;
+    else lastError = result.message;
+  }
+
+  if (archived === 0) {
+    return { ok: false, message: lastError ?? "Nothing to archive." };
+  }
+
+  revalidateArchivedModule(input.table);
+  return {
+    ok: true,
+    message:
+      archived === 1
+        ? `${ARCHIVE_LABELS[input.table]} moved to Archived.`
+        : `${archived} items moved to Archived.`,
+  };
 }
 
 /** Hide system-generated rows without cluttering the member Archive list. */
@@ -252,7 +312,7 @@ export async function listArchivedRecords(supabase: SupabaseClient, userId: stri
 
 export async function restoreArchivedRecord(
   supabase: SupabaseClient,
-  input: { archiveId: number; userId: string },
+  input: { archiveId: number; userId: string; skipRevalidate?: boolean },
 ): Promise<ArchiveResult> {
   const { data: archived, error: loadError } = await supabase
     .from("archived_records")
@@ -301,19 +361,55 @@ export async function restoreArchivedRecord(
     supabase,
   );
 
-  revalidateArchivedModule(entity);
+  if (!input.skipRevalidate) revalidateArchivedModule(entity);
   return { ok: true, message: `${ARCHIVE_LABELS[entity]} restored.` };
+}
+
+export async function restoreArchivedRecords(
+  supabase: SupabaseClient,
+  input: { archiveIds: number[]; userId: string },
+): Promise<ArchiveResult> {
+  const ids = parseArchiveIds(input.archiveIds);
+  if (!ids.length) return { ok: false, message: "Select at least one item." };
+
+  let restored = 0;
+  let lastError: string | null = null;
+  for (const archiveId of ids) {
+    const result = await restoreArchivedRecord(supabase, {
+      archiveId,
+      userId: input.userId,
+      skipRevalidate: true,
+    });
+    if (result.ok) restored += 1;
+    else lastError = result.message;
+  }
+
+  if (restored === 0) {
+    return { ok: false, message: lastError ?? "Nothing to restore." };
+  }
+
+  revalidatePath("/dashboard/archive");
+  revalidatePath("/dashboard");
+  for (const table of Object.keys(MODULE_PATHS) as ArchiveTable[]) {
+    for (const path of MODULE_PATHS[table]) revalidatePath(path);
+  }
+
+  return {
+    ok: true,
+    message: restored === 1 ? "Item restored." : `${restored} items restored.`,
+  };
 }
 
 export async function archiveGymPlan(
   supabase: SupabaseClient,
-  input: { id: number; userId: string },
+  input: { id: number; userId: string; skipRevalidate?: boolean },
 ): Promise<ArchiveResult> {
   const result = await archiveRecord(supabase, {
     table: "gym_plans",
     id: input.id,
     userId: input.userId,
     auditAction: "gym_plan_deleted",
+    skipRevalidate: input.skipRevalidate,
   });
   if (!result.ok) return result;
 

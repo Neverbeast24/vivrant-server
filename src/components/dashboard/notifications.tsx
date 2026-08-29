@@ -98,7 +98,7 @@ export function Notifications({ items }: { items: NotificationItem[] }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
-            className="glass absolute right-0 top-12 z-50 w-80 rounded-2xl p-3"
+            className="glass absolute right-0 top-12 z-50 w-80 rounded-[1.4rem] p-3 shadow-[0_24px_60px_rgba(var(--shadow-color),.18)]"
           >
             <div className="flex items-center justify-between px-2 py-1">
               <span className="text-sm font-black">Notifications</span>

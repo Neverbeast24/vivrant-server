@@ -6,6 +6,13 @@ import { ArrowDownAZ, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addGroceryItem,
   addGroceryItemsBulk,
   deleteGroceryItem,
@@ -81,6 +88,7 @@ export function GroceriesSheet({
       return String(a[sortKey] ?? "").localeCompare(String(b[sortKey] ?? "")) * dir;
     });
   }, [items, filter, sortKey, sortAsc]);
+  const bulk = useBulkSelect(rows.map((row) => row.id));
 
   const visibleTotal = rows.reduce((sum, row) => sum + Number(row.estimated_price ?? 0), 0);
 
@@ -153,11 +161,35 @@ export function GroceriesSheet({
     <Panel
       title="Excel-style shopping list"
       right={
-        <span className="hidden text-[10px] font-bold text-muted sm:inline">
-          Name is enough · Enter to add · click a row to edit
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden text-[10px] font-bold text-muted sm:inline">
+            Name is enough · Enter to add · click a row to edit
+          </span>
+          {rows.length > 0 ? (
+            <SelectModeButton
+              selecting={bulk.selecting}
+              onStart={bulk.start}
+              onCancel={bulk.clear}
+            />
+          ) : null}
+        </div>
       }
     >
+      <BulkBar
+        selecting={bulk.selecting}
+        count={bulk.count}
+        total={rows.length}
+        allSelected={bulk.allSelected}
+        onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+        onClear={bulk.clear}
+        pending={pending}
+        onConfirm={() =>
+          start(async () => {
+            const ok = await archiveSelected("grocery_items", bulk.selectedIds);
+            if (ok) bulk.clear();
+          })
+        }
+      />
       <div className="mb-4">
         <input
           value={filter}
@@ -205,7 +237,18 @@ export function GroceriesSheet({
                 className={excelBodyRow(index, item.is_checked ? "opacity-60" : "")}
               >
                 <ExcelTd className={excelIndexCell}>
-                  {index + 1}
+                  {bulk.selecting ? (
+                    <button
+                      type="button"
+                      onClick={() => bulk.toggle(item.id)}
+                      aria-label={`Select ${item.name}`}
+                      className="mx-auto block"
+                    >
+                      <SelectCheck checked={bulk.selected.has(item.id)} />
+                    </button>
+                  ) : (
+                    index + 1
+                  )}
                 </ExcelTd>
                 <ExcelTd className="text-center">
                   <input

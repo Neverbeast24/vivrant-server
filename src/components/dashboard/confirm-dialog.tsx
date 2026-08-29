@@ -67,6 +67,24 @@ export function confirmDelete(label: string) {
   });
 }
 
+export function confirmDeleteMany(count: number) {
+  const n = Math.max(0, count);
+  return confirmAction({
+    title: `Archive ${n} item${n === 1 ? "" : "s"}?`,
+    body: "They will leave this list and move to Archived. You can restore them anytime from Profile → Archived.",
+    confirmLabel: "Archive",
+  });
+}
+
+export function confirmRestoreMany(count: number) {
+  const n = Math.max(0, count);
+  return confirmAction({
+    title: `Restore ${n} item${n === 1 ? "" : "s"}?`,
+    body: "They will come back to their original module lists.",
+    confirmLabel: "Restore",
+  });
+}
+
 export function ConfirmHost() {
   const current = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const onCancel = useCallback(() => close(false), []);
@@ -80,7 +98,7 @@ export function ConfirmHost() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        className="w-full max-w-md rounded-[1.4rem] border border-ink/10 bg-card p-5 shadow-[0_24px_60px_rgba(var(--shadow-color),.28)]"
+        className="w-full max-w-md rounded-[1.6rem] border border-ink/10 bg-card p-6 shadow-[inset_0_1px_0_var(--glass-inset),0_24px_60px_rgba(var(--shadow-color),.28)]"
       >
         <h2 id="confirm-title" className="font-display text-2xl tracking-tight">
           {current.title}
@@ -90,14 +108,14 @@ export function ConfirmHost() {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-xl px-4 py-2.5 text-sm font-black text-muted transition hover:bg-ink/5 hover:text-ink"
+            className="rounded-2xl px-4 py-2.5 text-sm font-black text-muted transition hover:bg-ink/5 hover:text-ink"
           >
             {current.cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-xl bg-inverse px-4 py-2.5 text-sm font-black text-inverse-fg transition hover:bg-accent"
+            className="rounded-2xl bg-inverse px-4 py-2.5 text-sm font-black text-inverse-fg transition hover:bg-accent"
           >
             {current.confirmLabel}
           </button>

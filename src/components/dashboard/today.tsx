@@ -198,13 +198,13 @@ export function TodayView({ data }: { data: TodayData }) {
         eyebrow={today.toUpperCase()}
         title="A good day to feel"
         highlight="alive."
+        lede={
+          data.isNewMember
+            ? "New here? Start with a 30-second check-in — then log one meal."
+            : "Your daily hub — programs, meals, movement, and the rest of your tools in one place."
+        }
         action={<QuickCheckin />}
       />
-      <p className="-mt-5 mb-6 max-w-xl text-sm text-muted">
-        {data.isNewMember
-          ? "New here? Start with a 30-second check-in — then log one meal."
-          : "Your daily hub — programs, meals, movement, and the rest of your tools in one place."}
-      </p>
 
       {!data.profileComplete && (
         <Link

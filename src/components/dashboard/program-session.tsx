@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Plus, Repeat2, Timer, X } from "lucide-react";
+import { Check, Play, Plus, Repeat2, Timer, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   clearGymLiveSessionAction,
@@ -14,6 +14,7 @@ import {
 } from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
+import { SwipeRemove } from "@/components/dashboard/swipe-remove";
 import {
   formatRestClock,
   formatGymMoveName,
@@ -21,6 +22,7 @@ import {
   GYM_WEEKDAYS,
   humanizeGymLabel,
   isCardioGymMove,
+  findExerciseMatch,
   moveSavedPlanDay,
   nextGymMovePrescription,
   parseRestSeconds,
@@ -29,8 +31,10 @@ import {
   pickTodaysPlanDay,
   resolveSessionMoveWeight,
   resolveSessionPlanDay,
+  toDemoEmbedSrc,
   trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
+  type GymExercise,
   type GymMoveCatalogItem,
   type GymPlan,
   type GymPlanDay,
@@ -45,6 +49,7 @@ import {
   restRemainingSeconds,
   todaySessionDate,
   type GymLiveExtraMove,
+  type GymLiveMoveMeta,
   type GymLiveSessionDraft,
 } from "@/lib/gym-live-session";
 import {
@@ -77,11 +82,7 @@ type RestState = {
   kind: "rest" | "work";
 };
 
-type MoveMeta = {
-  setsLabel: string;
-  rest: string;
-  restSeconds: number;
-};
+type MoveMeta = GymLiveMoveMeta;
 
 function readLocalLiveSession(): GymLiveSessionDraft | null {
   try {
@@ -197,6 +198,7 @@ export function ProgramSessionPanel({
   const [extras, setExtras] = useState<RunnerItem[]>([]);
   const [removedKeys, setRemovedKeys] = useState<string[]>([]);
   const [meta, setMeta] = useState<Record<string, MoveMeta>>({});
+  const [demo, setDemo] = useState<GymExercise | null>(null);
   const syncTimer = useRef<number | null>(null);
   const alarmGuard = useRef(false);
   const router = useRouter();
@@ -269,7 +271,7 @@ export function ProgramSessionPanel({
           }),
         ]),
       );
-      const metaOut: Record<string, MoveMeta> = {};
+      const metaOut: Record<string, MoveMeta> = { ...(saved?.meta ?? {}) };
       if (saved && liveSessionMatches(saved, plan.id, sessionDay.day)) {
         nextChecks = Object.fromEntries(
           visible.map((item) => {
@@ -371,6 +373,7 @@ export function ProgramSessionPanel({
       weights,
       extras: extraDrafts,
       removed_keys: removedKeys,
+      meta,
       started_at: startedAt,
       rest_ends_at: rest?.endsAt ?? null,
       rest_label: rest?.label ?? null,
@@ -494,7 +497,13 @@ export function ProgramSessionPanel({
       startRest(displayName, timed * 60, "work");
       return;
     }
-    startRest(displayName, item.restSeconds, "rest");
+    const remainingSets = items.some((row) => {
+      const rowChecks = row.key === item.key ? next : checks[row.key] ?? [];
+      return rowChecks.some((value) => !value);
+    });
+    if (item.restSeconds > 0 && remainingSets) {
+      startRest(displayName, item.restSeconds, "rest");
+    }
   }
 
   function applyMoveName(item: RunnerItem, name: string) {
@@ -587,6 +596,28 @@ export function ProgramSessionPanel({
       setExtras((current) => current.filter((row) => row.key !== item.key));
     } else {
       setRemovedKeys((current) => (current.includes(item.key) ? current : [...current, item.key]));
+    }
+  }
+
+  function removeSet(item: RunnerItem) {
+    if (parseTimedMinutes(meta[item.key]?.setsLabel ?? item.setsLabel) != null) {
+      nudgeMinutes(item, -5);
+      return;
+    }
+    const current = checks[item.key] ?? Array.from({ length: item.setCount }, () => false);
+    if (current.length <= 1) return;
+    const next = current.slice(0, -1);
+    setChecks((prev) => ({ ...prev, [item.key]: next }));
+    const setsLabel = `${next.length} x ${repsFromSets(meta[item.key]?.setsLabel ?? item.setsLabel)}`;
+    const rest = meta[item.key]?.rest ?? item.rest;
+    setMeta((prev) => ({
+      ...prev,
+      [item.key]: { setsLabel, rest, restSeconds: parseRestSeconds(rest) },
+    }));
+    if (item.key.startsWith("extra-")) {
+      setExtras((rows) =>
+        rows.map((row) => (row.key === item.key ? { ...row, setsLabel, setCount: next.length } : row)),
+      );
     }
   }
 
@@ -1045,99 +1076,5 @@ export function ProgramSessionPanel({
         </div>
       )}
     </>
-  );
-}
-
-function SwipeRemove({
-  onRemove,
-  label,
-  children,
-}: {
-  onRemove: () => void;
-  label: string;
-  children: ReactNode;
-}) {
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const dxRef = useRef(0);
-  const dragging = useRef(false);
-  const axisLock = useRef<"x" | "y" | null>(null);
-  const [dx, setDx] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-
-  function reset() {
-    start.current = null;
-    dragging.current = false;
-    axisLock.current = null;
-    dxRef.current = 0;
-    setIsDragging(false);
-    setDx(0);
-  }
-
-  function finish() {
-    if (Math.abs(dxRef.current) > 72) onRemove();
-    reset();
-  }
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl">
-      <div className="pointer-events-none absolute inset-y-0 left-0 flex w-20 items-center justify-center bg-ember/90 text-[11px] font-black text-white">
-        Remove
-      </div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-ember/90 text-[11px] font-black text-white">
-        Remove
-      </div>
-      <div
-        className="relative touch-pan-y"
-        style={{ transform: `translateX(${dx}px)`, transition: isDragging ? "none" : "transform 180ms ease" }}
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          if ((event.target as HTMLElement).closest("input, button, textarea, a, [role='combobox'], [role='checkbox']")) {
-            return;
-          }
-          start.current = { x: event.clientX, y: event.clientY };
-          dragging.current = true;
-          axisLock.current = null;
-          dxRef.current = 0;
-          setIsDragging(true);
-          setDx(0);
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          if (!start.current || !dragging.current) return;
-          const nextX = event.clientX - start.current.x;
-          const nextY = event.clientY - start.current.y;
-
-          if (!axisLock.current) {
-            if (Math.abs(nextX) < 8 && Math.abs(nextY) < 8) return;
-            axisLock.current = Math.abs(nextX) >= Math.abs(nextY) ? "x" : "y";
-            if (axisLock.current === "y") {
-              dragging.current = false;
-              try {
-                event.currentTarget.releasePointerCapture(event.pointerId);
-              } catch {
-                /* already released */
-              }
-              reset();
-              return;
-            }
-          }
-
-          if (axisLock.current !== "x") return;
-
-          event.preventDefault();
-          const clamped = Math.max(-120, Math.min(120, nextX));
-          dxRef.current = clamped;
-          setDx(clamped);
-        }}
-        onPointerUp={finish}
-        onPointerCancel={reset}
-        onLostPointerCapture={() => {
-          if (dragging.current) finish();
-        }}
-      >
-        {children}
-      </div>
-      <span className="sr-only">Swipe {label} left or right to remove</span>
-    </div>
   );
 }

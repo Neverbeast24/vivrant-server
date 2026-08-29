@@ -5,6 +5,14 @@ import { Check, Flame, Pencil, Plus, Sparkles, Target, Trash2, Trophy } from "lu
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addHabit,
   createChallenge,
   deleteChallenge,
@@ -78,6 +86,8 @@ export function HabitsView({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [savingEdit, startSaveEdit] = useTransition();
   const { items: orderedHabits, move } = useSavedListOrder("habits", habits, listOrder);
+  const bulkHabits = useBulkSelect(orderedHabits.map((habit) => habit.id));
+  const bulkChallenges = useBulkSelect(challenges.map((c) => c.id));
   const doneCount = orderedHabits.filter((h) => h.doneToday).length;
 
   return (
@@ -171,19 +181,64 @@ export function HabitsView({
             </div>
           </Stagger>
 
-          <Panel title="Today" className="mb-8">
+          <Panel
+            title="Today"
+            className="mb-8"
+            right={
+              orderedHabits.length > 0 ? (
+                <SelectModeButton
+                  selecting={bulkHabits.selecting}
+                  onStart={bulkHabits.start}
+                  onCancel={bulkHabits.clear}
+                />
+              ) : undefined
+            }
+          >
+              <BulkBar
+                selecting={bulkHabits.selecting}
+                count={bulkHabits.count}
+                total={orderedHabits.length}
+                allSelected={bulkHabits.allSelected}
+                onSelectAll={bulkHabits.allSelected ? bulkHabits.deselectAll : bulkHabits.selectAll}
+                onClear={bulkHabits.clear}
+                onConfirm={async () => {
+                  const ok = await archiveSelected("habits", bulkHabits.selectedIds);
+                  if (ok) bulkHabits.clear();
+                }}
+              />
               <p className="mb-2 text-[11px] font-bold leading-4 text-muted">
-                Drag the grips to reorder habits.
+                {bulkHabits.selecting ? "Tap habits to select." : "Drag the grips to reorder habits. Swipe to archive."}
               </p>
               <div className="space-y-2">
                 {orderedHabits.map((habit, index) => (
-                  <ItemDragRow
+                  <SelectableRow
                     key={habit.id}
+                    id={habit.id}
+                    label={habit.title}
+                    selecting={bulkHabits.selecting}
+                    selected={bulkHabits.selected.has(habit.id)}
+                    onToggle={bulkHabits.toggle}
+                    onArchive={async () => {
+                      if (!(await confirmDelete(habit.title))) return;
+                      const result = await deleteHabit(habit.id);
+                      if (result.ok) toast.success(result.message);
+                      else toast.error(result.message);
+                    }}
+                  >
+                  <ItemDragRow
                     index={index}
                     onMove={move}
-                    className="flex items-center gap-3 rounded-2xl border border-ink/8 px-3 py-3"
+                    className={`flex items-center gap-3 rounded-2xl border px-3 py-3 ${
+                      bulkHabits.selecting && bulkHabits.selected.has(habit.id)
+                        ? "border-accent/35 bg-accent-soft/50"
+                        : "border-ink/8"
+                    }`}
                   >
-                    <DragGrip label={`Reorder ${habit.title}`} />
+                    {bulkHabits.selecting ? (
+                      <SelectCheck checked={bulkHabits.selected.has(habit.id)} />
+                    ) : (
+                      <DragGrip label={`Reorder ${habit.title}`} />
+                    )}
                     <button
                       type="button"
                       onClick={async () => {
@@ -259,6 +314,7 @@ export function HabitsView({
                       <Trash2 size={16} />
                     </button>
                   </ItemDragRow>
+                  </SelectableRow>
                 ))}
                 {!orderedHabits.length && (
                   <EmptyState>
@@ -333,7 +389,30 @@ export function HabitsView({
             </form>
           </Panel>
 
-          <Panel title="Active challenges">
+          <Panel
+            title="Active challenges"
+            right={
+              challenges.length > 0 ? (
+                <SelectModeButton
+                  selecting={bulkChallenges.selecting}
+                  onStart={bulkChallenges.start}
+                  onCancel={bulkChallenges.clear}
+                />
+              ) : undefined
+            }
+          >
+            <BulkBar
+              selecting={bulkChallenges.selecting}
+              count={bulkChallenges.count}
+              total={challenges.length}
+              allSelected={bulkChallenges.allSelected}
+              onSelectAll={bulkChallenges.allSelected ? bulkChallenges.deselectAll : bulkChallenges.selectAll}
+              onClear={bulkChallenges.clear}
+              onConfirm={async () => {
+                const ok = await archiveSelected("challenges", bulkChallenges.selectedIds);
+                if (ok) bulkChallenges.clear();
+              }}
+            />
             <ul className="space-y-3">
               {challenges.map((c) => {
                 const pct = Math.min(
@@ -341,9 +420,28 @@ export function HabitsView({
                   Math.round((Number(c.current_value) / Math.max(Number(c.target_value), 1)) * 100),
                 );
                 return (
-                  <li key={c.id} className="rounded-2xl border border-ink/8 p-4">
+                  <SelectableRow
+                    key={c.id}
+                    id={c.id}
+                    label={c.title}
+                    selecting={bulkChallenges.selecting}
+                    selected={bulkChallenges.selected.has(c.id)}
+                    onToggle={bulkChallenges.toggle}
+                    onArchive={async () => {
+                      if (!(await confirmDelete(c.title))) return;
+                      const result = await deleteChallenge(c.id);
+                      if (result.ok) toast.success(result.message);
+                      else toast.error(result.message);
+                    }}
+                  >
+                  <li className={`rounded-2xl border p-4 ${
+                    bulkChallenges.selecting && bulkChallenges.selected.has(c.id)
+                      ? "border-accent/35 bg-accent-soft/50"
+                      : "border-ink/8"
+                  }`}>
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="flex min-w-0 items-start gap-2">
+                        {bulkChallenges.selecting ? <SelectCheck checked={bulkChallenges.selected.has(c.id)} /> : null}
                         <p className="flex items-center gap-2 text-sm font-black">
                           <Trophy size={14} className="text-accent" />
                           {c.title}
@@ -373,6 +471,7 @@ export function HabitsView({
                       {Number(c.current_value).toFixed(0)} / {Number(c.target_value)}
                     </p>
                   </li>
+                  </SelectableRow>
                 );
               })}
               {!challenges.length && (

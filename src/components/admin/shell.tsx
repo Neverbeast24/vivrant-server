@@ -89,7 +89,7 @@ function AdminNavigation({
             }
             className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
               collapsed ? "justify-center px-2" : "gap-3 px-3"
-            } ${active ? "bg-inverse text-inverse-fg shadow-lg" : "text-muted hover:bg-panel/80 hover:text-ink"}`}
+            } ${active ? "bg-inverse text-inverse-fg shadow-[0_10px_24px_rgba(var(--shadow-color),.18)]" : "text-muted hover:bg-surface-soft/80 hover:text-ink"}`}
           >
             <span className={`relative grid size-9 shrink-0 place-items-center rounded-xl ${active ? "bg-inverse-fg/10" : "bg-surface-soft group-hover:bg-surface-soft"}`}>
               <item.icon size={17} />
@@ -164,13 +164,13 @@ export function AdminShell({
       <IdleSessionGuard />
       <ThemeSync theme={theme} />
       <PushEnrollment enabled={pushEnabled} />
-      <div className="glass mx-auto flex h-full w-full overflow-hidden rounded-[1.6rem] border border-panel/65 shadow-[0_30px_90px_rgba(var(--shadow-color),.14)]">
+      <div className="glass mx-auto flex h-full w-full overflow-hidden rounded-[1.75rem] border border-panel/70 shadow-[0_30px_90px_rgba(var(--shadow-color),.16)]">
         <motion.aside
           animate={{ width: expanded ? 288 : 88 }}
           transition={{ type: "spring", stiffness: 320, damping: 30 }}
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
-          className="relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-ink/5 bg-card/72 p-4 lg:flex"
+          className="relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-ink/6 bg-card/80 p-4 lg:flex"
         >
           <div className={`mb-3 flex h-12 shrink-0 items-center ${expanded ? "justify-between gap-2" : "justify-center"}`}>
             <Brand compact={!expanded} />
@@ -208,7 +208,7 @@ export function AdminShell({
         </motion.aside>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-paper/65">
-          <header className="flex h-20 shrink-0 items-center justify-between gap-3 border-b border-ink/5 bg-card/35 px-4 backdrop-blur-xl sm:px-6">
+          <header className="flex h-[4.6rem] shrink-0 items-center justify-between gap-3 border-b border-ink/6 bg-card/45 px-4 backdrop-blur-xl sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <button type="button" onClick={() => setMobileOpen(true)} className="grid size-10 place-items-center rounded-xl bg-card shadow-sm lg:hidden" aria-label="Open navigation"><Menu size={18} /></button>
               <CommandSearch isStaff isSuperAdmin={isSuperAdmin} />
@@ -254,7 +254,7 @@ export function AdminShell({
           </AnimatePresence>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="w-full p-4 sm:p-6 lg:px-7 lg:py-6">
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="mx-auto w-full max-w-[92rem] p-4 sm:p-6 lg:px-8 lg:py-7">
               {children}
             </motion.div>
           </div>

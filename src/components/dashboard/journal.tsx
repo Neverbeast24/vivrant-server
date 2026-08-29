@@ -12,6 +12,13 @@ import {
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   deleteJournalEntry,
   reflectOnJournal,
   saveJournalEntry,
@@ -90,6 +97,7 @@ export function JournalView({
         (e.tags ?? []).some((t) => t.toLowerCase().includes(q)),
     );
   }, [entries, query]);
+  const bulk = useBulkSelect(filtered.map((entry) => entry.id));
 
   const selected = selectedId === "new" || selectedId == null
     ? null
@@ -248,10 +256,32 @@ export function JournalView({
             }`}
           >
             <div className="border-b border-ink/6 px-4 py-3">
-              <p className="text-[11px] font-black tracking-[0.16em] text-accent">ALL NOTES</p>
-              <p className="mt-1 text-xs font-semibold text-muted">
-                {filtered.length} note{filtered.length === 1 ? "" : "s"}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-black tracking-[0.16em] text-accent">ALL NOTES</p>
+                  <p className="mt-1 text-xs font-semibold text-muted">
+                    {filtered.length} note{filtered.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+                {filtered.length > 0 ? (
+                  <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+                ) : null}
+              </div>
+              <BulkBar
+                selecting={bulk.selecting}
+                count={bulk.count}
+                total={filtered.length}
+                allSelected={bulk.allSelected}
+                onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+                onClear={bulk.clear}
+                onConfirm={async () => {
+                  const ok = await archiveSelected("journal_entries", bulk.selectedIds);
+                  if (ok) {
+                    bulk.clear();
+                    router.refresh();
+                  }
+                }}
+              />
               <label className="mt-3 flex items-center gap-2 rounded-xl border border-ink/8 bg-card/80 px-3 py-2">
                 <Search size={14} className="shrink-0 text-muted" />
                 <input
@@ -270,16 +300,22 @@ export function JournalView({
                   <button
                     key={entry.id}
                     type="button"
-                    onClick={() => openNote(entry.id)}
+                    onClick={() => {
+                      if (bulk.selecting) bulk.toggle(entry.id);
+                      else openNote(entry.id);
+                    }}
                     className={`block w-full border-b border-ink/5 px-4 py-3.5 text-left transition ${
-                      active
+                      bulk.selecting && bulk.selected.has(entry.id)
+                        ? "bg-accent-soft/80"
+                        : active
                         ? "bg-accent-soft/80"
                         : "hover:bg-card/70"
                     }`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="truncate text-sm font-black text-ink">
-                        {entry.title || "Untitled"}
+                      <p className="flex min-w-0 items-center gap-2 truncate text-sm font-black text-ink">
+                        {bulk.selecting ? <SelectCheck checked={bulk.selected.has(entry.id)} /> : null}
+                        <span className="truncate">{entry.title || "Untitled"}</span>
                       </p>
                       <span className="shrink-0 text-[10px] font-bold text-muted">
                         {formatNoteDate(entry.entry_date)}

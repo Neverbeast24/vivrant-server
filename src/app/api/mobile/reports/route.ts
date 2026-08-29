@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       .gte("spent_at", weekStart),
     supabase
       .from("daily_checkins")
-      .select("id", { count: "exact", head: true })
+      .select("steps, water_ml")
       .eq("user_id", user.id)
       .gte("checkin_date", weekStart),
   ]);
@@ -57,6 +57,7 @@ export async function GET(request: Request) {
   const workoutRows = workoutRes.data ?? [];
   const gymRows = gymRes.data ?? [];
   const expenseRows = expensesRes.data ?? [];
+  const checkinRows = checkinsRes.data ?? [];
 
   const calories = nutritionRows.reduce((sum, row) => sum + Number(row.calories ?? 0), 0);
   const protein_g = nutritionRows.reduce((sum, row) => sum + Number(row.protein_g ?? 0), 0);
@@ -65,7 +66,8 @@ export async function GET(request: Request) {
     gymRows.reduce((sum, row) => sum + Number(row.duration_minutes ?? 0), 0);
   const workouts = workoutRows.length + gymRows.length;
   const spend = expenseRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const checkins = checkinsRes.count ?? 0;
+  const steps = checkinRows.reduce((sum, row) => sum + Number(row.steps ?? 0), 0);
+  const water_ml = checkinRows.reduce((sum, row) => sum + Number(row.water_ml ?? 0), 0);
 
   return jsonOk({
     week_start: weekStart,
@@ -75,7 +77,9 @@ export async function GET(request: Request) {
     workouts,
     workout_minutes,
     spend: Math.round(spend),
-    checkins,
+    checkins: checkinRows.length,
     meals: nutritionRows.length,
+    steps,
+    water_ml,
   });
 }

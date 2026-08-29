@@ -45,11 +45,12 @@ export function WellnessHub({ pulse }: { pulse: WellnessPulse }) {
 
   return (
     <>
-      <PageHeader eyebrow="WELLNESS" title="Body signals," highlight="one place." />
-      <p className="-mt-5 mb-4 max-w-xl text-sm text-muted">
-        Sleep, water, and mood share one daily check-in. Log them here, or open a card for the
-        full history.
-      </p>
+      <PageHeader
+        eyebrow="WELLNESS"
+        title="Body signals,"
+        highlight="one place."
+        lede="Sleep, water, and mood share one daily check-in. Log them here, or open a card for the full history."
+      />
       <ModuleSubNav items={wellnessSubNav} />
       <WellnessPulseBar pulse={pulse} />
 

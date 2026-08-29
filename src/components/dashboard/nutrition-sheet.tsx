@@ -5,6 +5,13 @@ import Link from "next/link";
 import { ArrowDownAZ, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
+import {
+  archiveSelected,
+  BulkBar,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
 import { deleteMeal, logMeal, logMealsBulk, updateMeal } from "@/app/dashboard/nutrition/actions";
 import { ExcelSheetFrame, ExcelTd, ExcelTh, excelAddRow, excelBodyRow, excelCancelBtn, excelCellInput, excelFootRow, excelHeadRow, excelHeaderBtn, excelIndexCell } from "@/components/dashboard/excel-sheet";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
@@ -76,6 +83,7 @@ export function NutritionSheet({
       return String(a[sortKey] ?? "").localeCompare(String(b[sortKey] ?? "")) * dir;
     });
   }, [meals, filter, sortKey, sortAsc]);
+  const bulk = useBulkSelect(rows.map((row) => row.id));
 
   const calorieTotal = rows.reduce((sum, row) => sum + Number(row.calories ?? 0), 0);
 
@@ -124,11 +132,35 @@ export function NutritionSheet({
     <Panel
       title="Excel-style meal sheet"
       right={
-        <span className="hidden text-[10px] font-bold text-muted sm:inline">
-          Name is enough · macros optional
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden text-[10px] font-bold text-muted sm:inline">
+            Name is enough · macros optional
+          </span>
+          {rows.length > 0 ? (
+            <SelectModeButton
+              selecting={bulk.selecting}
+              onStart={bulk.start}
+              onCancel={bulk.clear}
+            />
+          ) : null}
+        </div>
       }
     >
+      <BulkBar
+        selecting={bulk.selecting}
+        count={bulk.count}
+        total={rows.length}
+        allSelected={bulk.allSelected}
+        onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+        onClear={bulk.clear}
+        pending={pending}
+        onConfirm={() =>
+          start(async () => {
+            const ok = await archiveSelected("nutrition_logs", bulk.selectedIds);
+            if (ok) bulk.clear();
+          })
+        }
+      />
       <div className="mb-4">
         <input
           value={filter}
@@ -182,7 +214,18 @@ export function NutritionSheet({
                 className={excelBodyRow(index)}
               >
                 <ExcelTd className={excelIndexCell}>
-                  {index + 1}
+                  {bulk.selecting ? (
+                    <button
+                      type="button"
+                      onClick={() => bulk.toggle(meal.id)}
+                      aria-label={`Select ${meal.meal_name}`}
+                      className="mx-auto block"
+                    >
+                      <SelectCheck checked={bulk.selected.has(meal.id)} />
+                    </button>
+                  ) : (
+                    index + 1
+                  )}
                 </ExcelTd>
                 {isEditing ? (
                   <>

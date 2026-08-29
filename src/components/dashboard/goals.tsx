@@ -5,6 +5,14 @@ import { CheckCircle2, Pause, Pencil, Sparkles, Target, Trash2 } from "lucide-re
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addHealthGoal,
   deleteHealthGoal,
   refreshGoalProgress,
@@ -67,6 +75,7 @@ export function GoalsPanel({
   const [ideas, setIdeas] = useState<SuggestedGoal[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const { items: orderedGoals, move } = useSavedListOrder("goals", goals, listOrder);
+  const bulk = useBulkSelect(orderedGoals.map((goal) => goal.id));
 
   function run(action: () => Promise<{ ok: boolean; message: string }>) {
     start(async () => {
@@ -95,6 +104,9 @@ export function GoalsPanel({
       right={
         <div className="flex flex-wrap items-center gap-3">
           {goals.length > 0 && <ShareExportMenu compact doc={goalsDoc(goals)} />}
+          {orderedGoals.length > 0 ? (
+            <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+          ) : null}
           <button
             type="button"
             disabled={busy}
@@ -207,7 +219,24 @@ export function GoalsPanel({
       </form>
 
       <div className="space-y-3">
-        <p className="text-[11px] font-bold leading-4 text-muted">Drag the grips to reorder goals.</p>
+        <BulkBar
+          selecting={bulk.selecting}
+          count={bulk.count}
+          total={orderedGoals.length}
+          allSelected={bulk.allSelected}
+          onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+          onClear={bulk.clear}
+          pending={busy}
+          onConfirm={() =>
+            start(async () => {
+              const ok = await archiveSelected("health_goals", bulk.selectedIds);
+              if (ok) bulk.clear();
+            })
+          }
+        />
+        <p className="text-[11px] font-bold leading-4 text-muted">
+          {bulk.selecting ? "Tap goals to select." : "Drag the grips to reorder goals. Swipe to archive."}
+        </p>
         {orderedGoals.map((goal, index) => {
           const progress =
             goal.target_value && goal.target_value > 0
@@ -216,14 +245,33 @@ export function GoalsPanel({
                 ? 100
                 : 0;
           return (
-            <ItemDragRow
+            <SelectableRow
               key={goal.id}
+              id={goal.id}
+              label={goal.title}
+              selecting={bulk.selecting}
+              selected={bulk.selected.has(goal.id)}
+              onToggle={bulk.toggle}
+              onArchive={async () => {
+                if (!(await confirmDelete(goal.title))) return;
+                run(() => deleteHealthGoal(goal.id));
+              }}
+            >
+            <ItemDragRow
               index={index}
               onMove={move}
-              className="rounded-2xl border border-ink/6 bg-surface/40 p-4"
+              className={`rounded-2xl border p-4 ${
+                bulk.selecting && bulk.selected.has(goal.id)
+                  ? "border-accent/35 bg-accent-soft/50"
+                  : "border-ink/6 bg-surface/40"
+              }`}
             >
               <div className="flex items-start gap-2">
-                <DragGrip label={`Reorder ${goal.title}`} />
+                {bulk.selecting ? (
+                  <SelectCheck checked={bulk.selected.has(goal.id)} />
+                ) : (
+                  <DragGrip label={`Reorder ${goal.title}`} />
+                )}
               <div className="flex items-start gap-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                   <Target size={16} />
@@ -364,6 +412,7 @@ export function GoalsPanel({
               </div>
               </div>
             </ItemDragRow>
+            </SelectableRow>
           );
         })}
         {!orderedGoals.length && <EmptyState>No goals yet. Add one above to track progress.</EmptyState>}

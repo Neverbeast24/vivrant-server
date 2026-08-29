@@ -95,7 +95,7 @@ function NavGroup({
         title={collapsed ? item.label : undefined}
         className={`focus-ring group relative flex items-center rounded-2xl py-2.5 transition ${
           collapsed ? "justify-center px-2" : "gap-3 px-3"
-        } ${active ? "bg-inverse text-inverse-fg shadow-[0_10px_24px_rgba(var(--shadow-color),.18)]" : "text-muted hover:bg-panel/80 hover:text-ink"}`}
+        } ${active ? "bg-inverse text-inverse-fg shadow-[0_10px_24px_rgba(var(--shadow-color),.18)]" : "text-muted hover:bg-surface-soft/80 hover:text-ink"}`}
       >
         <span
           className={`grid size-9 shrink-0 place-items-center rounded-xl transition ${
@@ -178,7 +178,7 @@ function NavGroup({
             transition={{ duration: 0.18 }}
             className="overflow-hidden"
           >
-            <div className="ml-5 mt-1 space-y-1 border-l border-ink/10 py-1 pl-3">
+            <div className="ml-5 mt-1.5 space-y-1 border-l border-ink/8 py-1 pl-3">
               {item.children.map((child) => {
                 const childActive = pathMatches(pathname, child.href);
                 return (
@@ -188,8 +188,8 @@ function NavGroup({
                     onClick={close}
                     className={`block rounded-xl px-3 py-2 transition ${
                       childActive
-                        ? "bg-accent-soft text-accent"
-                        : "text-muted hover:bg-panel hover:text-ink"
+                        ? "bg-accent-soft text-accent shadow-sm"
+                        : "text-muted hover:bg-surface-soft hover:text-ink"
                     }`}
                   >
                     <span className="block text-xs font-black">{child.label}</span>

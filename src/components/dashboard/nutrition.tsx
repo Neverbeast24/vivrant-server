@@ -14,6 +14,14 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import { deleteMeal, logMeal, updateMeal } from "@/app/dashboard/nutrition/actions";
 import {
@@ -184,6 +192,7 @@ export function NutritionView({
   const [selectedQuick, setSelectedQuick] = useState<QuickMeal | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const bulk = useBulkSelect(meals.map((meal) => meal.id));
 
   const totalCalories = meals.reduce((sum, meal) => sum + (meal.calories ?? 0), 0);
   const totalProtein = meals.reduce((sum, meal) => sum + (meal.protein_g ?? 0), 0);
@@ -676,8 +685,34 @@ export function NutritionView({
           <Panel
             title="Logged meals"
             className="mt-8"
-            right={meals.length > 0 ? <ShareExportMenu compact doc={mealsDoc(meals)} /> : undefined}
+            right={
+              meals.length > 0 ? (
+                <div className="flex items-center gap-3">
+                  <ShareExportMenu compact doc={mealsDoc(meals)} />
+                  <SelectModeButton
+                    selecting={bulk.selecting}
+                    onStart={bulk.start}
+                    onCancel={bulk.clear}
+                  />
+                </div>
+              ) : undefined
+            }
           >
+            <BulkBar
+              selecting={bulk.selecting}
+              count={bulk.count}
+              total={meals.length}
+              allSelected={bulk.allSelected}
+              onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+              onClear={bulk.clear}
+              pending={deleting}
+              onConfirm={() =>
+                startDelete(async () => {
+                  const ok = await archiveSelected("nutrition_logs", bulk.selectedIds);
+                  if (ok) bulk.clear();
+                })
+              }
+            />
             <div className="space-y-2">
               {meals.map((meal) => (
                 editingId === meal.id ? (
@@ -713,11 +748,32 @@ export function NutritionView({
                     </div>
                   </form>
                 ) : (
-                <ListRow
+                <SelectableRow
                   key={meal.id}
+                  id={meal.id}
+                  label={meal.meal_name}
+                  selecting={bulk.selecting}
+                  selected={bulk.selected.has(meal.id)}
+                  onToggle={bulk.toggle}
+                  onArchive={async () => {
+                    if (!(await confirmDelete(meal.meal_name))) return;
+                    startDelete(async () => {
+                      const result = await deleteMeal(meal.id);
+                      if (result.ok) toast.success(result.message);
+                      else toast.error(result.message);
+                      if (editingId === meal.id) setEditingId(null);
+                    });
+                  }}
+                >
+                <ListRow
                   title={meal.meal_name}
                   meta={meal.meal_type}
+                  selected={bulk.selecting && bulk.selected.has(meal.id)}
+                  left={bulk.selecting ? <SelectCheck checked={bulk.selected.has(meal.id)} /> : undefined}
                   right={
+                    bulk.selecting ? (
+                      <span className="text-xs font-black">~{meal.calories ?? 0} kcal</span>
+                    ) : (
                     <span className="flex items-center gap-1">
                       <span className="text-xs font-black">~{meal.calories ?? 0} kcal</span>
                       <button
@@ -746,8 +802,10 @@ export function NutritionView({
                         <Trash2 size={14} />
                       </button>
                     </span>
+                    )
                   }
                 />
+                </SelectableRow>
                 )
               ))}
               {!meals.length && (

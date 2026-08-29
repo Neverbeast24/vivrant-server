@@ -22,13 +22,18 @@ export function AvatarEditor({
 
   function onFileChange(file: File | undefined) {
     if (!file) return;
+    if (inputRef.current) inputRef.current.value = "";
     const localUrl = URL.createObjectURL(file);
-    setPreview(localUrl);
+    setPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return localUrl;
+    });
 
     const formData = new FormData();
     formData.set("avatar", file);
     start(async () => {
       const result = await uploadAvatar(formData);
+      URL.revokeObjectURL(localUrl);
       if (result.ok && "avatarUrl" in result && result.avatarUrl) {
         setPreview(result.avatarUrl);
         toast.success(result.message);

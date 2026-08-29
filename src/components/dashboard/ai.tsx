@@ -5,6 +5,14 @@ import { Bell, BrainCircuit, Dumbbell, MessageCircle, Pencil, Sparkles, Trash2 }
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   askVivaQuestion,
   generateInsight,
 } from "@/app/dashboard/ai/actions";
@@ -94,6 +102,7 @@ export function AiView({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [savingReminder, startSaveReminder] = useTransition();
   const { items: orderedReminders, move } = useSavedListOrder("reminders", reminders, listOrder);
+  const bulk = useBulkSelect(orderedReminders.map((r) => r.id));
 
   function ask(formData: FormData) {
     startChat(async () => {
@@ -307,15 +316,56 @@ export function AiView({
             </form>
           </Panel>
 
-          <Panel title="Your schedule">
+          <Panel
+            title="Your schedule"
+            right={
+              orderedReminders.length > 0 ? (
+                <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+              ) : undefined
+            }
+          >
+            <BulkBar
+              selecting={bulk.selecting}
+              count={bulk.count}
+              total={orderedReminders.length}
+              allSelected={bulk.allSelected}
+              onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+              onClear={bulk.clear}
+              onConfirm={async () => {
+                const ok = await archiveSelected("user_reminders", bulk.selectedIds);
+                if (ok) bulk.clear();
+              }}
+            />
             <p className="mb-3 text-[11px] font-bold leading-4 text-muted">
               Drag the grips to reorder reminders.
             </p>
             <div className="space-y-3">
               {orderedReminders.map((r, index) => (
-                <ItemDragRow key={r.id} index={index} onMove={move} className="rounded-2xl border border-ink/8 p-4">
+                <SelectableRow
+                  key={r.id}
+                  id={r.id}
+                  label={r.title}
+                  selecting={bulk.selecting}
+                  selected={bulk.selected.has(r.id)}
+                  onToggle={bulk.toggle}
+                  onArchive={async () => {
+                    if (!(await confirmDelete(r.title))) return;
+                    const result = await deleteReminder(r.id);
+                    if (result.ok) toast.success(result.message);
+                    else toast.error(result.message);
+                  }}
+                >
+                <ItemDragRow index={index} onMove={move} className={`rounded-2xl border p-4 ${
+                  bulk.selecting && bulk.selected.has(r.id)
+                    ? "border-accent/35 bg-accent-soft/50"
+                    : "border-ink/8"
+                }`}>
                   <div className="flex items-start justify-between gap-3">
-                    <DragGrip label={`Reorder ${r.title}`} />
+                    {bulk.selecting ? (
+                      <SelectCheck checked={bulk.selected.has(r.id)} />
+                    ) : (
+                      <DragGrip label={`Reorder ${r.title}`} />
+                    )}
                     {editingId === r.id ? (
                       <form
                         className="grid min-w-0 flex-1 gap-2"
@@ -398,6 +448,7 @@ export function AiView({
                     </div>
                   </div>
                 </ItemDragRow>
+                </SelectableRow>
               ))}
               {!orderedReminders.length && (
                 <EmptyState>No reminders yet. Draft with AI or sync your gym plan.</EmptyState>

@@ -48,6 +48,7 @@ export default async function TrainingPage() {
       planCount={gym.plans.length}
       plans={gym.plans}
       exercises={gym.exercises}
+      sessions={gym.sessions}
       bodyWeightKg={gym.scaling?.weight_kg ?? null}
     />
   );

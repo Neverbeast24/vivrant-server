@@ -450,7 +450,7 @@ export function LandingPage() {
                     key={item.title}
                     whileHover={{ y: -6, scale: 1.01 }}
                     transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                    className="rounded-[1.4rem] border border-ink/6 bg-card/90 p-4 shadow-[0_12px_30px_rgba(var(--shadow-color),.07)]"
+                    className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-card/92 p-4 shadow-[inset_0_1px_0_var(--glass-inset),0_12px_30px_rgba(var(--shadow-color),.07)]"
                   >
                     <span
                       className={`mb-7 grid size-9 place-items-center rounded-xl bg-gradient-to-br ${item.color} text-white shadow-md`}
@@ -680,7 +680,7 @@ export function LandingPage() {
               viewport={{ once: true, margin: "-30px" }}
               transition={{ delay: (index % 4) * 0.06 }}
               whileHover={{ y: -6 }}
-              className="group relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-card/80 p-5 shadow-[0_12px_35px_rgba(var(--shadow-color),.05)] backdrop-blur-xl transition-shadow hover:shadow-[0_22px_50px_rgba(var(--shadow-color),.12)]"
+              className="group relative overflow-hidden rounded-[1.6rem] border border-ink/8 bg-card/88 p-5 shadow-[inset_0_1px_0_var(--glass-inset),0_14px_36px_rgba(var(--shadow-color),.06)] backdrop-blur-xl transition-shadow hover:border-accent/25 hover:shadow-[0_22px_50px_rgba(var(--shadow-color),.12)]"
             >
               <div className="flex items-start justify-between">
                 <span
@@ -895,7 +895,7 @@ export function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.06 }}
-              className="relative rounded-2xl border border-ink/8 bg-card/70 p-4 text-center"
+              className="relative rounded-[1.35rem] border border-ink/8 bg-card/80 p-4 text-center shadow-[inset_0_1px_0_var(--glass-inset)]"
             >
               <span className="mx-auto grid size-7 place-items-center rounded-full bg-inverse text-[10px] font-black text-inverse-fg">
                 {index + 1}

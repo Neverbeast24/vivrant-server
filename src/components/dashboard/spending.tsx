@@ -18,6 +18,14 @@ import {
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addExpense,
   addExpensesBulk,
   deleteExpense,
@@ -77,6 +85,89 @@ function money(value: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function ExpenseRows({ expenses }: { expenses: Expense[] }) {
+  const bulk = useBulkSelect(expenses.map((expense) => expense.id));
+  const [pending, start] = useTransition();
+
+  return (
+    <>
+      {expenses.length > 0 ? (
+        <div className="mb-2 flex justify-end">
+          <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+        </div>
+      ) : null}
+      <BulkBar
+        selecting={bulk.selecting}
+        count={bulk.count}
+        total={expenses.length}
+        allSelected={bulk.allSelected}
+        onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+        onClear={bulk.clear}
+        pending={pending}
+        onConfirm={() =>
+          start(async () => {
+            const ok = await archiveSelected("expenses", bulk.selectedIds);
+            if (ok) bulk.clear();
+          })
+        }
+      />
+      <div className="space-y-2">
+        {expenses.map((expense) => (
+          <SelectableRow
+            key={expense.id}
+            id={expense.id}
+            label={expense.title}
+            selecting={bulk.selecting}
+            selected={bulk.selected.has(expense.id)}
+            onToggle={bulk.toggle}
+            onArchive={async () => {
+              if (!(await confirmDelete(expense.title))) return;
+              start(async () => {
+                const result = await deleteExpense(expense.id);
+                if (result.ok) toast.success(result.message);
+                else toast.error(result.message);
+              });
+            }}
+          >
+            <ListRow
+              title={expense.title}
+              meta={`${categoryLabel(expense.category)} · ${expense.spent_at}`}
+              selected={bulk.selecting && bulk.selected.has(expense.id)}
+              left={bulk.selecting ? <SelectCheck checked={bulk.selected.has(expense.id)} /> : undefined}
+              right={
+                bulk.selecting ? (
+                  <span className="text-xs font-black">{money(Number(expense.amount))}</span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="text-xs font-black">{money(Number(expense.amount))}</span>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        start(async () => {
+                          if (!(await confirmDelete(expense.title))) return;
+                          const result = await deleteExpense(expense.id);
+                          if (result.ok) toast.success(result.message);
+                          else toast.error(result.message);
+                        })
+                      }
+                      className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-ember/15 hover:text-ember"
+                      aria-label={`Delete ${expense.title}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
+                )
+              }
+            />
+          </SelectableRow>
+        ))}
+        {!expenses.length && <EmptyState>No expenses yet. Log your first purchase.</EmptyState>}
+      </div>
+    </>
+  );
 }
 
 function categoryLabel(value: string) {
@@ -324,19 +415,7 @@ export function SpendingOverview({
             </Link>
           }
         >
-          <div className="space-y-2">
-            {expenses.slice(0, 8).map((expense) => (
-              <ListRow
-                key={expense.id}
-                title={expense.title}
-                meta={`${categoryLabel(expense.category)} · ${expense.spent_at}`}
-                right={
-                  <span className="text-xs font-black">{money(Number(expense.amount))}</span>
-                }
-              />
-            ))}
-            {!expenses.length && <EmptyState>No expenses yet. Log your first purchase.</EmptyState>}
-          </div>
+          <ExpenseRows expenses={expenses.slice(0, 8)} />
         </Panel>
       </Stagger>
     </>
@@ -399,17 +478,7 @@ export function SpendingLog({
           </Link>
         }
       >
-        <div className="space-y-2">
-          {expenses.slice(0, 6).map((expense) => (
-            <ListRow
-              key={expense.id}
-              title={expense.title}
-              meta={`${categoryLabel(expense.category)} · ${expense.spent_at}`}
-              right={<span className="text-xs font-black">{money(Number(expense.amount))}</span>}
-            />
-          ))}
-          {!expenses.length && <EmptyState>No expenses yet. Log your first purchase above.</EmptyState>}
-        </div>
+        <ExpenseRows expenses={expenses.slice(0, 6)} />
       </Panel>
     </>
   );
@@ -552,6 +621,7 @@ export function SpendingSheet({
       return String(a[sortKey]).localeCompare(String(b[sortKey])) * dir;
     });
   }, [expenses, filter, categoryFilter, sortKey, sortAsc]);
+  const bulk = useBulkSelect(rows.map((row) => row.id));
 
   const visibleTotal = rows.reduce((sum, row) => sum + Number(row.amount), 0);
 
@@ -668,12 +738,34 @@ export function SpendingSheet({
           right={
             <div className="flex flex-wrap items-center gap-2">
               {rows.length > 0 && <ShareExportMenu compact doc={expensesDoc(rows)} />}
+              {rows.length > 0 ? (
+                <SelectModeButton
+                  selecting={bulk.selecting}
+                  onStart={bulk.start}
+                  onCancel={bulk.clear}
+                />
+              ) : null}
               <span className="hidden text-[10px] font-bold text-muted sm:inline">
                 Click a cell row to edit · Enter to save
               </span>
             </div>
           }
         >
+          <BulkBar
+            selecting={bulk.selecting}
+            count={bulk.count}
+            total={rows.length}
+            allSelected={bulk.allSelected}
+            onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+            onClear={bulk.clear}
+            pending={pending}
+            onConfirm={() =>
+              start(async () => {
+                const ok = await archiveSelected("expenses", bulk.selectedIds);
+                if (ok) bulk.clear();
+              })
+            }
+          />
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               value={filter}
@@ -736,7 +828,18 @@ export function SpendingSheet({
                       className={excelBodyRow(index)}
                     >
                       <td className="border-r border-ink/10 px-2 py-1.5 text-center text-[11px] font-bold text-muted">
-                        {index + 1}
+                        {bulk.selecting ? (
+                          <button
+                            type="button"
+                            onClick={() => bulk.toggle(expense.id)}
+                            aria-label={`Select ${expense.title}`}
+                            className="mx-auto block"
+                          >
+                            <SelectCheck checked={bulk.selected.has(expense.id)} />
+                          </button>
+                        ) : (
+                          index + 1
+                        )}
                       </td>
                       {isEditing ? (
                         <>

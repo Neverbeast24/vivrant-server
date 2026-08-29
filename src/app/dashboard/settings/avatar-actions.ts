@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
-import { AVATAR_MAX_BYTES, imageUploadError, mimeFromUpload } from "@/lib/uploads";
+import { AVATAR_MAX_BYTES, imageUploadError, resolveUploadedImageMime } from "@/lib/uploads";
 
 const EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -17,12 +17,14 @@ export async function uploadAvatar(formData: FormData) {
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, message: "Choose an image to upload." };
   }
-  const mime = mimeFromUpload(file);
-  if (!mime) {
-    return { ok: false, message: imageUploadError(file) };
-  }
   if (file.size > AVATAR_MAX_BYTES) {
     return { ok: false, message: "Image must be 4MB or smaller." };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mime = resolveUploadedImageMime(file, buffer);
+  if (!mime) {
+    return { ok: false, message: imageUploadError(file) };
   }
 
   const supabase = await createClient();
@@ -33,8 +35,6 @@ export async function uploadAvatar(formData: FormData) {
 
   const ext = EXT[mime] ?? "jpg";
   const path = `${user.id}/avatar.${ext}`;
-
-  const buffer = Buffer.from(await file.arrayBuffer());
   const { error: uploadError } = await supabase.storage.from("avatars").upload(path, buffer, {
     contentType: mime,
     upsert: true,

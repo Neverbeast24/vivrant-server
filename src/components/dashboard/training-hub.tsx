@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { ClipboardList, Dumbbell, Footprints } from "lucide-react";
+import { GymRecentSessions } from "@/components/dashboard/gym-sessions-list";
 import { GymJumpCards, GymOverviewStats } from "@/components/dashboard/gym-parts";
 import { ProgramSessionPanel } from "@/components/dashboard/program-session";
 import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { PageHeader, Panel, PrimaryButton, Stagger, StatCard } from "@/components/dashboard/ui";
 import { trainingSubNav } from "@/lib/nav";
-import type { GymExercise, GymPlan } from "@/lib/gym";
+import type { GymExercise, GymPlan, GymSession } from "@/lib/gym";
 
 export function TrainingHub({
   workoutsToday,
@@ -22,6 +23,7 @@ export function TrainingHub({
   planCount,
   plans = [],
   exercises = [],
+  sessions = [],
   bodyWeightKg = null,
 }: {
   workoutsToday: number;
@@ -36,16 +38,19 @@ export function TrainingHub({
   planCount: number;
   plans?: GymPlan[];
   exercises?: GymExercise[];
+  sessions?: GymSession[];
   bodyWeightKg?: number | null;
 }) {
   const stepPct = Math.min(100, Math.round((steps / Math.max(stepGoal, 1)) * 100));
 
   return (
     <>
-      <PageHeader eyebrow="TRAINING" title="Move and" highlight="train." />
-      <p className="-mt-5 mb-4 max-w-xl text-sm text-muted">
-        Daily activity and gym work in one place — create a program, then log today’s session with checkboxes and rest timers.
-      </p>
+      <PageHeader
+        eyebrow="TRAINING"
+        title="Move and"
+        highlight="train."
+        lede="Daily activity and gym work in one place — create a program, then log today’s session with checkboxes and rest timers."
+      />
       <ModuleSubNav items={trainingSubNav} />
 
       <Stagger>
@@ -105,6 +110,7 @@ export function TrainingHub({
         sessionCount={sessionCount}
         planCount={planCount}
       />
+      <GymRecentSessions sessions={sessions} />
     </>
   );
 }

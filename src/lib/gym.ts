@@ -166,6 +166,17 @@ export function gymExerciseCardImage(
   return prefix ? `${prefix}${path.startsWith("/") ? path : `/${path}`}` : path;
 }
 
+export function toDemoEmbedSrc(url: string | null | undefined) {
+  const raw = String(url ?? "").trim();
+  const idMatch = raw.match(
+    /(?:youtube(?:-nocookie)?\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  );
+  const id = idMatch?.[1];
+  if (id) return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+  if (!raw) return "";
+  return `${raw}${raw.includes("?") ? "&" : "?"}rel=0`;
+}
+
 /** Turn slug-style labels (fat_loss) into readable text for UI. */
 export function humanizeGymLabel(value: string) {
   return String(value ?? "")

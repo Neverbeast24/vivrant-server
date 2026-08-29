@@ -13,17 +13,17 @@ export function ModuleSubNav({
   const pathname = usePathname();
 
   return (
-    <div className="mb-8 flex flex-wrap gap-2">
+    <div className="chip-track mb-8">
       {items.map((item) => {
         const active = pathMatches(pathname, item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-black transition ${
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-black transition ${
               active
-                ? "bg-inverse text-inverse-fg shadow-sm"
-                : "border border-ink/10 bg-surface text-ink/80 hover:bg-panel hover:text-ink"
+                ? "bg-inverse text-inverse-fg shadow-[0_8px_18px_rgba(var(--shadow-color),.16)]"
+                : "text-ink/75 hover:bg-card hover:text-ink"
             }`}
           >
             {item.icon && <item.icon size={13} />}

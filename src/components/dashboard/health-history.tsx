@@ -5,6 +5,14 @@ import { Activity, Sparkles, Trash2, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addHealthHistoryEntry,
   analyzeHealthHistoryWithAi,
   deleteHealthHistoryEntry,
@@ -47,6 +55,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
     next_step: string;
     score: number;
   } | null>(null);
+  const bulk = useBulkSelect(entries.map((entry) => entry.id));
 
   const today = new Date().toISOString().slice(0, 10);
   const latest = entries[0];
@@ -75,6 +84,9 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
       right={
         <div className="flex flex-wrap items-center gap-2">
           {entries.length > 0 && <ShareExportMenu compact doc={healthHistoryDoc(entries)} />}
+          {entries.length > 0 ? (
+            <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+          ) : null}
           <button
             type="button"
             disabled={analyzing}
@@ -147,16 +159,55 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
       </form>
 
       <div className="space-y-2">
+        <BulkBar
+          selecting={bulk.selecting}
+          count={bulk.count}
+          total={entries.length}
+          allSelected={bulk.allSelected}
+          onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+          onClear={bulk.clear}
+          pending={busy}
+          onConfirm={() =>
+            start(async () => {
+              const ok = await archiveSelected("health_history", bulk.selectedIds);
+              if (ok) bulk.clear();
+            })
+          }
+        />
         {entries.map((entry) => {
           const bmi = bmiFor(entry.weight_kg, entry.height_cm);
+          const label = `${new Date(entry.recorded_at).toLocaleDateString()} measurement`;
           return (
-            <div
+            <SelectableRow
               key={entry.id}
-              className="flex items-center gap-3 rounded-2xl border border-ink/6 bg-surface/40 px-4 py-3"
+              id={entry.id}
+              label={label}
+              selecting={bulk.selecting}
+              selected={bulk.selected.has(entry.id)}
+              onToggle={bulk.toggle}
+              onArchive={async () => {
+                if (!(await confirmDelete("this measurement"))) return;
+                start(async () => {
+                  const result = await deleteHealthHistoryEntry(entry.id);
+                  if (result.ok) toast.success(result.message);
+                  else toast.error(result.message);
+                });
+              }}
             >
+            <div
+              className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+                bulk.selecting && bulk.selected.has(entry.id)
+                  ? "border-accent/35 bg-accent-soft/50"
+                  : "border-ink/6 bg-surface/40"
+              }`}
+            >
+              {bulk.selecting ? (
+                <SelectCheck checked={bulk.selected.has(entry.id)} />
+              ) : (
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                 <Activity size={15} />
               </span>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black">
                   {new Date(entry.recorded_at).toLocaleDateString()}
@@ -177,7 +228,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
               </div>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || bulk.selecting}
                 onClick={() =>
                   start(async () => {
                     if (!(await confirmDelete("this measurement"))) return;
@@ -191,6 +242,7 @@ export function HealthHistoryPanel({ entries }: { entries: HealthHistoryEntry[] 
                 <Trash2 size={14} />
               </button>
             </div>
+            </SelectableRow>
           );
         })}
         {!entries.length && (

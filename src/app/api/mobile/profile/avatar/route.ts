@@ -1,7 +1,7 @@
 import { isMobileAuthError, requireMobileUser } from "@/lib/mobile/auth";
 import { jsonError, jsonOk } from "@/lib/mobile/http";
 import { writeAuditLog } from "@/lib/audit";
-import { AVATAR_MAX_BYTES, imageUploadError, mimeFromUpload } from "@/lib/uploads";
+import { AVATAR_MAX_BYTES, imageUploadError, resolveUploadedImageMime } from "@/lib/uploads";
 
 export const runtime = "nodejs";
 
@@ -29,17 +29,18 @@ export async function POST(request: Request) {
     return jsonError("Choose an image to upload.", 400);
   }
 
-  const mime = mimeFromUpload(file);
-  if (!mime) {
-    return jsonError(imageUploadError(file), 400);
-  }
   if (file.size > AVATAR_MAX_BYTES) {
     return jsonError("Image must be 4MB or smaller.", 400);
   }
 
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mime = resolveUploadedImageMime(file, buffer);
+  if (!mime) {
+    return jsonError(imageUploadError(file), 400);
+  }
+
   const ext = EXT[mime] ?? "jpg";
   const path = `${user.id}/avatar.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await supabase.storage
     .from("avatars")

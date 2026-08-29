@@ -18,6 +18,14 @@ import {
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addPantryItem,
   addPantryItemsBulk,
   addLowStockToGroceryList,
@@ -467,6 +475,7 @@ function PantryItems({
   const { updating, runAction } = usePantryActions();
   const { items: orderedItems, move } = useSavedListOrder("pantry", items, listOrder);
   const [entryMode, setEntryMode] = useEntryMode("pantry-items", "form");
+  const bulk = useBulkSelect(orderedItems.map((item) => item.id));
 
   return (
     <>
@@ -506,18 +515,57 @@ function PantryItems({
       {entryMode !== "sheet" && (
       <Panel
         title="Stock levels"
-        right={items.length > 0 ? <ShareExportMenu compact doc={pantryDoc(items)} /> : undefined}
+        right={
+          items.length > 0 ? (
+            <div className="flex items-center gap-3">
+              <ShareExportMenu compact doc={pantryDoc(items)} />
+              <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+            </div>
+          ) : undefined
+        }
       >
+        <BulkBar
+          selecting={bulk.selecting}
+          count={bulk.count}
+          total={orderedItems.length}
+          allSelected={bulk.allSelected}
+          onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+          onClear={bulk.clear}
+          pending={updating}
+          onConfirm={async () => {
+            const ok = await archiveSelected("pantry_items", bulk.selectedIds);
+            if (ok) bulk.clear();
+          }}
+        />
         <div className="space-y-4">
           {orderedItems.map((item, index) => (
-            <ItemDragRow key={item.id} index={index} onMove={move}>
+            <SelectableRow
+              key={item.id}
+              id={item.id}
+              label={item.name}
+              selecting={bulk.selecting}
+              selected={bulk.selected.has(item.id)}
+              onToggle={bulk.toggle}
+              onArchive={async () => {
+                if (!(await confirmDelete(item.name))) return;
+                runAction(() => deletePantryItem(item.id));
+              }}
+            >
+            <ItemDragRow index={index} onMove={move}>
               <div className="flex items-start gap-1">
-                <DragGrip label={`Reorder ${item.name}`} />
+                {bulk.selecting ? (
+                  <span className="mt-3 pl-1">
+                    <SelectCheck checked={bulk.selected.has(item.id)} />
+                  </span>
+                ) : (
+                  <DragGrip label={`Reorder ${item.name}`} />
+                )}
                 <div className="min-w-0 flex-1">
-                  <StockRow item={item} updating={updating} runAction={runAction} />
+                  <StockRow item={item} updating={updating || bulk.selecting} runAction={runAction} />
                 </div>
               </div>
             </ItemDragRow>
+            </SelectableRow>
           ))}
           {!items.length && (
             <EmptyState>

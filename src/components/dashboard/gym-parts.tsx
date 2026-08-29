@@ -27,6 +27,14 @@ import type { ActivityItem } from "@/lib/activity-format";
 import { toast } from "sonner";
 import { confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   createAiGymPlan,
   deleteGymPlan,
   discardGymProgramDraftAction,
@@ -42,6 +50,7 @@ import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import {
   EmptyState,
+  JumpCard,
   PageHeader,
   Panel,
   PrimaryButton,
@@ -187,17 +196,13 @@ export function GymJumpCards({
     <Stagger>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <Link
+          <JumpCard
             key={card.href}
             href={card.href}
-            className="rounded-[1.3rem] border border-ink/8 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/25 hover:shadow-md"
-          >
-            <span className="grid size-10 place-items-center rounded-2xl bg-accent-soft text-accent">
-              <card.icon size={18} />
-            </span>
-            <p className="mt-3 text-sm font-black">{card.title}</p>
-            <p className="mt-1 text-xs leading-5 text-muted">{card.detail}</p>
-          </Link>
+            title={card.title}
+            detail={card.detail}
+            icon={card.icon}
+          />
         ))}
       </div>
     </Stagger>
@@ -838,6 +843,7 @@ export function GymPlansView({
       })),
     [exercises, plans],
   );
+  const bulkPlans = useBulkSelect(displayPlans.map((plan) => plan.id));
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -1681,21 +1687,67 @@ export function GymPlansView({
         id="saved-programs"
         title="Your saved programs"
         dense
-        right={displayPlans.length > 0 ? <ShareExportMenu compact doc={gymPlansDoc(displayPlans)} /> : undefined}
+        right={
+          displayPlans.length > 0 ? (
+            <div className="flex items-center gap-3">
+              <ShareExportMenu compact doc={gymPlansDoc(displayPlans)} />
+              <SelectModeButton
+                selecting={bulkPlans.selecting}
+                onStart={bulkPlans.start}
+                onCancel={bulkPlans.clear}
+              />
+            </div>
+          ) : undefined
+        }
       >
+        <BulkBar
+          selecting={bulkPlans.selecting}
+          count={bulkPlans.count}
+          total={displayPlans.length}
+          allSelected={bulkPlans.allSelected}
+          onSelectAll={bulkPlans.allSelected ? bulkPlans.deselectAll : bulkPlans.selectAll}
+          onClear={bulkPlans.clear}
+          pending={busy}
+          onConfirm={() =>
+            start(async () => {
+              const ok = await archiveSelected("gym_plans", bulkPlans.selectedIds);
+              if (ok) bulkPlans.clear();
+            })
+          }
+        />
         <div className="space-y-4">
           {displayPlans.map((plan) => {
             const today = pickTodaysPlanDay(plan.days ?? [], new Date(), plan.training_days);
             const schedule = formatTrainingDaysLabel(plan.training_days ?? []);
             return (
-            <article key={plan.id} className="rounded-[1.3rem] border border-ink/8 bg-surface/45 p-3">
+            <SelectableRow
+              key={plan.id}
+              id={plan.id}
+              label={plan.title}
+              selecting={bulkPlans.selecting}
+              selected={bulkPlans.selected.has(plan.id)}
+              onToggle={bulkPlans.toggle}
+              onArchive={async () => {
+                if (!(await confirmDelete(plan.title))) return;
+                run(() => deleteGymPlan(plan.id));
+              }}
+            >
+            <article className={`rounded-[1.3rem] border p-3 ${
+              bulkPlans.selecting && bulkPlans.selected.has(plan.id)
+                ? "border-accent/35 bg-accent-soft/50"
+                : "border-ink/8 bg-surface/45"
+            }`}>
               <div>
-                <p className="text-sm font-black">{plan.title}</p>
+                <p className="flex items-center gap-2 text-sm font-black">
+                  {bulkPlans.selecting ? <SelectCheck checked={bulkPlans.selected.has(plan.id)} /> : null}
+                  {plan.title}
+                </p>
                 <p className="mt-0.5 text-xs capitalize text-muted">
                   {humanizeGymLabel(plan.focus)} · {plan.level} ·{" "}
                   {schedule || `${plan.days_per_week} days/week`}
                   {(plan.days ?? []).length ? ` · ${(plan.days ?? []).length} sessions` : ""}
                 </p>
+                {!bulkPlans.selecting ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Link
                     href={
@@ -1746,6 +1798,7 @@ export function GymPlansView({
                     <Trash2 size={14} />
                   </button>
                 </div>
+                ) : null}
               </div>
               {editingPlanId === plan.id ? (
                 <SavedGymPlanEditor
@@ -1841,6 +1894,7 @@ export function GymPlansView({
               </>
               ) : null}
             </article>
+            </SelectableRow>
             );
           })}
           {!plans.length && (

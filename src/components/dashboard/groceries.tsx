@@ -16,6 +16,14 @@ import {
 } from "lucide-react";
 import { confirmAction, confirmDelete } from "@/components/dashboard/confirm-dialog";
 import {
+  archiveSelected,
+  BulkBar,
+  SelectableRow,
+  SelectCheck,
+  SelectModeButton,
+  useBulkSelect,
+} from "@/components/dashboard/bulk-select";
+import {
   addGroceryItem,
   addGroceryItemsBulk,
   clearCompletedGroceries,
@@ -127,6 +135,7 @@ export function GroceriesView({
   const [trendStaple, setTrendStaple] = useState("rice");
   const [editingId, setEditingId] = useState<number | null>(null);
   const { items: orderedItems, move } = useSavedListOrder("groceries", items, listOrder);
+  const bulk = useBulkSelect(orderedItems.map((item) => item.id));
   const addMode = entryMode === "paste" ? "paste" : "form";
   const headings = {
     list: { title: "Shop", highlight: "smarter." },
@@ -683,10 +692,28 @@ export function GroceriesView({
                   Clear {done} completed
                 </button>
               ) : null}
+              {orderedItems.length > 0 ? (
+                <SelectModeButton selecting={bulk.selecting} onStart={bulk.start} onCancel={bulk.clear} />
+              ) : null}
             </div>
           }
         >
           <div className="space-y-5">
+            <BulkBar
+              selecting={bulk.selecting}
+              count={bulk.count}
+              total={orderedItems.length}
+              allSelected={bulk.allSelected}
+              onSelectAll={bulk.allSelected ? bulk.deselectAll : bulk.selectAll}
+              onClear={bulk.clear}
+              pending={togglePending}
+              onConfirm={() =>
+                startToggle(async () => {
+                  const ok = await archiveSelected("grocery_items", bulk.selectedIds);
+                  if (ok) bulk.clear();
+                })
+              }
+            />
             {grouped.map((group) => {
               const groupDone = group.items.filter((item) => item.is_checked).length;
               const groupTotal = group.items.reduce(
@@ -736,16 +763,35 @@ export function GroceriesView({
                             </div>
                           </form>
                         ) : (
-                        <ItemDragRow
+                        <SelectableRow
                           key={item.id}
+                          id={item.id}
+                          label={item.name}
+                          selecting={bulk.selecting}
+                          selected={bulk.selected.has(item.id)}
+                          onToggle={bulk.toggle}
+                          onArchive={async () => {
+                            if (!(await confirmDelete(item.name))) return;
+                            runAction(() => deleteGroceryItem(item.id));
+                          }}
+                        >
+                        <ItemDragRow
                           index={orderedItems.findIndex((row) => row.id === item.id)}
                           onMove={move}
                         >
                         <motion.div
                           layout
-                          className="flex w-full items-center gap-3 rounded-2xl border border-ink/6 bg-surface/45 p-2 text-left transition hover:border-ink/12 hover:bg-card"
+                          className={`flex w-full items-center gap-3 rounded-2xl border p-2 text-left transition ${
+                            bulk.selecting && bulk.selected.has(item.id)
+                              ? "border-accent/35 bg-accent-soft/50"
+                              : "border-ink/6 bg-surface/45 hover:border-ink/12 hover:bg-card"
+                          }`}
                         >
-                          <DragGrip label={`Reorder ${item.name}`} />
+                          {bulk.selecting ? (
+                            <SelectCheck checked={bulk.selected.has(item.id)} />
+                          ) : (
+                            <DragGrip label={`Reorder ${item.name}`} />
+                          )}
                           <button
                             type="button"
                             disabled={togglePending}
@@ -798,6 +844,7 @@ export function GroceriesView({
                           </button>
                         </motion.div>
                         </ItemDragRow>
+                        </SelectableRow>
                         )
                       ))}
                     </AnimatePresence>

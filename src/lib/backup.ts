@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ARCHIVE_TABLES } from "@/lib/archive-catalog";
+import { logger } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const BACKUP_TABLES = [
@@ -61,17 +62,20 @@ export async function writeScheduledBackup(userId: string) {
   return { ok: true as const, dump };
 }
 
-export async function writeExportBackup(supabase: SupabaseClient, userId: string) {
+export async function writeExportBackup(_supabase: SupabaseClient, userId: string) {
   const admin = createAdminClient();
   const dump = await dumpUserData(admin, userId);
-  const { error } = await supabase.from("internal_backups").insert({
+  // Persist with the service role so a member JWT / RLS miss cannot block the download.
+  const { error } = await admin.from("internal_backups").insert({
     user_id: userId,
     kind: "export",
     entity: "account",
     entity_id: userId,
     payload: dump,
   });
-  if (error) return { ok: false as const, message: error.message, dump };
+  if (error) {
+    logger.warn("backup", "Could not persist export snapshot", { message: error.message });
+  }
   return { ok: true as const, dump };
 }
 

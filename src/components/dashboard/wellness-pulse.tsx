@@ -37,18 +37,20 @@ export function WellnessPulseBar({
   ];
 
   return (
-    <div className="mb-4 grid grid-cols-3 gap-2">
+    <div className="chip-track mb-4 grid grid-cols-3 gap-1 p-1.5">
       {items.map((item) => (
         <Link
           key={item.key}
           href={item.href}
-          className={`rounded-2xl border px-3 py-2.5 text-center transition ${
+          className={`rounded-[1.05rem] px-3 py-2.5 text-center transition ${
             current === item.key
-              ? "border-accent/35 bg-accent-soft"
-              : "border-ink/8 bg-card hover:border-accent/25"
+              ? "bg-inverse text-inverse-fg shadow-[0_8px_16px_rgba(var(--shadow-color),.14)]"
+              : "text-ink hover:bg-card"
           }`}
         >
-          <p className="text-[10px] font-black uppercase tracking-wide text-muted">{item.label}</p>
+          <p className={`text-[10px] font-black uppercase tracking-wide ${current === item.key ? "text-inverse-fg/65" : "text-muted"}`}>
+            {item.label}
+          </p>
           <p className="mt-0.5 text-sm font-black">{item.value}</p>
         </Link>
       ))}

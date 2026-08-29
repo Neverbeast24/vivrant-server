@@ -9,6 +9,12 @@ export type GymLiveExtraMove = {
   restSeconds: number;
 };
 
+export type GymLiveMoveMeta = {
+  setsLabel: string;
+  rest: string;
+  restSeconds: number;
+};
+
 export type GymLiveSessionDraft = {
   plan_id: number;
   day_label: string;
@@ -18,6 +24,7 @@ export type GymLiveSessionDraft = {
   weights: Record<string, string>;
   extras: GymLiveExtraMove[];
   removed_keys: string[];
+  meta: Record<string, GymLiveMoveMeta>;
   started_at: number | null;
   rest_ends_at: number | null;
   rest_label: string | null;
@@ -53,6 +60,7 @@ export function emptyLiveSession(planId: number, dayLabel: string, date = todayS
     weights: {},
     extras: [],
     removed_keys: [],
+    meta: {},
     started_at: null,
     rest_ends_at: null,
     rest_label: null,
@@ -81,6 +89,29 @@ function asStringMap(raw: unknown, max = 80): Record<string, string> {
 function asStringList(raw: unknown, max = 40): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => String(item ?? "").slice(0, 80)).filter((item) => item.length > 0).slice(0, max);
+}
+
+function parseMeta(raw: unknown): Record<string, GymLiveMoveMeta> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, GymLiveMoveMeta> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!key || !value || typeof value !== "object") continue;
+    const row = value as Record<string, unknown>;
+    const setsLabel = String(row.setsLabel ?? row.sets_label ?? "").slice(0, 40);
+    const rest = String(row.rest ?? "").slice(0, 20);
+    if (!setsLabel && !rest) continue;
+    const restSeconds = Math.max(
+      0,
+      Math.min(10_800, Math.round(Number(row.restSeconds ?? row.rest_seconds ?? 0)) || 0),
+    );
+    out[key.slice(0, 40)] = {
+      setsLabel: setsLabel || "3 x 10",
+      rest: rest || "60s",
+      restSeconds,
+    };
+    if (Object.keys(out).length >= 40) break;
+  }
+  return out;
 }
 
 function parseExtras(raw: unknown): GymLiveExtraMove[] {
@@ -151,6 +182,7 @@ export function parseGymLiveSession(raw: unknown): GymLiveSessionDraft | null {
       });
   }
   const removed = asStringList(row.removed_keys ?? row.removedKeys);
+  const meta = parseMeta(row.meta);
   return {
     plan_id: planId,
     day_label: String(row.day_label ?? row.day ?? "").slice(0, 80),
@@ -160,6 +192,7 @@ export function parseGymLiveSession(raw: unknown): GymLiveSessionDraft | null {
     weights: asStringMap(row.weights, 40),
     extras,
     removed_keys: removed,
+    meta,
     started_at: Number.isFinite(started) && started && started > 0 ? started : null,
     rest_ends_at: Number.isFinite(restEnds) && restEnds && restEnds > 0 ? restEnds : null,
     rest_label: row.rest_label == null && row.restLabel == null ? null : String(row.rest_label ?? row.restLabel).slice(0, 80),
@@ -192,6 +225,9 @@ export function newerLiveSession(
 export function liveSessionHasProgress(draft: GymLiveSessionDraft | null) {
   if (!draft) return false;
   if (draft.started_at) return true;
+  if ((draft.extras ?? []).length) return true;
+  if ((draft.removed_keys ?? []).length) return true;
+  if (draft.meta && Object.keys(draft.meta).length) return true;
   return Object.values(draft.checks).some((row) => row.some(Boolean));
 }
 
@@ -205,6 +241,7 @@ export function serializeLiveSessionForDb(draft: GymLiveSessionDraft) {
     weights: draft.weights,
     extras: draft.extras ?? [],
     removed_keys: draft.removed_keys ?? [],
+    meta: draft.meta ?? {},
     started_at: draft.started_at ? new Date(draft.started_at).toISOString() : null,
     rest_ends_at: draft.rest_ends_at ? new Date(draft.rest_ends_at).toISOString() : null,
     rest_label: draft.rest_label,
