@@ -99,11 +99,11 @@ export function DashboardShell({
   }, [setCollapsed]);
 
   return (
-    <main className="h-dvh overflow-hidden p-2 sm:p-3">
+    <main className="h-dvh overflow-hidden p-0 sm:p-3">
       <IdleSessionGuard />
       <ThemeSync theme={theme} />
       <PushEnrollment enabled={pushEnabled} />
-      <div className="glass mx-auto flex h-full w-full overflow-hidden rounded-[1.75rem] border border-panel/70 shadow-[0_30px_90px_rgba(var(--shadow-color),.16)]">
+      <div className="glass mx-auto flex h-full w-full min-w-0 overflow-hidden rounded-none border-0 shadow-none sm:rounded-[1.75rem] sm:border sm:border-panel/70 sm:shadow-[0_30px_90px_rgba(var(--shadow-color),.16)]">
         <motion.aside
           animate={{ width: expanded ? 288 : 88 }}
           transition={{ type: "spring", stiffness: 320, damping: 30 }}
@@ -181,7 +181,7 @@ export function DashboardShell({
         </motion.aside>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-paper/65">
-          <header className="flex h-[4.6rem] shrink-0 items-center justify-between gap-3 border-b border-ink/6 bg-card/45 px-4 backdrop-blur-xl sm:px-6">
+          <header className="flex h-[4.6rem] shrink-0 items-center justify-between gap-2 border-b border-ink/6 bg-card/45 px-3 backdrop-blur-xl sm:gap-3 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <button type="button" onClick={() => setMobileOpen(true)} className="focus-ring grid size-10 place-items-center rounded-xl bg-card text-muted shadow-sm lg:hidden" aria-label="Open navigation">
                 <Menu size={18} />
@@ -194,7 +194,7 @@ export function DashboardShell({
               <Link
                 href="/dashboard/settings"
                 title="Your profile"
-                className="focus-ring ml-1 flex items-center gap-2 rounded-full bg-card py-1.5 pl-1.5 pr-3 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="focus-ring ml-1 flex items-center gap-2 rounded-full bg-card py-1.5 pl-1.5 pr-1.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:pr-3"
               >
                 <Avatar avatarUrl={avatarUrl} initials={initials} size={32} />
                 <span className="hidden max-w-28 truncate leading-tight sm:block">
@@ -249,7 +249,7 @@ export function DashboardShell({
           </AnimatePresence>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="mx-auto w-full max-w-[92rem] p-4 sm:p-6 lg:px-8 lg:py-7">
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="mx-auto w-full min-w-0 max-w-[92rem] overflow-x-hidden p-3 sm:p-6 lg:px-8 lg:py-7">
               {children}
             </motion.div>
           </div>

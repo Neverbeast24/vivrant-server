@@ -38,15 +38,21 @@ export function SwipeRemove({
   }
 
   return (
-    <div className={`relative overflow-hidden ${className}`}>
-      <div className="pointer-events-none absolute inset-y-0 left-0 flex w-20 items-center justify-center bg-ember/90 text-[11px] font-black text-white">
-        {action}
-      </div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-ember/90 text-[11px] font-black text-white">
+    <div className={`relative isolate overflow-hidden ${className}`}>
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-0 flex w-20 items-center justify-center bg-danger text-[11px] font-black text-white"
+        aria-hidden
+      >
         {action}
       </div>
       <div
-        className="relative touch-pan-y"
+        className="pointer-events-none absolute inset-y-0 right-0 z-0 flex w-20 items-center justify-center bg-danger text-[11px] font-black text-white"
+        aria-hidden
+      >
+        {action}
+      </div>
+      <div
+        className="relative z-10 w-full rounded-[inherit] bg-card touch-pan-y"
         style={{ transform: `translateX(${dx}px)`, transition: isDragging ? "none" : "transform 180ms ease" }}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
@@ -96,7 +102,9 @@ export function SwipeRemove({
       >
         {children}
       </div>
-      <span className="sr-only">Swipe {label} left or right to {action.toLowerCase()}</span>
+      <span className="sr-only">
+        Swipe {label} left or right to {action.toLowerCase()}
+      </span>
     </div>
   );
 }

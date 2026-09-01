@@ -160,11 +160,11 @@ export function AdminShell({
   }, [setCollapsed]);
 
   return (
-    <main className="h-dvh overflow-hidden p-2 sm:p-3">
+    <main className="h-dvh overflow-hidden p-0 sm:p-3">
       <IdleSessionGuard />
       <ThemeSync theme={theme} />
       <PushEnrollment enabled={pushEnabled} />
-      <div className="glass mx-auto flex h-full w-full overflow-hidden rounded-[1.75rem] border border-panel/70 shadow-[0_30px_90px_rgba(var(--shadow-color),.16)]">
+      <div className="glass mx-auto flex h-full w-full min-w-0 overflow-hidden rounded-none border-0 shadow-none sm:rounded-[1.75rem] sm:border sm:border-panel/70 sm:shadow-[0_30px_90px_rgba(var(--shadow-color),.16)]">
         <motion.aside
           animate={{ width: expanded ? 288 : 88 }}
           transition={{ type: "spring", stiffness: 320, damping: 30 }}
@@ -254,7 +254,7 @@ export function AdminShell({
           </AnimatePresence>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="mx-auto w-full max-w-[92rem] p-4 sm:p-6 lg:px-8 lg:py-7">
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="mx-auto w-full min-w-0 max-w-[92rem] overflow-x-hidden p-3 sm:p-6 lg:px-8 lg:py-7">
               {children}
             </motion.div>
           </div>

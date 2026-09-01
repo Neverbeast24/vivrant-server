@@ -233,8 +233,8 @@ export function Panel({
         hidden: { opacity: 0, y: 18 },
         show: { opacity: 1, y: 0 },
       }}
-      className={`relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-card/92 shadow-[inset_0_1px_0_var(--glass-inset),0_14px_32px_rgba(var(--shadow-color),.06)] ${
-        dense ? "p-4 sm:p-4" : "p-5 sm:p-6"
+      className={`relative overflow-visible rounded-[1.5rem] border border-ink/8 bg-card/92 shadow-[inset_0_1px_0_var(--glass-inset),0_14px_32px_rgba(var(--shadow-color),.06)] ${
+        dense ? "p-4 sm:p-4" : "p-4 sm:p-6"
       } ${className}`}
     >
       <span className="hairline" />

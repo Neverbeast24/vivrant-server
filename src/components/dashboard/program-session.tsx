@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Play, Plus, Repeat2, Timer, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, Plus, Repeat2, Timer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   clearGymLiveSessionAction,
@@ -14,7 +15,6 @@ import {
 } from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
-import { SwipeRemove } from "@/components/dashboard/swipe-remove";
 import {
   formatRestClock,
   formatGymMoveName,
@@ -202,6 +202,11 @@ export function ProgramSessionPanel({
   const syncTimer = useRef<number | null>(null);
   const alarmGuard = useRef(false);
   const router = useRouter();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const plan = plans.find((item) => item.id === planId) ?? plans[0] ?? null;
   const loadHint = {
@@ -796,9 +801,9 @@ export function ProgramSessionPanel({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Check off each set. Rest starts automatically from the program (skip anytime). Swipe a
-          move left or right to remove it. Close the tab anytime — your sets and rest timer come
-          back. Save when you are done.
+          Check off each set. Rest starts automatically from the program (skip anytime). Use the
+          trash icon to drop a move. Close the tab anytime — your sets and rest timer come back.
+          Save when you are done.
         </p>
         {restored && (
           <p className="mb-3 rounded-2xl border border-accent/20 bg-accent-soft/50 px-3.5 py-2 text-xs font-black text-accent">
@@ -900,7 +905,7 @@ export function ProgramSessionPanel({
           </div>
         )}
 
-        <div className="space-y-3">
+        <div className={`space-y-3 ${rest ? "max-sm:pb-20" : ""}`}>
           {items.map((item) => {
             const row = checks[item.key] ?? [];
             const complete = row.length > 0 && row.every(Boolean);
@@ -909,45 +914,53 @@ export function ProgramSessionPanel({
             const timed = parseTimedMinutes(setsLabel);
             const cardio = isCardioGymMove(displayName);
             return (
-              <SwipeRemove key={item.key} onRemove={() => removeMove(item)} label={displayName}>
-                <article
-                  className={`rounded-2xl border p-3 ${
-                    complete ? "border-accent/30 bg-accent-soft/40" : "border-ink/8 bg-surface/50"
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={complete}
-                      onClick={() => toggleExercise(item)}
-                      className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition ${
-                        complete
-                          ? "border-accent bg-accent text-accent-fg"
-                          : "border-ink/20 bg-card text-transparent hover:border-accent/50"
-                      }`}
-                      aria-label={`Mark ${displayName} complete`}
-                    >
-                      <Check size={14} strokeWidth={3} />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <div className="min-w-0 flex-1">
-                          <GymMovePicker
-                            value={displayName === "Extra move" ? "" : displayName}
-                            onChange={(name) => applyMoveName(item, name)}
-                            options={moveOptions}
-                            className="min-w-0 w-full rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
-                            placeholder="Search moves…"
-                            aria-label={item.key.startsWith("extra-") ? "Extra move name" : "Move name"}
-                          />
-                        </div>
-                        {item.kind === "addon" && (
-                          <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
-                            Extra
-                          </span>
-                        )}
+              <article
+                key={item.key}
+                className={`rounded-2xl border p-3 ${
+                  complete ? "border-accent/30 bg-accent-soft" : "border-ink/8 bg-card"
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={complete}
+                    onClick={() => toggleExercise(item)}
+                    className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition ${
+                      complete
+                        ? "border-accent bg-accent text-accent-fg"
+                        : "border-ink/20 bg-card text-transparent hover:border-accent/50"
+                    }`}
+                    aria-label={`Mark ${displayName} complete`}
+                  >
+                    <Check size={14} strokeWidth={3} />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-1">
+                      <div className="min-w-0 flex-1">
+                        <GymMovePicker
+                          value={displayName === "Extra move" ? "" : displayName}
+                          onChange={(name) => applyMoveName(item, name)}
+                          options={moveOptions}
+                          className="min-w-0 w-full rounded-lg border border-ink/10 bg-card px-2 py-1 text-sm font-black outline-none focus:border-accent/45"
+                          placeholder="Search moves…"
+                          aria-label={item.key.startsWith("extra-") ? "Extra move name" : "Move name"}
+                        />
                       </div>
+                      {item.kind === "addon" && (
+                        <span className="mt-1 shrink-0 rounded-full bg-surface px-2 py-0.5 text-[10px] font-black text-muted">
+                          Extra
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeMove(item)}
+                        className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-muted hover:bg-danger/15 hover:text-danger"
+                        aria-label={`Remove ${displayName}`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
                         <span>{setsLabel}</span>
                         <span aria-hidden>·</span>
@@ -962,7 +975,7 @@ export function ProgramSessionPanel({
                           placeholder={cardio ? "Pace" : "Weight"}
                           maxLength={40}
                           aria-label={`${displayName} ${cardio ? "pace" : "weight"}`}
-                          className="w-[7.5rem] rounded-lg border border-ink/10 bg-card px-2 py-0.5 text-xs font-semibold text-ink outline-none placeholder:text-muted focus:border-accent/45"
+                          className="w-24 max-w-full rounded-lg border border-ink/10 bg-card px-2 py-0.5 text-xs font-semibold text-ink outline-none placeholder:text-muted focus:border-accent/45 sm:w-[7.5rem]"
                         />
                         {item.restSeconds ? (
                           <>
@@ -1041,8 +1054,7 @@ export function ProgramSessionPanel({
                       )}
                     </div>
                   </div>
-                </article>
-              </SwipeRemove>
+              </article>
             );
           })}
         </div>
@@ -1065,16 +1077,19 @@ export function ProgramSessionPanel({
         </div>
       </Panel>
 
-      {rest && (
-        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-2xl bg-inverse px-4 py-3 text-inverse-fg shadow-lg sm:hidden">
-          <span className="inline-flex items-center gap-2 text-sm font-black">
-            <Timer size={16} /> {formatRestClock(restRemaining)}
-          </span>
-          <button type="button" onClick={skipRest} className="text-[11px] font-black">
-            Skip rest
-          </button>
-        </div>
-      )}
+      {mounted &&
+        rest &&
+        createPortal(
+          <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-2xl bg-inverse px-4 py-3 text-inverse-fg shadow-lg sm:hidden">
+            <span className="inline-flex items-center gap-2 text-sm font-black">
+              <Timer size={16} /> {formatRestClock(restRemaining)}
+            </span>
+            <button type="button" onClick={skipRest} className="text-[11px] font-black">
+              Skip rest
+            </button>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

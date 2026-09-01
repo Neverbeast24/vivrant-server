@@ -23,6 +23,8 @@ const bodyFont = Space_Grotesk({
 });
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   colorScheme: "dark light",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#eef4f0" },
