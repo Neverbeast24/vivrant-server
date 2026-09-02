@@ -77,7 +77,7 @@ export function TrainingHub({
       </Stagger>
 
       <div className="mt-4">
-        <ProgramSessionPanel plans={plans} compact moveOptions={exercises} bodyWeightKg={bodyWeightKg} />
+        <ProgramSessionPanel plans={plans} compact moveOptions={exercises} bodyWeightKg={bodyWeightKg} sessions={sessions} />
       </div>
 
       <Panel

@@ -49,6 +49,7 @@ export default async function MovementLogPage({ searchParams }: MovementLogPageP
       initialPlanId={Number(query.plan) || undefined}
       initialDayLabel={query.day?.trim() || undefined}
       bodyWeightKg={gym.scaling?.weight_kg ?? null}
+      sessions={gym.sessions}
     />
   );
 }

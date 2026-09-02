@@ -28,6 +28,7 @@ import {
   labelGymPlanDaysWithWeekdays,
   reminderDaysFromGymPlan,
   moveSavedPlanDay,
+  findMissedProgramDays,
 } from "./gym";
 
 describe("parseGymPlanDays", () => {
@@ -475,10 +476,47 @@ describe("summarizeTodaysProgram", () => {
     expect(summary?.title).toBe("Upper/Lower");
     expect(summary?.planCount).toBe(1);
     expect(summary?.today?.exercises.map((ex) => ex.name)).toEqual(["Press", "Row"]);
+    expect(summary?.missed).toBeNull();
   });
 
   it("returns null when there are no plans", () => {
     expect(summarizeTodaysProgram([])).toBeNull();
+  });
+});
+
+describe("findMissedProgramDays", () => {
+  const named = [
+    { day: "Monday · Push", focus: "Push", exercises: [{ name: "Press", sets: "3 x 10", rest: "60s" }] },
+    { day: "Wednesday · Pull", focus: "Pull", exercises: [{ name: "Row", sets: "3 x 10", rest: "60s" }] },
+  ];
+
+  it("flags Monday when Tuesday arrives with no gym log", () => {
+    const missed = findMissedProgramDays(named, [], {
+      date: new Date(2026, 7, 18, 12),
+    });
+    expect(missed[0]).toMatchObject({
+      day: "Monday · Push",
+      focus: "Push",
+      weekdayName: "Monday",
+    });
+  });
+
+  it("clears the skip when Monday was logged that day", () => {
+    const missed = findMissedProgramDays(
+      named,
+      [{ logged_at: new Date(2026, 7, 17, 19).toISOString(), title: "Monday · Push: Push" }],
+      { date: new Date(2026, 7, 18, 12) },
+    );
+    expect(missed).toEqual([]);
+  });
+
+  it("treats a Tuesday catch-up log as covering Monday", () => {
+    const missed = findMissedProgramDays(
+      named,
+      [{ logged_at: new Date(2026, 7, 18, 19).toISOString(), title: "Monday · Push: Push" }],
+      { date: new Date(2026, 7, 18, 20) },
+    );
+    expect(missed).toEqual([]);
   });
 });
 

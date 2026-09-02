@@ -15,6 +15,7 @@ import {
 } from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
+import { MachinePhotoDetect } from "@/components/dashboard/gym-machine-detect";
 import {
   formatRestClock,
   formatGymMoveName,
@@ -31,13 +32,17 @@ import {
   pickTodaysPlanDay,
   resolveSessionMoveWeight,
   resolveSessionPlanDay,
+  suggestGymMoveRest,
   toDemoEmbedSrc,
   trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
+  findMissedProgramDays,
+  isoWeekdayFromDate,
   type GymExercise,
   type GymMoveCatalogItem,
   type GymPlan,
   type GymPlanDay,
+  type GymSession,
 } from "@/lib/gym";
 import {
   GYM_LIVE_SESSION_KEY,
@@ -172,6 +177,7 @@ export function ProgramSessionPanel({
   initialDayLabel,
   moveOptions = [],
   bodyWeightKg = null,
+  sessions = [],
 }: {
   plans: GymPlan[];
   compact?: boolean;
@@ -180,6 +186,7 @@ export function ProgramSessionPanel({
   initialDayLabel?: string;
   moveOptions?: GymMoveCatalogItem[];
   bodyWeightKg?: number | null;
+  sessions?: Pick<GymSession, "logged_at" | "title">[];
 }) {
   const [planId, setPlanId] = useState(() => {
     if (initialPlanId && plans.some((item) => item.id === initialPlanId)) return initialPlanId;
@@ -199,6 +206,7 @@ export function ProgramSessionPanel({
   const [removedKeys, setRemovedKeys] = useState<string[]>([]);
   const [meta, setMeta] = useState<Record<string, MoveMeta>>({});
   const [demo, setDemo] = useState<GymExercise | null>(null);
+  const [catchUpDismissed, setCatchUpDismissed] = useState(false);
   const syncTimer = useRef<number | null>(null);
   const alarmGuard = useRef(false);
   const router = useRouter();
@@ -221,6 +229,15 @@ export function ProgramSessionPanel({
         trainingDays: plan.training_days,
       })
     : null;
+  const missedDay = plan
+    ? findMissedProgramDays(plan.days ?? [], sessions, { trainingDays: plan.training_days })[0] ?? null
+    : null;
+  const catchingUp = Boolean(
+    missedDay && sessionDay && missedDay.day === sessionDay.day && calendarToday?.day !== sessionDay.day,
+  );
+  const showCatchUp = Boolean(
+    allowDayPick && missedDay && !catchUpDismissed && (!sessionDay || missedDay.day !== sessionDay.day),
+  );
   const items = useMemo(() => {
     const base = [...(sessionDay ? buildItems(sessionDay) : []), ...extras].filter(
       (item) => !removedKeys.includes(item.key),
@@ -576,6 +593,34 @@ export function ProgramSessionPanel({
     setMeta((current) => ({ ...current, [key]: { setsLabel: "3 x 10", rest: "60s", restSeconds: 60 } }));
   }
 
+  function addDetectedExtra(exercise: GymExercise, sets: string) {
+    const key = `extra-${Date.now()}`;
+    const rest = suggestGymMoveRest(exercise.name, { equipment: exercise.equipment, catalog: moveOptions });
+    const restSeconds = parseRestSeconds(rest);
+    const setCount = Math.max(1, parseSetCount(sets));
+    const item: RunnerItem = {
+      key,
+      name: exercise.name,
+      originalName: exercise.name,
+      setsLabel: sets || "3 x 10",
+      rest,
+      restSeconds,
+      setCount,
+      kind: "addon",
+    };
+    setExtras((current) => [...current, item]);
+    setChecks((current) => ({
+      ...current,
+      [key]: Array.from({ length: setCount }, () => false),
+    }));
+    setNames((current) => ({ ...current, [key]: exercise.name }));
+    setWeights((current) => ({ ...current, [key]: "" }));
+    setMeta((current) => ({
+      ...current,
+      [key]: { setsLabel: item.setsLabel, rest, restSeconds },
+    }));
+  }
+
   function removeMove(item: RunnerItem) {
     setChecks((current) => {
       const next = { ...current };
@@ -664,9 +709,9 @@ export function ProgramSessionPanel({
     }
   }
 
-  function persistMove(toIso: number) {
-    if (!plan || !sessionDay) return;
-    const fromIndex = (plan.days ?? []).findIndex((item) => item.day === sessionDay.day);
+  function persistMove(toIso: number, fromLabel = sessionDay?.day) {
+    if (!plan || !fromLabel) return;
+    const fromIndex = (plan.days ?? []).findIndex((item) => item.day === fromLabel);
     if (fromIndex < 0) return;
     const days = moveSavedPlanDay(plan.days ?? [], fromIndex, toIso);
     const training = trainingDaysFromPlanDays(days);
@@ -691,6 +736,42 @@ export function ProgramSessionPanel({
       router.refresh();
     });
   }
+
+  const catchUpBanner = missedDay ? (
+    <div className="mb-3 rounded-2xl border border-accent/20 bg-accent-soft/60 px-3.5 py-3">
+      <p className="text-sm font-black text-ink">
+        Skipped {missedDay.weekdayName} · {humanizeGymLabel(missedDay.focus)}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-muted">
+        Use that workout today without changing your weekly plan. Or park it on today if you want the
+        calendar to follow.
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setDayLabel(missedDay.day)}
+          className="rounded-full bg-accent px-3 py-1.5 text-[11px] font-black text-accent-fg"
+        >
+          Use {missedDay.weekdayName} today
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => persistMove(isoWeekdayFromDate(), missedDay.day)}
+          className="rounded-full border border-ink/10 bg-card px-3 py-1.5 text-[11px] font-black text-ink"
+        >
+          Move {missedDay.weekdayName} here
+        </button>
+        <button
+          type="button"
+          onClick={() => setCatchUpDismissed(true)}
+          className="rounded-full px-3 py-1.5 text-[11px] font-black text-muted"
+        >
+          Keep today’s
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   function save() {
     if (!plan || !sessionDay) return;
@@ -760,6 +841,7 @@ export function ProgramSessionPanel({
             <p className="mb-3 text-sm text-muted">
               Rest day on the calendar — pick a saved day to train anyway.
             </p>
+            {showCatchUp ? catchUpBanner : null}
             <label className="block">
               <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted">
                 Start a saved day
@@ -801,10 +883,17 @@ export function ProgramSessionPanel({
         }
       >
         <p className="mb-3 text-sm leading-6 text-muted">
-          Check off each set. Rest starts automatically from the program (skip anytime). Use the
-          trash icon to drop a move. Close the tab anytime — your sets and rest timer come back.
-          Save when you are done.
+          Check off each set. Rest starts automatically from the program (skip anytime). Use − Set
+          if you need fewer rounds, or the trash icon to drop a move. Close the tab anytime — your
+          sets and rest timer come back. Save when you are done.
         </p>
+        {catchingUp && missedDay ? (
+          <p className="mb-3 rounded-2xl border border-accent/20 bg-accent-soft/50 px-3.5 py-2 text-xs font-black text-accent">
+            Catching up on {missedDay.weekdayName} · {humanizeGymLabel(missedDay.focus)} — weekly plan
+            stays as-is.
+          </p>
+        ) : null}
+        {showCatchUp ? catchUpBanner : null}
         {restored && (
           <p className="mb-3 rounded-2xl border border-accent/20 bg-accent-soft/50 px-3.5 py-2 text-xs font-black text-accent">
             Restored your in-progress workout.
@@ -1034,6 +1123,15 @@ export function ProgramSessionPanel({
                             ))}
                             <button
                               type="button"
+                              onClick={() => removeSet(item)}
+                              disabled={row.length <= 1}
+                              className="rounded-full border border-ink/10 bg-card px-2.5 py-1 text-[11px] font-black text-muted disabled:opacity-40"
+                              aria-label="Remove a set"
+                            >
+                              − Set
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => addSet(item)}
                               className="rounded-full border border-dashed border-accent/30 bg-card px-2.5 py-1 text-[11px] font-black text-accent"
                             >
@@ -1058,14 +1156,24 @@ export function ProgramSessionPanel({
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={addExtra}
-          className="mt-3 inline-flex items-center gap-1 text-[11px] font-black text-accent"
-        >
-          <Plus size={12} />
-          Add a move
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={addExtra}
+            className="inline-flex items-center gap-1 text-[11px] font-black text-accent"
+          >
+            <Plus size={12} />
+            Add a move
+          </button>
+        </div>
+        <div className="mt-2">
+          <MachinePhotoDetect
+            exercises={moveOptions.filter((item): item is GymExercise => "slug" in item)}
+            plans={plans}
+            compact
+            onAddToSession={addDetectedExtra}
+          />
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <PrimaryButton disabled={saving || doneCount === 0} onClick={save}>

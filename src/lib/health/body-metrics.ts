@@ -190,12 +190,14 @@ export function applyRoutineOverrides(
   };
 }
 
-const BAND_LABELS: Record<BmiBand, string> = {
+export const BMI_BAND_LABELS: Record<BmiBand, string> = {
   underweight: "Underweight",
   normal: "Normal",
   overweight: "Overweight",
   obese: "Obese",
 };
+
+const BAND_LABELS = BMI_BAND_LABELS;
 
 export function computeBmi(heightCm: number, weightKg: number) {
   if (!(heightCm > 0) || !(weightKg > 0)) return null;
@@ -207,6 +209,32 @@ export function bmiBand(bmi: number): BmiBand {
   if (bmi < 25) return "normal";
   if (bmi < 30) return "overweight";
   return "obese";
+}
+
+export type BmiSummary = {
+  bmi: number;
+  band: BmiBand;
+  band_label: string;
+  height_cm: number;
+  weight_kg: number;
+};
+
+/** Dashboard-ready BMI from profile height/weight. Null when either value is missing. */
+export function summarizeBmi(
+  heightCm: number | null | undefined,
+  weightKg: number | null | undefined,
+): BmiSummary | null {
+  if (heightCm == null || weightKg == null) return null;
+  const bmi = computeBmi(Number(heightCm), Number(weightKg));
+  if (bmi == null) return null;
+  const band = bmiBand(bmi);
+  return {
+    bmi: Number(bmi.toFixed(1)),
+    band,
+    band_label: BMI_BAND_LABELS[band],
+    height_cm: Number(heightCm),
+    weight_kg: Number(weightKg),
+  };
 }
 
 export function weightForBmi(heightCm: number, targetBmi: number) {

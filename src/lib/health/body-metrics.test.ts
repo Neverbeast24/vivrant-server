@@ -6,6 +6,7 @@ import {
   computeBmi,
   MAX_KNOWN_MACHINE_SLUGS,
   parseRoutineDefaults,
+  summarizeBmi,
   weightForBmi,
 } from "./body-metrics";
 
@@ -29,6 +30,18 @@ describe("bmiBand", () => {
     expect(bmiBand(22)).toBe("normal");
     expect(bmiBand(27)).toBe("overweight");
     expect(bmiBand(32)).toBe("obese");
+  });
+});
+
+describe("summarizeBmi", () => {
+  it("rounds BMI and labels the band", () => {
+    const summary = summarizeBmi(170, 68);
+    expect(summary).toMatchObject({ bmi: 23.5, band: "normal", band_label: "Normal" });
+  });
+
+  it("returns null when height or weight is missing", () => {
+    expect(summarizeBmi(null, 68)).toBeNull();
+    expect(summarizeBmi(170, undefined)).toBeNull();
   });
 });
 

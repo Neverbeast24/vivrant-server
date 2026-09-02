@@ -25,6 +25,7 @@ import { QuickCheckin } from "@/components/dashboard/quick-checkin";
 import { TodayDoNow, type TodayGrocery, type TodayHabit } from "@/components/dashboard/today-do-now";
 import { Bars, PageHeader, Panel, Progress, Stagger, StatCard } from "@/components/dashboard/ui";
 import { formatTrainingDaysLabel, humanizeGymLabel, type TodaysProgramSummary } from "@/lib/gym";
+import type { BmiSummary } from "@/lib/health/body-metrics";
 
 export type TodayData = {
   energy: number | null;
@@ -56,6 +57,7 @@ export type TodayData = {
   habits: TodayHabit[];
   groceries: TodayGrocery[];
   caloriesToday: number;
+  bmi: BmiSummary | null;
 };
 
 const DISMISS_KEY = "vivrant_getting_started_dismissed";
@@ -279,7 +281,17 @@ export function TodayView({ data }: { data: TodayData }) {
         </Panel>
       )}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Link
+          href="/dashboard/settings"
+          className="rounded-2xl border border-ink/8 bg-card/90 px-4 py-3 transition hover:border-accent/30"
+        >
+          <p className="text-[10px] font-black tracking-wider text-muted">BMI</p>
+          <p className="mt-1 text-lg font-black">{data.bmi ? data.bmi.bmi.toFixed(1) : "—"}</p>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {data.bmi ? data.bmi.band_label : "Add height & weight"}
+          </p>
+        </Link>
         <Link
           href="/dashboard/sleep"
           className="rounded-2xl border border-ink/8 bg-card/90 px-4 py-3 transition hover:border-accent/30"
@@ -327,7 +339,13 @@ export function TodayView({ data }: { data: TodayData }) {
       </div>
 
       <Link
-        href={data.program ? "/dashboard/movement/log" : "/dashboard/gym/plans"}
+        href={
+          data.program?.missed
+            ? `/dashboard/movement/log?day=${encodeURIComponent(data.program.missed.day)}`
+            : data.program
+              ? "/dashboard/movement/log"
+              : "/dashboard/gym/plans"
+        }
         className="mb-4 flex items-start gap-4 rounded-[1.4rem] border border-ink/8 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent">
@@ -359,6 +377,12 @@ export function TodayView({ data }: { data: TodayData }) {
                   recovery, or tap to log a walk.
                 </p>
               )}
+              {data.program.missed ? (
+                <p className="mt-2 text-sm font-semibold text-accent">
+                  Skipped {data.program.missed.weekdayName} · {humanizeGymLabel(data.program.missed.focus)}.
+                  Tap to use that workout today — your weekly plan stays as-is.
+                </p>
+              ) : null}
             </>
           ) : (
             <>

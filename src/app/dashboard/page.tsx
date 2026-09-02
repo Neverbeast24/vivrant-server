@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { TodayView, type TodayData } from "@/components/dashboard/today";
 import { requireUser } from "@/lib/auth/roles";
-import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan } from "@/lib/gym";
+import { hydrateGymPlan, summarizeTodaysProgram, type GymPlan, type GymSession } from "@/lib/gym";
 import { applyIdOrder, fetchListOrder } from "@/lib/reorder";
+import { summarizeBmi } from "@/lib/health/body-metrics";
 
 export const metadata: Metadata = {
   title: "Today",
@@ -75,9 +76,10 @@ export default async function DashboardPage() {
       .gte("logged_at", dayStart),
     supabase
       .from("gym_sessions")
-      .select("id", { count: "exact", head: true })
+      .select("id, logged_at, title")
       .eq("user_id", user.id)
-      .gte("logged_at", dayStart),
+      .order("logged_at", { ascending: false })
+      .limit(30),
     supabase
       .from("profiles")
       .select("daily_step_goal, daily_water_goal_ml, health_focus, height_cm, weight_kg")
@@ -186,9 +188,14 @@ export default async function DashboardPage() {
   );
   const isNewMember =
     (allCheckinsRes.count ?? 0) < 3 && (allMealsRes.count ?? 0) < 2;
+  const gymSessions = (gymRes.data ?? []) as Pick<GymSession, "id" | "logged_at" | "title">[];
+  const gymToday = gymSessions.filter((row) => row.logged_at >= dayStart).length;
   const program = summarizeTodaysProgram(
     ((plansRes.data ?? []) as GymPlan[]).map((row) => hydrateGymPlan(row)),
+    new Date(),
+    gymSessions,
   );
+  const bmi = summarizeBmi(profileRes.data?.height_cm, profileRes.data?.weight_kg);
 
   return (
     <TodayView
@@ -201,7 +208,7 @@ export default async function DashboardPage() {
         spendToday,
         mealsToday: meals.length,
         workoutsToday: workoutsRes.count ?? 0,
-        gymToday: gymRes.count ?? 0,
+        gymToday,
         weekEnergy,
         hasCheckin: Boolean(checkin),
         stepGoal: profileRes.data?.daily_step_goal ?? 8000,
@@ -235,6 +242,7 @@ export default async function DashboardPage() {
         habits: habitRows,
         groceries: applyIdOrder(groceryRes.data ?? [], listOrder.groceries).slice(0, 8),
         caloriesToday,
+        bmi,
       }}
     />
   );

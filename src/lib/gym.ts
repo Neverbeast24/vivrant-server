@@ -598,6 +598,82 @@ export function resolveSessionPlanDay(
   return null;
 }
 
+export type GymSessionStamp = {
+  logged_at: string;
+  title?: string | null;
+};
+
+export type MissedProgramDay = {
+  day: string;
+  focus: string;
+  weekdayIso: number | null;
+  weekdayName: string;
+  dateKey: string;
+};
+
+function localDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function shiftLocalDate(date: Date, days: number) {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function sessionCoversPlanDay(
+  session: GymSessionStamp,
+  planDay: GymPlanDay,
+  dateKey: string,
+): boolean {
+  const loggedAt = new Date(session.logged_at);
+  if (!Number.isNaN(loggedAt.getTime()) && localDateKey(loggedAt) === dateKey) return true;
+  const title = String(session.title ?? "")
+    .trim()
+    .toLowerCase();
+  const label = String(planDay.day ?? "")
+    .trim()
+    .toLowerCase();
+  return Boolean(label && title.startsWith(label));
+}
+
+/**
+ * Programmed sessions from the last few days that were never logged —
+ * including a Monday session completed on Tuesday (title still starts with Monday).
+ */
+export function findMissedProgramDays(
+  days: GymPlanDay[],
+  sessions: GymSessionStamp[],
+  options?: { date?: Date; trainingDays?: number[]; lookbackDays?: number },
+): MissedProgramDay[] {
+  if (!days.length) return [];
+  const now = options?.date ?? new Date();
+  const lookback = Math.min(14, Math.max(1, options?.lookbackDays ?? 6));
+  const missed: MissedProgramDay[] = [];
+  for (let offset = 1; offset <= lookback; offset += 1) {
+    const past = shiftLocalDate(now, -offset);
+    const planDay = pickTodaysPlanDay(days, past, options?.trainingDays);
+    if (!planDay) continue;
+    const key = localDateKey(past);
+    if (sessions.some((session) => sessionCoversPlanDay(session, planDay, key))) {
+      break;
+    }
+    const iso = weekdayIsoFromLabel(planDay.day) ?? isoWeekdayFromDate(past);
+    const weekday = GYM_WEEKDAYS.find((item) => item.iso === iso);
+    missed.push({
+      day: planDay.day,
+      focus: planDay.focus,
+      weekdayIso: iso,
+      weekdayName: weekday?.full ?? planDay.day,
+      dateKey: key,
+    });
+  }
+  return missed;
+}
+
 export type TodaysProgramSummary = {
   title: string;
   focus: string;
@@ -610,11 +686,13 @@ export type TodaysProgramSummary = {
     exercises: { name: string; sets: string }[];
   } | null;
   nextSession: string | null;
+  missed: MissedProgramDay | null;
 };
 
 export function summarizeTodaysProgram(
   plans: Array<Pick<GymPlan, "title" | "focus" | "days_per_week" | "days" | "training_days">>,
   date = new Date(),
+  sessions: GymSessionStamp[] = [],
 ): TodaysProgramSummary | null {
   if (!plans.length) return null;
   const plan = plans[0];
@@ -624,6 +702,10 @@ export function summarizeTodaysProgram(
     days_per_week: plan.days_per_week,
   });
   const day = pickTodaysPlanDay(plan.days ?? [], date, trainingDays);
+  const missed = findMissedProgramDays(plan.days ?? [], sessions, {
+    date,
+    trainingDays,
+  })[0] ?? null;
   return {
     title: plan.title,
     focus: plan.focus,
@@ -641,6 +723,7 @@ export function summarizeTodaysProgram(
         }
       : null,
     nextSession: day ? null : nextTrainingDayHint(trainingDays, date),
+    missed,
   };
 }
 

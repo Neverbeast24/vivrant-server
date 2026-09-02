@@ -44,6 +44,14 @@ import { ModuleSubNav } from "@/components/dashboard/module-subnav";
 import { ShareExportMenu } from "@/components/dashboard/share-export-menu";
 import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { mealsDoc } from "@/lib/share-export";
+import {
+  nextMealSuggestions,
+  QUICK_MEALS,
+  scaleMacros,
+  suggestedMealType,
+  type PortionSize,
+  type QuickMeal,
+} from "@/lib/nutrition/suggestions";
 
 type Meal = {
   id: number;
@@ -56,97 +64,11 @@ type Meal = {
   logged_at: string;
 };
 
-type PortionSize = "small" | "typical" | "large";
-
-type QuickMeal = {
-  name: string;
-  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  hint: string;
-};
-
 const nutritionSubNav = [
   { href: "/dashboard/nutrition", label: "Overview" },
   { href: "/dashboard/nutrition/log", label: "Log meal" },
   { href: "/dashboard/nutrition/sheet", label: "Sheet" },
 ] as const;
-
-const PORTION_SCALE: Record<PortionSize, number> = {
-  small: 0.75,
-  typical: 1,
-  large: 1.35,
-};
-
-/** Ready-made estimates so users never need a scale or label. */
-const QUICK_MEALS: QuickMeal[] = [
-  {
-    name: "Eggs & toast",
-    meal_type: "breakfast",
-    calories: 350,
-    protein_g: 18,
-    carbs_g: 30,
-    fat_g: 16,
-    hint: "2 eggs + 1–2 toast",
-  },
-  {
-    name: "Oatmeal & fruit",
-    meal_type: "breakfast",
-    calories: 320,
-    protein_g: 10,
-    carbs_g: 55,
-    fat_g: 6,
-    hint: "1 bowl",
-  },
-  {
-    name: "Chicken rice bowl",
-    meal_type: "lunch",
-    calories: 550,
-    protein_g: 35,
-    carbs_g: 55,
-    fat_g: 15,
-    hint: "palm protein + fist rice",
-  },
-  {
-    name: "Salad with protein",
-    meal_type: "lunch",
-    calories: 380,
-    protein_g: 30,
-    carbs_g: 18,
-    fat_g: 18,
-    hint: "big bowl + chicken/tofu",
-  },
-  {
-    name: "Fish & veggies",
-    meal_type: "dinner",
-    calories: 420,
-    protein_g: 32,
-    carbs_g: 20,
-    fat_g: 18,
-    hint: "palm fish + veggies",
-  },
-  {
-    name: "Protein snack",
-    meal_type: "snack",
-    calories: 200,
-    protein_g: 15,
-    carbs_g: 12,
-    fat_g: 8,
-    hint: "yogurt, shake, or nuts",
-  },
-];
-
-function scaleMacros(meal: QuickMeal, portion: PortionSize) {
-  const scale = PORTION_SCALE[portion];
-  return {
-    calories: Math.round(meal.calories * scale),
-    protein_g: Math.round(meal.protein_g * scale * 10) / 10,
-    carbs_g: Math.round(meal.carbs_g * scale * 10) / 10,
-    fat_g: Math.round(meal.fat_g * scale * 10) / 10,
-  };
-}
 
 type PantryChip = {
   id: number;
@@ -200,6 +122,8 @@ export function NutritionView({
   const waterGoal = waterGoalMl / 1000;
   const proteinGoal = 80;
   const calorieGoal = 2000;
+  const nextSuggestions = nextMealSuggestions(meals.map((meal) => meal.meal_type));
+  const nextSlot = suggestedMealType();
   const dietScore = Math.min(
     100,
     Math.round(
@@ -256,6 +180,18 @@ export function NutritionView({
     setEstimateSource("quick");
     setReason(null);
     if (announce) toast.success("Approx macros filled — review and log.");
+  }
+
+  function quickLog(meal: QuickMeal) {
+    const scaled = scaleMacros(meal, "typical");
+    const fd = new FormData();
+    fd.set("meal_name", meal.name);
+    fd.set("meal_type", meal.meal_type);
+    fd.set("calories", String(scaled.calories));
+    fd.set("protein_g", String(scaled.protein_g));
+    fd.set("carbs_g", String(scaled.carbs_g));
+    fd.set("fat_g", String(scaled.fat_g));
+    submit(fd);
   }
 
   function choosePortion(next: PortionSize) {
@@ -681,6 +617,44 @@ export function NutritionView({
               tone="warn"
             />
           </div>
+
+          <Panel
+            title={`Suggested ${nextSlot}`}
+            className="mt-4"
+            right={
+              <Link
+                href="/dashboard/nutrition/log?suggest=1"
+                className="inline-flex items-center gap-1 text-[11px] font-black text-accent"
+              >
+                <Sparkles size={12} />
+                AI meal idea
+              </Link>
+            }
+          >
+            <p className="mb-3 text-xs text-muted">
+              One tap logs a typical portion. Open log meal to tweak size, pantry, or a photo.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {nextSuggestions.map((meal) => {
+                const scaled = scaleMacros(meal, "typical");
+                return (
+                  <button
+                    key={meal.name}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => quickLog(meal)}
+                    className="focus-ring rounded-2xl border border-ink/8 bg-card/80 px-3.5 py-3 text-left transition hover:border-accent/25 hover:bg-panel"
+                  >
+                    <span className="block text-sm font-black text-ink">{meal.name}</span>
+                    <span className="mt-0.5 block text-[11px] text-muted">{meal.hint}</span>
+                    <span className="mt-2 block text-[11px] font-bold text-accent">
+                      ~{scaled.calories} kcal · ~{scaled.protein_g}g protein
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Panel>
 
           <Panel
             title="Logged meals"

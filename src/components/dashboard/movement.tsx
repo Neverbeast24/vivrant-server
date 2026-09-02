@@ -32,7 +32,7 @@ import { useModuleAction } from "@/components/dashboard/use-module-action";
 import { movementWorkoutsDoc } from "@/lib/share-export";
 import { trainingSubNav } from "@/lib/nav";
 import { ProgramSessionPanel } from "@/components/dashboard/program-session";
-import type { GymExercise, GymPlan } from "@/lib/gym";
+import type { GymExercise, GymPlan, GymSession } from "@/lib/gym";
 
 type Workout = {
   id: number;
@@ -52,6 +52,7 @@ export function MovementView({
   initialPlanId,
   initialDayLabel,
   bodyWeightKg = null,
+  sessions = [],
 }: {
   workouts: Workout[];
   steps?: number;
@@ -62,6 +63,7 @@ export function MovementView({
   initialPlanId?: number;
   initialDayLabel?: string;
   bodyWeightKg?: number | null;
+  sessions?: GymSession[];
 }) {
   const { pending, submit } = useModuleAction(logWorkout);
   const [deleting, startDelete] = useTransition();
@@ -130,6 +132,7 @@ export function MovementView({
           initialDayLabel={initialDayLabel}
           moveOptions={exercises}
           bodyWeightKg={bodyWeightKg}
+          sessions={sessions}
         />
       )}
 
