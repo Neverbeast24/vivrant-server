@@ -15,7 +15,6 @@ import {
 } from "@/app/dashboard/gym/actions";
 import { EmptyState, Panel, PrimaryButton } from "@/components/dashboard/ui";
 import { GymMovePicker } from "@/components/dashboard/gym-move-picker";
-import { MachinePhotoDetect } from "@/components/dashboard/gym-machine-detect";
 import {
   formatRestClock,
   formatGymMoveName,
@@ -32,7 +31,6 @@ import {
   pickTodaysPlanDay,
   resolveSessionMoveWeight,
   resolveSessionPlanDay,
-  suggestGymMoveRest,
   toDemoEmbedSrc,
   trainingDaysFromPlanDays,
   weekdayIsoFromLabel,
@@ -593,34 +591,6 @@ export function ProgramSessionPanel({
     setMeta((current) => ({ ...current, [key]: { setsLabel: "3 x 10", rest: "60s", restSeconds: 60 } }));
   }
 
-  function addDetectedExtra(exercise: GymExercise, sets: string) {
-    const key = `extra-${Date.now()}`;
-    const rest = suggestGymMoveRest(exercise.name, { equipment: exercise.equipment, catalog: moveOptions });
-    const restSeconds = parseRestSeconds(rest);
-    const setCount = Math.max(1, parseSetCount(sets));
-    const item: RunnerItem = {
-      key,
-      name: exercise.name,
-      originalName: exercise.name,
-      setsLabel: sets || "3 x 10",
-      rest,
-      restSeconds,
-      setCount,
-      kind: "addon",
-    };
-    setExtras((current) => [...current, item]);
-    setChecks((current) => ({
-      ...current,
-      [key]: Array.from({ length: setCount }, () => false),
-    }));
-    setNames((current) => ({ ...current, [key]: exercise.name }));
-    setWeights((current) => ({ ...current, [key]: "" }));
-    setMeta((current) => ({
-      ...current,
-      [key]: { setsLabel: item.setsLabel, rest, restSeconds },
-    }));
-  }
-
   function removeMove(item: RunnerItem) {
     setChecks((current) => {
       const next = { ...current };
@@ -1165,14 +1135,6 @@ export function ProgramSessionPanel({
             <Plus size={12} />
             Add a move
           </button>
-        </div>
-        <div className="mt-2">
-          <MachinePhotoDetect
-            exercises={moveOptions.filter((item): item is GymExercise => "slug" in item)}
-            plans={plans}
-            compact
-            onAddToSession={addDetectedExtra}
-          />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
