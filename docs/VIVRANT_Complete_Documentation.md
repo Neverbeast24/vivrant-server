@@ -183,6 +183,7 @@ Gym extras that sync across clients:
 - **AI program builder** with drafts (`gym_program_drafts`) — cherry-pick days, then commit
 - **Live session restore** (`gym_live_sessions`) — checks, rest timer, plan/day
 - **AI machine recommendations**
+- **Photo machine detector** — snap gym equipment, match the catalog, then add it to today, a program day, or known machines
 - Reminder sync from the active gym plan (`POST /api/mobile/ai/reminders/sync-gym-plan`)
 
 Activity types: `walk | run | strength | cycle | yoga | other`.  
@@ -435,7 +436,7 @@ All require Bearer (or cookie fallback). Success: `{ "ok": true, … }`. Errors:
 `GET/POST /movement/workouts` · `PATCH/DELETE /movement/workouts/:id` · `POST /movement/suggest`
 
 **Gym**  
-`GET /gym` · `GET /gym/exercises` · `GET/POST /gym/sessions` · `PATCH/DELETE /gym/sessions/:id` · `GET/PUT/DELETE /gym/sessions/live` · `GET /gym/plans` · `PATCH/DELETE /gym/plans/:id` · `POST /gym/plans/ai` · `GET/PUT/POST/DELETE /gym/plans/draft` · `POST /gym/plans/draft/commit` · `POST /gym/machines/recommend`
+`GET /gym` · `GET /gym/exercises` · `GET/POST /gym/sessions` · `PATCH/DELETE /gym/sessions/:id` · `GET/PUT/DELETE /gym/sessions/live` · `GET /gym/plans` · `PATCH/DELETE /gym/plans/:id` · `POST /gym/plans/ai` · `GET/PUT/POST/DELETE /gym/plans/draft` · `POST /gym/plans/draft/commit` · `POST /gym/machines/recommend` · `POST /gym/machines/identify`
 
 **Wellness**  
 `POST /sleep` · `POST /sleep/coach` · `POST /hydration` · `POST /hydration/reminders` · `POST /mindfulness/mood` · `POST /mindfulness/coach`

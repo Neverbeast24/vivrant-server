@@ -944,6 +944,52 @@ ${context}`);
   };
 }
 
+export type MachineDetectionRaw = {
+  found?: boolean;
+  machine?: string;
+  demo_slug?: string | null;
+  confidence?: number;
+  why?: string;
+  how_to_use?: string;
+  sets?: string;
+  muscle_group?: string;
+  notes?: string;
+  alternatives?: Array<{ machine?: string; demo_slug?: string | null; why?: string }>;
+};
+
+/** Identify a gym machine from a member photo and map it onto the catalog. */
+export async function identifyGymMachineFromPhoto(
+  image: MealImageInput,
+  machineCatalog: string,
+  context: string,
+): Promise<MachineDetectionRaw> {
+  return generateJson<MachineDetectionRaw>(
+    `Identify the gym machine in the attached photo. Match it to ONE catalog entry when possible.
+Read any labels, seat pads, lever arms, cable stacks, and foot platforms. Distinguish close cousins:
+leg extension vs leg curl, chest press vs pec deck, lat pulldown vs seated row, hack squat vs leg press.
+If the photo is not gym equipment, or the machine is too unclear, set found=false.
+Return JSON:
+- "found": boolean
+- "machine": catalog name when matched, else a short guess
+- "demo_slug": catalog slug when matched, else null
+- "confidence": integer 0–100
+- "why": one sentence on what you saw
+- "how_to_use": one short coaching cue (empty if found=false)
+- "sets": like "3 x 12" or "10 minutes steady" (empty if found=false)
+- "muscle_group": catalog muscle when known
+- "notes": optional extra cue
+- "alternatives": up to 3 close catalog matches:
+  { "machine", "demo_slug", "why" }
+
+MACHINE CATALOG (name | slug | muscle | equipment | difficulty):
+${machineCatalog}
+
+USER CONTEXT:
+${context}`,
+    image,
+  );
+}
+
 export async function draftReminder(context: string): Promise<InsightPayload> {
   const parsed = await generateJson<Partial<InsightPayload>>(`Draft ONE short push-notification style reminder for this user today.
 Personalize with bmi_details / routine_scaling when useful (e.g. protein check-in, gentle walk, strength day) — avoid generic copy.

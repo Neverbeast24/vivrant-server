@@ -76,3 +76,29 @@ export function resolveUploadedImageMime(
 
 export const AVATAR_MAX_BYTES = 4 * 1024 * 1024;
 export const MEAL_PHOTO_MAX_BYTES = 4 * 1024 * 1024;
+export const MACHINE_PHOTO_MAX_BYTES = MEAL_PHOTO_MAX_BYTES;
+
+export type UploadedImage = {
+  mimeType: string;
+  base64: string;
+};
+
+/** Read a JPG/PNG/WEBP/GIF upload for Gemini vision (meals, machines). */
+export async function readUploadedImageFile(
+  file: File,
+  options?: { maxBytes?: number; tooLargeMessage?: string },
+): Promise<UploadedImage> {
+  const maxBytes = options?.maxBytes ?? MEAL_PHOTO_MAX_BYTES;
+  if (file.size > maxBytes) {
+    throw new Error(options?.tooLargeMessage ?? "Photo must be under 4MB.");
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mime = resolveUploadedImageMime(file, buffer);
+  if (!mime) {
+    throw new Error(imageUploadError(file));
+  }
+  return {
+    mimeType: mime,
+    base64: buffer.toString("base64"),
+  };
+}

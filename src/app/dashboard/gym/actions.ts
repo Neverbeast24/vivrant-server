@@ -5,7 +5,7 @@ import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
 import { archiveGymPlan, archiveRecord } from "@/lib/archive";
 import { buildUserContext } from "@/lib/ai/context";
-import { recommendGymMachines } from "@/lib/ai/gemini";
+import { identifyGymMachineFromPhoto, recommendGymMachines } from "@/lib/ai/gemini";
 import type { GymPlanPrefs } from "@/lib/health/body-metrics";
 import { gymSessionFocusFromPlan } from "@/lib/gym";
 import {
@@ -26,6 +26,15 @@ import {
   updateSavedGymPlan,
 } from "@/lib/gym-plan-generate";
 import { createClient } from "@/lib/supabase/server";
+import {
+  formatMachineCatalogForAi,
+  sanitizeMachineDetection,
+  type MachineCatalogRow,
+} from "@/lib/gym-machine-detect";
+import {
+  MACHINE_PHOTO_MAX_BYTES,
+  readUploadedImageFile,
+} from "@/lib/uploads";
 
 const sessionExerciseSchema = z.object({
   name: z.string().trim().min(1).max(160),
@@ -404,6 +413,77 @@ export async function recommendMachinesWithAi() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not recommend machines.";
+    return { ok: false, message };
+  }
+}
+
+async function loadMachineCatalog(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase
+    .from("gym_exercises")
+    .select("slug, name, muscle_group, equipment, difficulty, cues")
+    .in("equipment", ["machine", "cable", "cardio_machine"])
+    .order("name");
+  return (data ?? []) as MachineCatalogRow[];
+}
+
+export async function identifyMachineFromPhoto(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Not signed in." };
+
+  const file = formData.get("photo") ?? formData.get("image") ?? formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Attach a photo of the machine first." };
+  }
+
+  let image: Awaited<ReturnType<typeof readUploadedImageFile>>;
+  try {
+    image = await readUploadedImageFile(file, {
+      maxBytes: MACHINE_PHOTO_MAX_BYTES,
+      tooLargeMessage: "Machine photo must be under 4MB.",
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Could not read that photo.",
+    };
+  }
+
+  try {
+    const [machines, context] = await Promise.all([
+      loadMachineCatalog(supabase),
+      buildUserContext(user.id),
+    ]);
+    const catalog =
+      formatMachineCatalogForAi(machines) ||
+      "Leg press machine | leg-press | legs | machine | beginner\nLat pulldown machine | lat-pulldown | back | machine | beginner";
+    const raw = await identifyGymMachineFromPhoto(image, catalog, context);
+    const detection = sanitizeMachineDetection(raw, machines);
+    const matched = machines.find((row) => row.slug === detection.demo_slug) ?? null;
+
+    await writeAuditLog({
+      action: "gym_machine_identified",
+      entity: "gym_exercises",
+      metadata: {
+        found: detection.found,
+        slug: detection.demo_slug,
+        confidence: detection.confidence,
+      },
+    });
+
+    return {
+      ok: true,
+      message: detection.found
+        ? `Looks like ${detection.machine}.`
+        : "Could not match that photo to a catalog machine.",
+      detection,
+      exercise: matched,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not identify that machine.";
     return { ok: false, message };
   }
 }

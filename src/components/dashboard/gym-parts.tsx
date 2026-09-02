@@ -71,6 +71,7 @@ import {
 import { GymProgramBuilder } from "@/components/dashboard/gym-program-builder";
 import { SavedGymPlanEditor } from "@/components/dashboard/gym-plan-editor";
 import { GymSavedDayCard } from "@/components/dashboard/gym-saved-day-card";
+import { MachinePhotoDetect } from "@/components/dashboard/gym-machine-detect";
 import {
   enrichGymPlanDays,
   findExerciseMatch,
@@ -669,9 +670,14 @@ export function GymMachinesView({
         }
       />
       <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
-        Watch demos for gym machines, or get a short list picked for you.
+        Watch demos for gym machines, snap the machine in front of you, or get a short list picked for you.
       </p>
       <ModuleSubNav items={trainingSubNav} />
+      <MachinePhotoDetect
+        exercises={machines}
+        plans={plans}
+        onWatchDemo={setActiveDemo}
+      />
       <TodaysProgramMoves
         plans={plans}
         exercises={exercises}
@@ -1447,6 +1453,15 @@ export function GymPlansView({
             Machine demos
           </Link>
         </p>
+        <div className="mb-3">
+          <MachinePhotoDetect
+            exercises={machines}
+            plans={displayPlans}
+            compact
+            onWatchDemo={setActiveDemo}
+            onMarkedKnown={(slug) => persistKnownMachines([...knownMachineSlugs, slug])}
+          />
+        </div>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-black text-accent">
             {knownSelectedCount} selected
