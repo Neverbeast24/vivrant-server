@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 function getServerConfig() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,6 +41,18 @@ export function createAdminClient() {
       persistSession: false,
     },
   });
+}
+
+/**
+ * Writes after the caller has already verified `userId`.
+ * Used when member RLS is missing or blocks soft-delete (deleted_at).
+ */
+export function ownedTableWriter(fallback: SupabaseClient): SupabaseClient {
+  try {
+    return createAdminClient();
+  } catch {
+    return fallback;
+  }
 }
 
 export { getServerConfig };

@@ -9,7 +9,7 @@ import {
   titleFromRow,
   type ArchiveTable,
 } from "@/lib/archive-catalog";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, ownedTableWriter } from "@/lib/supabase/admin";
 
 export {
   ARCHIVE_LABELS,
@@ -84,7 +84,7 @@ async function snapshotBackup(
     row: Row;
   },
 ) {
-  await supabase.from("internal_backups").insert({
+  await ownedTableWriter(supabase).from("internal_backups").insert({
     user_id: input.userId,
     kind: "archive",
     entity: input.table,
@@ -109,7 +109,8 @@ export async function archiveRecord(
   if (!loaded.row) return { ok: false, message: loaded.message ?? "Not found." };
 
   const title = titleFromRow(input.table, loaded.row);
-  const { error: archiveError } = await supabase.from("archived_records").insert({
+  const writer = ownedTableWriter(supabase);
+  const { error: archiveError } = await writer.from("archived_records").insert({
     user_id: input.userId,
     entity: input.table,
     entity_id: String(input.id),
@@ -130,7 +131,7 @@ export async function archiveRecord(
     row: loaded.row,
   });
 
-  const { error } = await supabase
+  const { error } = await writer
     .from(input.table)
     .update(softDeleteFields(input.table))
     .eq("id", input.id)
@@ -217,7 +218,7 @@ export async function quietSoftDelete(
     match: Record<string, string | number | boolean>;
   },
 ): Promise<ArchiveResult> {
-  let query = supabase
+  let query = ownedTableWriter(supabase)
     .from(input.table)
     .update(softDeleteFields(input.table))
     .eq("user_id", input.userId);
